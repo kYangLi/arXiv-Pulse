@@ -209,7 +209,7 @@ pulse stat [目录路径]
 6. **同步配置** - 回溯年数、重要论文追踪
 7. **日志配置** - 输出级别、爬虫延迟
 
-**详细配置说明请参考项目根目录下的 `.ENV.TEMPLATE` 文件，其中包含完整的配置项列表、默认值和详细注释。**
+**详细配置说明请参考 `arxiv_pulse/.ENV.TEMPLATE` 文件，其中包含完整的配置项列表、默认值和详细注释。**
 
 **使用建议：**
 - 首次使用建议运行 `pulse init .` 通过交互式配置向导自动生成优化配置
@@ -271,13 +271,13 @@ arxiv_pulse/                    # Python 包源码
 ├── output_manager.py          # 统一输出管理
 ├── report_generator.py        # 报告生成器
 ├── search_engine.py           # 增强搜索引擎
-└── summarizer.py              # 论文总结器
+├── summarizer.py              # 论文总结器
+└── .ENV.TEMPLATE              # 环境配置模板文件
 
  项目根目录/
 ├── pyproject.toml             # 包配置和依赖
 ├── README.md                  # 本文档
 ├── LICENSE                    # GPL-3.0 许可证
-├── .ENV.TEMPLATE              # 环境配置模板文件
 └── .gitignore                 # Git 忽略文件
 
 工作目录（用户使用）/
@@ -407,68 +407,7 @@ ls -la logs/
 tail -f logs/summarizer.log
 ```
 
-## 📋 更新日志
 
-### v0.6.0 (2026-02-03)
-
-**重要功能增强和配置优化：**
-
-1. **arXiv API 限制优化**：
-   - 修正错误的 "arXiv API 限制为 1000 篇" 假设
-   - 将 `ARXIV_MAX_RESULTS` 默认值从 1000 提升到 30000（arXiv API 官方最大值）
-   - 支持一次性获取 7000+ 篇论文，满足大规模文献收集需求
-
-2. **配置系统重构**：
-   - 明确区分 `MAX_RESULTS_INITIAL`（业务逻辑限制）和 `ARXIV_MAX_RESULTS`（技术 API 限制）
-   - 优化配置优先级：`min(MAX_RESULTS_INITIAL, ARXIV_MAX_RESULTS, 30000)`
-   - 更新所有配置文件模板和文档说明
-
-3. **代码质量改进**：
-   - 修复 LSP 导入警告和类型错误
-   - 增强配置文件的一致性和可维护性
-   - 更新依赖版本和开发环境配置
-
-4. **文档系统化整理**：
-   - 重新组织 README 结构，突出核心功能和配置说明
-   - 添加详细的配置项解释和使用场景说明
-   - 优化命令参考表格，提升可读性
-
-### v0.5.3 (2026-02-03)
-
-**重要修复和改进：**
-
-1. **弃用警告修复**：
-   - 修复 Python 3.12+ 中 `datetime.utcnow()` 弃用问题
-   - 替换为 `datetime.now(timezone.utc).replace(tzinfo=None)`
-   - 更新所有相关文件：`search_engine.py`, `cli.py`, `report_generator.py`, `models.py`
-
-2. **横幅显示优化**：
-   - 使用 `wcwidth` 库精确计算中文字符显示宽度
-   - 实现智能截断功能，长字段自动添加省略号
-   - 确保边框完美对齐，提升视觉体验
-
-3. **搜索算法改进**：
-   - 简化三层匹配策略：短语匹配 → 顺序匹配 → 单词AND匹配
-   - 修复多单词查询逻辑错误（OR改为AND逻辑）
-   - 限制搜索字段为 `["title", "abstract"]`，提高准确性
-
-4. **代码质量提升**：
-   - 修复 `cli.py` 中的缩进错误
-   - 更新版本信息元数据
-   - 重新安装包确保一致性
-
-5. **日志系统改进**：
-   - 添加 `LOG_LEVEL` 环境变量控制输出级别：`DEBUG`、`INFO`、`WARNING`、`ERROR`
-   - 添加全局 `--verbose` 选项显示详细调试信息
-   - 默认隐藏调试信息（如 `Paper XXXX already exists in database`）
-   - 修复 `output_manager.py` 类型错误，增强稳定性
-
-### v0.5.0 (2025-02-03)
-
-- 交互式配置向导，支持 30+ 研究领域选择
-- 智能建议：基于选择领域数量自动推荐优化配置
-- 工作日计算：时间范围排除周六和周日
-- 通用 AI API：支持所有 OpenAI 兼容服务（DeepSeek、Paratera AI 等）
 
 ## 📄 许可证
 
