@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=80", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arxiv-pulse"
+version = "0.5.0"
+authors = [
+    {name = "Yang Li", email = "lyang.1915@gmail.com"},
+]
+description = "An intelligent arXiv literature crawler and analyzer for physics research"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+keywords = [
+    "arXiv", "literature", "crawler", "physics", "materials science", "machine learning",
+    "density functional theory", "force fields", "condensed matter physics"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+requires-python = ">=3.12"
+dependencies = [
+    "arxiv>=2.1.3",
+    "requests>=2.32.3",
+    "beautifulsoup4>=4.13.3",
+    "pandas>=2.2.3",
+    "sqlalchemy>=2.0.36",
+    "schedule>=1.2.2",
+    "python-dotenv>=1.0.1",
+    "openai>=1.70.0",
+    "tqdm>=4.67.1",
+    "markdown>=3.7",
+    "click>=8.1.0",
+    "aiohttp>=3.9.5",
+    "aiosqlite>=0.20.0",
+    "questionary>=2.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/kYangLi/ArXiv-Pulse"
+Repository = "https://github.com/kYangLi/ArXiv-Pulse.git"
+Documentation = "https://github.com/kYangLi/ArXiv-Pulse#readme"
+
+[project.scripts]
+pulse = "arxiv_pulse.cli:cli"
+
+[tool.setuptools]
+include-package-data = true
+packages = ["arxiv_pulse"]
+
+[tool.setuptools.package-data]
+arxiv_pulse = ["*.txt", "*.md", ".ENV.TEMPLATE"]
+
+[tool.black]
+line-length = 120
+
+[tool.ruff]
+line-length = 120
+select = ["E", "F", "I", "N", "UP", "YTT", "ANN", "ARG", "ASYNC", "B", "C4", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "Q", "RET", "RSE", "RUF", "SIM", "SLF", "TID", "TRY", "A", "W", "FIX"]
+ignore = ["E501", "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "D200", "D205", "D400", "D415"]
