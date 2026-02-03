@@ -11,7 +11,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 from typing import Optional
 
@@ -48,8 +48,12 @@ class Paper(Base):
     summary = Column(Text)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+    )
 
     def to_dict(self):
         """Convert to dictionary"""
@@ -112,8 +116,12 @@ class TranslationCache(Base):
     source_text_hash = Column(String(64), nullable=False, unique=True, index=True)
     translated_text = Column(Text, nullable=False)
     target_language = Column(String(10), default="zh")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+    )
 
     def __repr__(self):
         return f"<TranslationCache(id={self.id}, hash={self.source_text_hash[:16]}...)>"
@@ -147,7 +155,7 @@ class Database:
             if paper:
                 for key, value in kwargs.items():
                     setattr(paper, key, value)
-                paper.updated_at = datetime.utcnow()
+                paper.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 session.commit()
                 return True
             return False
@@ -155,7 +163,7 @@ class Database:
     def get_recent_papers(self, days=7, limit=100):
         """Get recent papers"""
         with self.get_session() as session:
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
+            cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
             return (
                 session.query(Paper)
                 .filter(Paper.published >= cutoff_date)
@@ -233,7 +241,7 @@ class Database:
             if existing:
                 # 更新现有缓存
                 existing.translated_text = translated_text
-                existing.updated_at = datetime.utcnow()
+                existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
             else:
                 # 创建新缓存
                 cache_entry = TranslationCache(
@@ -249,7 +257,7 @@ class Database:
     def clear_old_translation_cache(self, days_old: int = 30) -> int:
         """清理旧的翻译缓存"""
         with self.get_session() as session:
-            cutoff_date = datetime.utcnow() - timedelta(days=days_old)
+            cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_old)
             deleted_count = session.query(TranslationCache).filter(TranslationCache.updated_at < cutoff_date).delete()
             session.commit()
             return deleted_count

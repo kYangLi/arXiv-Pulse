@@ -2,11 +2,9 @@
 增强搜索引擎 - 提供高级搜索和过滤功能
 """
 
-import json
-from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional, Union
+from datetime import datetime, timedelta, timezone
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from sqlalchemy import and_, or_, not_, func, desc, asc
 from sqlalchemy.orm import Session
@@ -21,7 +19,7 @@ class SearchFilter:
 
     # 文本搜索
     query: Optional[str] = None
-    search_fields: List[str] = field(default_factory=lambda: ["title", "abstract", "categories", "search_query"])
+    search_fields: List[str] = field(default_factory=lambda: ["title", "abstract"])
 
     # 分类过滤
     categories: Optional[List[str]] = None
@@ -64,31 +62,117 @@ class SearchEngine:
         self.session = db_session
 
     def build_text_filter(self, query: str, search_fields: List[str], match_all: bool = False):
-        """构建文本搜索过滤器"""
+        """构建文本搜索过滤器，简单模糊匹配（支持单词拆分）"""
         if not query or not search_fields:
             return None
 
-        filters = []
-        for field in search_fields:
-            if field == "title":
-                filters.append(Paper.title.contains(query))
-            elif field == "abstract":
-                filters.append(Paper.abstract.contains(query))
-            elif field == "categories":
-                filters.append(Paper.categories.contains(query))
-            elif field == "search_query":
-                filters.append(Paper.search_query.contains(query))
-            elif field == "authors":
-                # 作者字段是JSON字符串，需要特殊处理
-                filters.append(Paper.authors.contains(query))
+        # 将查询转换为小写进行不区分大小写的匹配
+        query_lower = query.lower()
 
-        if not filters:
+        # 拆分为单词（按非字母数字字符，保留中文）
+        import re
+
+        # 使用正则表达式分割，保留中文字符（支持Unicode）
+        words = re.split(r"[^\w]+", query_lower, flags=re.UNICODE)
+        # 过滤掉空字符串和过短的单词（长度>1）
+        words = [w for w in words if w and len(w) > 1]
+
+        # 如果没有有效的单词，使用整个查询作为单个单词
+        if not words:
+            words = [query_lower]
+
+        # 如果只有一个单词，使用简单的字段间OR逻辑
+        if len(words) == 1:
+            word = words[0]
+            field_filters = []
+            for field in search_fields:
+                if field == "title":
+                    field_filters.append(Paper.title.ilike(f"%{word}%"))
+                elif field == "abstract":
+                    field_filters.append(Paper.abstract.ilike(f"%{word}%"))
+                elif field == "categories":
+                    field_filters.append(Paper.categories.ilike(f"%{word}%"))
+                elif field == "search_query":
+                    field_filters.append(Paper.search_query.ilike(f"%{word}%"))
+                elif field == "authors":
+                    field_filters.append(Paper.authors.ilike(f"%{word}%"))
+
+            if field_filters:
+                return or_(*field_filters)
             return None
 
-        if match_all:
-            return and_(*filters)
-        else:
-            return or_(*filters)
+        # 多个单词：首先尝试短语匹配（整个查询字符串）
+        phrase_filters = []
+        for field in search_fields:
+            if field == "title":
+                phrase_filters.append(Paper.title.ilike(f"%{query_lower}%"))
+            elif field == "abstract":
+                phrase_filters.append(Paper.abstract.ilike(f"%{query_lower}%"))
+            elif field == "categories":
+                phrase_filters.append(Paper.categories.ilike(f"%{query_lower}%"))
+            elif field == "search_query":
+                phrase_filters.append(Paper.search_query.ilike(f"%{query_lower}%"))
+            elif field == "authors":
+                phrase_filters.append(Paper.authors.ilike(f"%{query_lower}%"))
+
+        # 尝试顺序匹配（单词按顺序出现，中间可间隔）
+        sequence_filters = []
+        if len(words) > 1:
+            # 构建模式：%word1%word2%word3%
+            sequence_pattern = "%" + "%".join(words) + "%"
+            for field in search_fields:
+                if field == "title":
+                    sequence_filters.append(Paper.title.ilike(sequence_pattern))
+                elif field == "abstract":
+                    sequence_filters.append(Paper.abstract.ilike(sequence_pattern))
+                elif field == "categories":
+                    sequence_filters.append(Paper.categories.ilike(sequence_pattern))
+                elif field == "search_query":
+                    sequence_filters.append(Paper.search_query.ilike(sequence_pattern))
+                elif field == "authors":
+                    sequence_filters.append(Paper.authors.ilike(sequence_pattern))
+
+        # 然后添加单词AND匹配（所有单词必须在同一个字段中出现）
+        word_and_filters = []
+        for field in search_fields:
+            if field == "title":
+                # 标题必须包含所有单词
+                title_filters = [Paper.title.ilike(f"%{word}%") for word in words]
+                if title_filters:
+                    word_and_filters.append(and_(*title_filters))
+            elif field == "abstract":
+                # 摘要必须包含所有单词
+                abstract_filters = [Paper.abstract.ilike(f"%{word}%") for word in words]
+                if abstract_filters:
+                    word_and_filters.append(and_(*abstract_filters))
+            elif field == "categories":
+                # 分类必须包含所有单词（通常分类搜索是单个词）
+                category_filters = [Paper.categories.ilike(f"%{word}%") for word in words]
+                if category_filters:
+                    word_and_filters.append(and_(*category_filters))
+            elif field == "search_query":
+                search_query_filters = [Paper.search_query.ilike(f"%{word}%") for word in words]
+                if search_query_filters:
+                    word_and_filters.append(and_(*search_query_filters))
+            elif field == "authors":
+                author_filters = [Paper.authors.ilike(f"%{word}%") for word in words]
+                if author_filters:
+                    word_and_filters.append(and_(*author_filters))
+
+        # 组合所有过滤器：短语匹配 OR 顺序匹配 OR 单词AND匹配
+        all_filters = []
+        if phrase_filters:
+            all_filters.append(or_(*phrase_filters))
+        if sequence_filters:
+            all_filters.append(or_(*sequence_filters))
+        if word_and_filters:
+            all_filters.append(or_(*word_and_filters))
+
+        if not all_filters:
+            return None
+
+        # 使用OR逻辑连接所有匹配类型
+        return or_(*all_filters)
 
     def build_category_filter(
         self,
@@ -147,7 +231,7 @@ class SearchEngine:
         filters = []
 
         if days_back:
-            cutoff_date = datetime.utcnow() - timedelta(days=days_back)
+            cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_back)
             filters.append(Paper.published >= cutoff_date)
 
         if date_from:
@@ -290,38 +374,6 @@ class SearchEngine:
             output.error("相似论文搜索失败", details={"exception": str(e)})
             return []
 
-            # 简化的相似性搜索：基于共同关键词或分类
-            # 在实际应用中，可以使用更复杂的文本相似性算法
-            all_papers = self.session.query(Paper).filter(Paper.arxiv_id != paper_id).all()
-
-            # 计算简单相似度：分类重叠
-            similar_papers = []
-            target_cats = set(target_paper.categories.split()) if target_paper.categories else set()
-
-            for paper in all_papers:
-                if not paper.categories:
-                    continue
-
-                paper_cats = set(paper.categories.split())
-                common_cats = target_cats.intersection(paper_cats)
-
-                if common_cats:
-                    # 简单相似度分数：共同分类数 / 总分类数
-                    similarity = len(common_cats) / max(len(target_cats), len(paper_cats))
-                    if similarity >= threshold:
-                        # 临时存储相似度分数
-                        paper.similarity_score = similarity
-                        similar_papers.append(paper)
-
-            # 按相似度排序
-            similar_papers.sort(key=lambda x: getattr(x, "similarity_score", 0), reverse=True)
-
-            return similar_papers[:limit]
-
-        except Exception as e:
-            output.error("相似论文搜索失败", details={"exception": str(e)})
-            return []
-
     def get_search_history(self, limit: int = 10) -> List[Dict[str, Any]]:
         """获取搜索历史（从数据库中的search_query字段提取）"""
         try:
@@ -360,7 +412,7 @@ class SearchEngine:
             output.error("获取搜索历史失败", details={"exception": str(e)})
             return []
 
-    def save_search_query(self, query: str, description: str = None):
+    def save_search_query(self, query: str, description: Optional[str] = None):
         """保存搜索查询到历史（简单实现）"""
         # 这里可以扩展为保存到单独的搜索历史表
         # 目前依赖于Paper表中的search_query字段

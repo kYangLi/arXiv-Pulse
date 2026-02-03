@@ -1,7 +1,6 @@
 import json
 import pandas as pd
-from datetime import datetime, timedelta
-import markdown
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional
 import logging
 import os
@@ -364,7 +363,7 @@ class ReportGenerator:
 
         with self.db.get_session() as session:
             # Get papers from last 24 hours
-            cutoff = datetime.utcnow() - timedelta(hours=24)
+            cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=24)
             new_papers = (
                 session.query(Paper)
                 .filter(Paper.created_at >= cutoff)
@@ -406,7 +405,7 @@ class ReportGenerator:
 
         with self.db.get_session() as session:
             # Get papers from last 7 days
-            cutoff = datetime.utcnow() - timedelta(days=7)
+            cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
             recent_papers = (
                 session.query(Paper)
                 .filter(Paper.created_at >= cutoff)

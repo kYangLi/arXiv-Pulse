@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import json
 from datetime import datetime, timedelta
 import questionary
+import wcwidth
 
 from arxiv_pulse.config import Config
 from arxiv_pulse.arxiv_crawler import ArXivCrawler
@@ -407,37 +408,49 @@ def print_banner_custom(fields):
     else:
         field_str = f"{fields[0]} • {fields[1]} • {fields[2]} • {fields[3]}"
 
-    # 计算居中位置 (横幅宽度为55字符，边框各占1字符，内容宽度53字符)
-    # 第一行标题："arXiv Pulse - 文献追踪系统" (25字符)
-    # 需要将字段字符串居中显示
+    # 横幅尺寸
     banner_width = 55
     content_width = 53
 
-    # 创建横幅
+    # 辅助函数：计算字符串显示宽度
+    def display_width(text):
+        return wcwidth.wcswidth(text)
+
+    # 辅助函数：截断字符串到指定显示宽度，添加省略号
+    def truncate_to_width(text, max_width):
+        if display_width(text) <= max_width:
+            return text
+        # 逐步减少字符直到宽度合适
+        result = ""
+        for char in text:
+            if display_width(result + char) > max_width - 3:  # 为"..."留出空间
+                break
+            result += char
+        return result + "..." if result else "..."  # 至少返回省略号
+
+    # 创建横幅边框
     border_top = "╔" + "═" * (banner_width - 2) + "╗"
     border_bottom = "╚" + "═" * (banner_width - 2) + "╝"
 
     # 第一行标题
     title = "arXiv Pulse - 文献追踪系统"
-    # 标题居中
-    title_padding = (content_width - len(title) * 2) // 2  # 中文占2个英文字符宽度
-    if title_padding < 0:
-        title_padding = 0
-    title_line = "║" + " " * title_padding + title + " " * (content_width - len(title) * 2 - title_padding) + "║"
+    title_width = display_width(title)
+    # 计算左右填充
+    left_padding = (content_width - title_width) // 2
+    right_padding = content_width - title_width - left_padding
+    title_line = "║" + " " * left_padding + title + " " * right_padding + "║"
 
     # 第二行字段
-    # 简单处理：如果字段字符串太长，截断
-    max_field_len = content_width - 4  # 留出一些边距
-    if len(field_str) * 2 > max_field_len:  # 中文占2个英文字符宽度
-        # 截断字段字符串
-        field_str = field_str[: max_field_len // 2] + "..."
+    # 最大字段显示宽度（留出边距）
+    max_field_width = content_width - 4
+    # 截断字段字符串如果太长
+    field_str = truncate_to_width(field_str, max_field_width)
+    field_width = display_width(field_str)
 
-    field_padding = (content_width - len(field_str) * 2) // 2
-    if field_padding < 0:
-        field_padding = 0
-    field_line = (
-        "║" + " " * field_padding + field_str + " " * (content_width - len(field_str) * 2 - field_padding) + "║"
-    )
+    # 计算字段行的左右填充
+    left_padding = (content_width - field_width) // 2
+    right_padding = content_width - field_width - left_padding
+    field_line = "║" + " " * left_padding + field_str + " " * right_padding + "║"
 
     banner = f"\n{border_top}\n{title_line}\n{field_line}\n{border_bottom}\n"
     click.echo(banner)
@@ -495,7 +508,7 @@ def sync_papers(years_back=1, summarize=False):
 
 def get_workday_cutoff(days_back):
     """计算排除周末的截止日期"""
-    current = datetime.utcnow()
+    current = datetime.now(timezone.utc).replace(tzinfo=None)
     workdays_counted = 0
     days_to_go_back = 0
 
@@ -608,6 +621,11 @@ def generate_report(paper_limit=50, days_back=2, summarize=True, max_summarize=1
 def generate_search_report(query, search_terms, papers, paper_limit=50, summarize=True, max_summarize=10):
     """生成搜索结果的报告（内部函数）"""
     reporter = ReportGenerator()
+
+    # 如果没有找到论文，不生成报告
+    if not papers:
+        output.info("未找到论文，跳过报告生成")
+        return []
 
     # 设置报告限制
     original_limit = Config.REPORT_MAX_PAPERS
@@ -1073,8 +1091,19 @@ def sync(directory, years_back, summarize):
 @click.option("--use-ai/--no-ai", default=True, help="是否使用AI理解自然语言查询（默认：是）")
 @click.option("--summarize/--no-summarize", default=True, help="是否自动总结未总结的论文（默认：是）")
 @click.option("--max-summarize", type=int, default=0, help="最大总结论文数（默认：0表示无限制）")
-def search(query, directory, limit, years_back, use_ai, summarize, max_summarize):
-    """智能搜索论文（支持自然语言查询）"""
+@click.option("--categories", "-c", multiple=True, help="包含的分类（可多次使用）")
+@click.option("--days-back", type=int, help="回溯天数（例如：30表示最近30天）")
+@click.option("--authors", "-a", multiple=True, help="作者姓名（可多次使用）")
+@click.option(
+    "--sort-by",
+    type=click.Choice(["published", "relevance_score", "title", "updated"]),
+    default="published",
+    help="排序字段",
+)
+def search(
+    query, directory, limit, years_back, use_ai, summarize, max_summarize, categories, days_back, authors, sort_by
+):
+    """智能搜索论文（支持自然语言查询和基本过滤）"""
     directory = Path(directory).resolve()
 
     if not setup_environment(directory):
@@ -1105,10 +1134,22 @@ def search(query, directory, limit, years_back, use_ai, summarize, max_summarize
             用户正在搜索arXiv物理/计算材料科学论文，查询是: "{query}"
             
             请将自然语言查询转换为适合arXiv搜索的关键词或短语。
-            考虑以下领域：凝聚态物理、密度泛函理论(DFT)、机器学习、力场、分子动力学、量子化学。
             
-            返回格式：JSON数组，包含最多5个搜索关键词/短语。
-            示例：["machine learning materials science", "density functional theory", "condensed matter physics"]
+            重要规则：
+            1. 如果查询已经是明确的搜索词（如"DeepH"、"deep learning Hamiltonian"、"DFT计算"），直接使用它，不要添加同义词
+            2. 如果查询包含专业术语、缩写或专有名词，保持原样作为主要搜索词
+            3. 仅当查询非常模糊或一般性时（如"机器学习在材料科学中的应用"），才生成1-2个相关关键词
+            4. 优先保持查询的原始意图，不要添加不相关的关键词
+            5. 对于英文查询，保持原样；对于中文查询，翻译为英文关键词
+            考虑以下领域：凝聚态物理、密度泛函理论(DFT)、机器学习、力场、分子动力学、量子化学、计算材料科学。
+            
+            返回格式：JSON数组，包含1-2个搜索关键词/短语。
+            示例：
+            - 查询"DeepH": ["DeepH"]
+            - 查询"deep learning Hamiltonian": ["deep learning Hamiltonian"]
+            - 查询"DFT计算": ["DFT"]
+            - 查询"分子动力学模拟": ["molecular dynamics simulation"]
+            - 查询"机器学习在材料科学中的应用": ["machine learning materials science"]
             
             只返回JSON数组，不要其他文本。
             """
@@ -1116,7 +1157,10 @@ def search(query, directory, limit, years_back, use_ai, summarize, max_summarize
             response = client.chat.completions.create(
                 model=Config.AI_MODEL,
                 messages=[
-                    {"role": "system", "content": "你是arXiv论文搜索助手，擅长将自然语言查询转换为学术搜索关键词。"},
+                    {
+                        "role": "system",
+                        "content": "你是arXiv论文搜索助手，擅长识别专业术语并将自然语言查询转换为学术搜索关键词。",
+                    },
                     {"role": "user", "content": ai_prompt},
                 ],
                 max_tokens=200,
@@ -1141,30 +1185,30 @@ def search(query, directory, limit, years_back, use_ai, summarize, max_summarize
     with crawler.db.get_session() as session:
         from arxiv_pulse.models import Paper
 
-        all_results = []
-        for term in search_terms:
-            papers = (
-                session.query(Paper)
-                .filter(
-                    Paper.title.contains(term)
-                    | Paper.abstract.contains(term)
-                    | Paper.categories.contains(term)
-                    | Paper.search_query.contains(term)
-                )
-                .order_by(Paper.published.desc())
-                .limit(limit)
-                .all()
-            )
-            all_results.extend(papers)
+        # 使用增强搜索引擎进行模糊搜索
+        search_engine = SearchEngine(session)
 
-        # 去重并排序
-        unique_papers = {}
-        for paper in all_results:
-            if paper.arxiv_id not in unique_papers:
-                unique_papers[paper.arxiv_id] = paper
+        # 将搜索词合并为一个查询（搜索引擎会处理单词拆分和同义词扩展）
+        combined_query = " ".join(search_terms)
 
-        sorted_papers = sorted(unique_papers.values(), key=lambda p: p.published or datetime.min, reverse=True)
-        papers_to_show = sorted_papers[:limit]
+        filter_config = SearchFilter(
+            query=combined_query,
+            search_fields=["title", "abstract"],
+            categories=list(categories) if categories else None,
+            authors=list(authors) if authors else None,
+            author_match="contains",  # 默认使用包含匹配
+            days_back=days_back,
+            limit=limit * min(len(search_terms), 2),  # 扩大限制但最多2倍，避免过多结果
+            sort_by=sort_by,
+            sort_order="desc",
+            match_all=True,  # AND逻辑：匹配所有搜索词
+        )
+
+        # 执行搜索
+        papers_to_show = search_engine.search_papers(filter_config)
+
+        # 确保不超过限制
+        papers_to_show = papers_to_show[:limit]
 
         click.echo(f"找到 {len(papers_to_show)} 篇论文:")
 
@@ -1294,8 +1338,6 @@ def stat(directory):
     # 时间分布
     click.echo(f"\n📅 时间分布:")
     with crawler.db.get_session() as session:
-        from datetime import datetime, timedelta
-
         # 按年统计
         year_stats = {}
         for paper in papers:
@@ -1317,291 +1359,6 @@ def stat(directory):
 
     click.echo("\n" + "=" * 50)
     click.echo("统计完成 ✅")
-
-
-@cli.command()
-@click.argument("paper_id")
-@click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
-@click.option("--limit", default=10, help="返回结果的最大数量（默认：10）")
-@click.option("--threshold", type=float, default=0.5, help="相似度阈值（0.0-1.0，默认：0.5）")
-@click.option("--years-back", type=int, default=0, help="搜索前同步回溯的年数（默认：0，不更新）")
-def similar(paper_id, directory, limit, threshold, years_back):
-    """查找与指定论文相似的论文"""
-    directory = Path(directory).resolve()
-
-    if not setup_environment(directory):
-        sys.exit(1)
-
-    print_banner()
-
-    # 如果需要，先同步最新论文
-    crawler = ArXivCrawler()
-    if years_back > 0:
-        click.echo(f"搜索前先同步最近 {years_back} 年论文...")
-        sync_result = sync_papers(years_back=years_back, summarize=False)
-        crawler = sync_result["crawler"]
-
-    click.echo(f"\n查找与论文 '{paper_id}' 相似的论文")
-    click.echo("=" * 50)
-
-    with crawler.db.get_session() as session:
-        # 创建搜索引擎
-        search_engine = SearchEngine(session)
-
-        # 查找相似论文
-        click.echo(f"正在查找相似度≥{threshold}的论文...")
-        similar_papers_with_scores = search_engine.search_similar_papers(paper_id, limit=limit, threshold=threshold)
-
-        if not similar_papers_with_scores:
-            click.echo("未找到相似论文。")
-            return
-
-        click.echo(f"找到 {len(similar_papers_with_scores)} 篇相似论文:")
-
-        # 提取paper列表用于报告生成
-        similar_papers = [paper for paper, _ in similar_papers_with_scores]
-
-        # 显示结果
-        for i, (paper, similarity) in enumerate(similar_papers_with_scores, 1):
-            authors = json.loads(paper.authors) if paper.authors else []
-            author_names = [a.get("name", "") for a in authors[:2]]
-            if len(authors) > 2:
-                author_names.append("等")
-
-            click.echo(f"\n{i}. {paper.title}")
-            click.echo(f"   相似度: {similarity:.2f}")
-            click.echo(f"   作者: {', '.join(author_names)}")
-            click.echo(f"   arXiv ID: {paper.arxiv_id}")
-            click.echo(f"   分类: {paper.categories}")
-            click.echo(f"   发布日期: {paper.published.strftime('%Y-%m-%d') if paper.published else 'N/A'}")
-
-        # 生成报告
-        click.echo("\n正在生成相似论文报告...")
-        report_files = generate_search_report(
-            f"与 {paper_id} 相似的论文", [f"similar to {paper_id}"], similar_papers, paper_limit=limit
-        )
-
-        click.echo(f"报告生成完成：")
-        for f in report_files:
-            click.echo(f"  - {f}")
-
-
-@cli.command()
-@click.argument("query")
-@click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
-@click.option("--limit", default=20, help="返回结果的最大数量（默认：20）")
-@click.option("--years-back", type=int, default=0, help="搜索前同步回溯的年数（默认：0，不更新）")
-@click.option("--use-ai/--no-ai", default=True, help="是否使用AI理解自然语言查询（默认：是）")
-@click.option("--categories", "-c", multiple=True, help="包含的分类（可多次使用）")
-@click.option("--exclude-categories", "-ec", multiple=True, help="排除的分类（可多次使用）")
-@click.option("--primary-category", "-pc", help="主要分类")
-@click.option("--authors", "-a", multiple=True, help="作者姓名（可多次使用）")
-@click.option(
-    "--author-match",
-    type=click.Choice(["contains", "exact", "any"]),
-    default="contains",
-    help="作者匹配方式：contains（包含）、exact（精确）、any（任一）",
-)
-@click.option("--date-from", type=click.DateTime(formats=["%Y-%m-%d"]), help="起始日期（格式：YYYY-MM-DD）")
-@click.option("--date-to", type=click.DateTime(formats=["%Y-%m-%d"]), help="结束日期（格式：YYYY-MM-DD）")
-@click.option("--days-back", type=int, help="回溯天数（例如：30表示最近30天）")
-@click.option("--summarized-only/--no-summarized-only", default=False, help="仅显示已总结的论文")
-@click.option("--downloaded-only/--no-downloaded-only", default=False, help="仅显示已下载的论文")
-@click.option(
-    "--sort-by",
-    type=click.Choice(["published", "relevance_score", "title", "updated", "created_at"]),
-    default="published",
-    help="排序字段",
-)
-@click.option("--sort-order", type=click.Choice(["asc", "desc"]), default="desc", help="排序顺序")
-@click.option("--match-all/--match-any", default=False, help="匹配所有条件（AND逻辑）或任一条件（OR逻辑）")
-def search_advanced(
-    query,
-    directory,
-    limit,
-    years_back,
-    use_ai,
-    categories,
-    exclude_categories,
-    primary_category,
-    authors,
-    author_match,
-    date_from,
-    date_to,
-    days_back,
-    summarized_only,
-    downloaded_only,
-    sort_by,
-    sort_order,
-    match_all,
-):
-    """高级搜索论文（支持多字段过滤）"""
-    directory = Path(directory).resolve()
-
-    if not setup_environment(directory):
-        sys.exit(1)
-
-    print_banner()
-
-    # 如果需要，先同步最新论文
-    crawler = ArXivCrawler()
-    if years_back > 0:
-        click.echo(f"搜索前先同步最近 {years_back} 年论文...")
-        sync_result = sync_papers(years_back=years_back, summarize=False)
-        crawler = sync_result["crawler"]
-
-    click.echo(f"\n高级搜索: '{query}'")
-    click.echo("=" * 50)
-
-    search_terms = [query]
-
-    # 如果启用AI且配置了AI API密钥，尝试解析自然语言查询
-    if use_ai and Config.AI_API_KEY:
-        try:
-            import openai
-
-            client = openai.OpenAI(api_key=Config.AI_API_KEY, base_url=Config.AI_BASE_URL)
-
-            ai_prompt = f"""
-            用户正在搜索arXiv物理/计算材料科学论文，查询是: "{query}"
-            
-            请将自然语言查询转换为适合arXiv搜索的关键词或短语。
-            考虑以下领域：凝聚态物理、密度泛函理论(DFT)、机器学习、力场、分子动力学、量子化学。
-            
-            返回格式：JSON数组，包含最多5个搜索关键词/短语。
-            示例：["machine learning materials science", "density functional theory", "condensed matter physics"]
-            
-            只返回JSON数组，不要其他文本。
-            """
-
-            response = client.chat.completions.create(
-                model=Config.AI_MODEL,
-                messages=[
-                    {"role": "system", "content": "你是arXiv论文搜索助手，擅长将自然语言查询转换为学术搜索关键词。"},
-                    {"role": "user", "content": ai_prompt},
-                ],
-                max_tokens=200,
-                temperature=0.3,
-            )
-
-            ai_response = response.choices[0].message.content
-            try:
-                search_terms = json.loads(ai_response)
-                if isinstance(search_terms, list) and len(search_terms) > 0:
-                    click.echo(f"AI解析的搜索词: {', '.join(search_terms[:3])}")
-                    if len(search_terms) > 3:
-                        click.echo(f"  以及 {len(search_terms) - 3} 个其他关键词")
-            except:
-                # 如果AI响应不是有效JSON，使用原始查询
-                pass
-
-        except Exception as e:
-            click.echo(f"AI解析失败，使用原始查询: {e}")
-
-    # 使用增强搜索引擎
-    with crawler.db.get_session() as session:
-        # 创建搜索过滤器
-        filter_config = SearchFilter(
-            query=query,
-            categories=list(categories) if categories else None,
-            exclude_categories=list(exclude_categories) if exclude_categories else None,
-            primary_category=primary_category,
-            authors=list(authors) if authors else None,
-            author_match=author_match,
-            date_from=date_from,
-            date_to=date_to,
-            days_back=days_back,
-            summarized_only=summarized_only,
-            downloaded_only=downloaded_only,
-            limit=limit,
-            sort_by=sort_by,
-            sort_order=sort_order,
-            match_all=match_all,
-        )
-
-        # 创建搜索引擎
-        search_engine = SearchEngine(session)
-
-        # 执行搜索
-        click.echo(f"正在搜索...")
-        papers = search_engine.search_papers(filter_config)
-
-        if not papers:
-            click.echo("未找到匹配的论文。")
-            return
-
-        click.echo(f"找到 {len(papers)} 篇论文:")
-
-        # 显示简要结果
-        for i, paper in enumerate(papers[:5], 1):  # 只显示前5篇作为预览
-            authors_list = json.loads(paper.authors) if paper.authors else []
-            author_names = [a.get("name", "") for a in authors_list[:2]]
-            if len(authors_list) > 2:
-                author_names.append("等")
-
-            click.echo(f"\n{i}. {paper.title}")
-            click.echo(f"   作者: {', '.join(author_names)}")
-            click.echo(f"   arXiv ID: {paper.arxiv_id}")
-            click.echo(f"   分类: {paper.categories}")
-            click.echo(f"   发布日期: {paper.published.strftime('%Y-%m-%d') if paper.published else 'N/A'}")
-            click.echo(f"   总结状态: {'已总结' if paper.summarized else '未总结'}")
-
-        if len(papers) > 5:
-            click.echo(f"\n... 以及 {len(papers) - 5} 篇更多论文")
-
-        # 生成搜索报告
-        click.echo("\n正在生成搜索报告...")
-        files = generate_search_report(directory, query, search_terms, papers, paper_limit=limit)
-
-        click.echo(f"报告生成完成：")
-        for f in files:
-            click.echo(f"  - {f}")
-        click.echo(f"\n详细论文信息、中文翻译和PDF链接请查看生成的Markdown报告。")
-
-
-@cli.command()
-@click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
-@click.option("--limit", default=10, help="显示的搜索查询数量（默认：10）")
-def search_history(directory, limit):
-    """显示搜索历史（按使用频率排序）"""
-    directory = Path(directory).resolve()
-
-    if not setup_environment(directory):
-        sys.exit(1)
-
-    print_banner()
-
-    crawler = ArXivCrawler()
-
-    click.echo("\n" + "=" * 50)
-    click.echo("搜索历史")
-    click.echo("=" * 50)
-
-    with crawler.db.get_session() as session:
-        # 创建搜索引擎
-        search_engine = SearchEngine(session)
-
-        # 获取搜索历史
-        click.echo(f"正在获取搜索历史...")
-        history = search_engine.get_search_history(limit=limit)
-
-        if not history:
-            click.echo("暂无搜索历史。")
-            return
-
-        click.echo(f"\n找到 {len(history)} 个搜索查询:")
-        click.echo("-" * 50)
-
-        for i, item in enumerate(history, 1):
-            last_used = item["last_used"].strftime("%Y-%m-%d") if item["last_used"] else "N/A"
-            click.echo(f"\n{i}. 查询: {item['query']}")
-            click.echo(f"   使用次数: {item['count']}")
-            click.echo(f"   最后使用: {last_used}")
-            if item["last_paper_id"]:
-                click.echo(f"   最后论文ID: {item['last_paper_id']}")
-
-        click.echo(f"\n💡 提示: 使用 'pulse search \"查询内容\" .' 重用搜索")
-        click.echo(f"     或 'pulse search-advanced \"查询内容\" . --categories 分类' 进行高级搜索")
 
 
 if __name__ == "__main__":

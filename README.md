@@ -464,6 +464,39 @@ ls -la logs/
 tail -f logs/summarizer.log
 ```
 
+## 📋 更新日志
+
+### v0.5.3 (2026-02-03)
+
+**重要修复和改进：**
+
+1. **弃用警告修复**：
+   - 修复 Python 3.12+ 中 `datetime.utcnow()` 弃用问题
+   - 替换为 `datetime.now(timezone.utc).replace(tzinfo=None)`
+   - 更新所有相关文件：`search_engine.py`, `cli.py`, `report_generator.py`, `models.py`
+
+2. **横幅显示优化**：
+   - 使用 `wcwidth` 库精确计算中文字符显示宽度
+   - 实现智能截断功能，长字段自动添加省略号
+   - 确保边框完美对齐，提升视觉体验
+
+3. **搜索算法改进**：
+   - 简化三层匹配策略：短语匹配 → 顺序匹配 → 单词AND匹配
+   - 修复多单词查询逻辑错误（OR改为AND逻辑）
+   - 限制搜索字段为 `["title", "abstract"]`，提高准确性
+
+4. **代码质量提升**：
+   - 修复 `cli.py` 中的缩进错误
+   - 更新版本信息元数据
+   - 重新安装包确保一致性
+
+### v0.5.0 (2025-02-03)
+
+- 交互式配置向导，支持 30+ 研究领域选择
+- 智能建议：基于选择领域数量自动推荐优化配置
+- 工作日计算：时间范围排除周六和周日
+- 通用 AI API：支持所有 OpenAI 兼容服务（DeepSeek、Paratera AI 等）
+
 ## 📄 许可证
 
 本项目采用 GPL-3.0 许可证 - 详见 [LICENSE](LICENSE) 文件。
