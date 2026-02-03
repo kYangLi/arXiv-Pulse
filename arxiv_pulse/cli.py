@@ -811,10 +811,10 @@ def interactive_configuration():
     click.echo("\n📊 爬虫配置")
     click.echo("-" * 40)
 
-    max_results_initial = click.prompt("初始同步每个查询的最大论文数", default=100, type=int, show_default=True)
+    max_results_initial = click.prompt("初始同步每个查询的最大论文数", default=10000, type=int, show_default=True)
     config["MAX_RESULTS_INITIAL"] = str(max_results_initial)
 
-    max_results_daily = click.prompt("每日同步每个查询的最大论文数", default=20, type=int, show_default=True)
+    max_results_daily = click.prompt("每日同步每个查询的最大论文数", default=500, type=int, show_default=True)
     config["MAX_RESULTS_DAILY"] = str(max_results_daily)
 
     years_back = click.prompt("初始同步回溯的年数", default=5, type=int, show_default=True)
@@ -899,27 +899,24 @@ def interactive_configuration():
     click.echo("-" * 40)
 
     # 根据领域数量提供建议
-    recommended_initial = 100
-    recommended_daily = 20
-
-    if num_selected_fields <= 3:
+    if num_selected_fields <= 6:
         click.echo("✅ 您选择了少量领域，保持默认配置即可。")
-    elif num_selected_fields <= 6:
-        recommended_initial = 70
-        recommended_daily = 15
+    elif num_selected_fields <= 10:
+        recommended_initial = 4000
+        recommended_daily = 200
         click.echo(f"⚠️  您选择了中等数量领域，建议调整爬虫配置以避免过多论文：")
-        click.echo(f"   - 初始同步每个查询最大论文数: {recommended_initial} (原默认: 100)")
-        click.echo(f"   - 每日同步每个查询最大论文数: {recommended_daily} (原默认: 20)")
+        click.echo(f"   - 初始同步每个查询最大论文数: {recommended_initial}")
+        click.echo(f"   - 每日同步每个查询最大论文数: {recommended_daily}")
     else:
-        recommended_initial = 50
-        recommended_daily = 10
+        recommended_initial = 1000
+        recommended_daily = 50
         click.echo(f"⚠️  您选择了大量领域 ({num_selected_fields}个)，强烈建议调整爬虫配置：")
-        click.echo(f"   - 初始同步每个查询最大论文数: {recommended_initial} (原默认: 100)")
-        click.echo(f"   - 每日同步每个查询最大论文数: {recommended_daily} (原默认: 20)")
+        click.echo(f"   - 初始同步每个查询最大论文数: {recommended_initial}")
+        click.echo(f"   - 每日同步每个查询最大论文数: {recommended_daily}")
         click.echo(f"   - 注意：同步大量领域可能需要较长时间和更多存储空间。")
 
     # 询问用户是否应用建议
-    if num_selected_fields > 3:
+    if num_selected_fields > 6:
         if click.confirm("\n💡 是否应用上述建议调整爬虫配置？", default=True):
             config["MAX_RESULTS_INITIAL"] = str(recommended_initial)
             config["MAX_RESULTS_DAILY"] = str(recommended_daily)
@@ -966,58 +963,77 @@ def init(directory, years_back):
         if years_back is None:
             years_back = interactive_years_back
 
-        # 生成 .env 文件内容
-        env_content = f"""# arXiv Pulse 配置文件
-# 由交互式配置向导于 {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} 生成
+        # 读取 .ENV.TEMPLATE 文件作为基础模板
+        template_file = Path(__file__).parent / ".ENV.TEMPLATE"
+        if not template_file.exists():
+            click.echo(f"❌ 找不到模板文件: {template_file}")
+            click.echo("请确保 .ENV.TEMPLATE 文件存在于 arxiv_pulse 目录中")
+            return
 
-# ========================
-# AI API 配置 (支持 OpenAI 格式)
-# ========================
-AI_API_KEY={config.get("AI_API_KEY", "your_api_key_here")}
-AI_MODEL={config.get("AI_MODEL", "DeepSeek-V3.2-Thinking")}
-AI_BASE_URL={config.get("AI_BASE_URL", "https://llmapi.paratera.com")}
+        env_content = template_file.read_text(encoding="utf-8")
 
-# ========================
-# 数据库配置
-# ========================
-DATABASE_URL=sqlite:///data/arxiv_papers.db
+        # 添加生成时间戳注释（插入到第一行之后）
+        timestamp_comment = f"# 由交互式配置向导于 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} 生成\n"
+        lines = env_content.split("\n")
+        if lines and lines[0].startswith("#"):
+            # 在第一行注释后插入时间戳
+            lines.insert(1, timestamp_comment)
+        else:
+            # 如果没有注释行，添加到开头
+            lines.insert(0, timestamp_comment)
+        env_content = "\n".join(lines)
 
-# ========================
-# 爬虫配置
-# ========================
-MAX_RESULTS_INITIAL={config.get("MAX_RESULTS_INITIAL", "100")}    # init命令每个查询的论文数
-MAX_RESULTS_DAILY={config.get("MAX_RESULTS_DAILY", "20")}        # sync命令每个查询的论文数
+        # 替换配置项（使用 config 字典中的值）
+        # 统一替换逻辑：搜索以键名开头的行，替换整行
+        lines = env_content.split("\n")
 
-# ========================
-# 搜索查询配置
-# ========================
-# 分号分隔，允许查询中包含逗号
-# 根据您的选择生成的研究领域查询
-SEARCH_QUERIES={config.get("SEARCH_QUERIES", 'condensed matter physics AND cat:cond-mat.*; (ti:"density functional" OR abs:"density functional") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci OR cat:physics.chem-ph); (ti:"machine learning" OR abs:"machine learning") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci OR cat:physics.chem-ph)')}
+        # AI API 配置
+        for i, line in enumerate(lines):
+            if line.strip().startswith("AI_API_KEY="):
+                lines[i] = f"AI_API_KEY={config.get('AI_API_KEY', 'your_api_key_here')}"
+                break
 
-# ========================
-# 报告配置
-# ========================
-REPORT_DIR=reports
-SUMMARY_MAX_TOKENS=2000          # 总结和翻译的最大token数
-TOKEN_PRICE_PER_MILLION=3.0
-REPORT_MAX_PAPERS={config.get("REPORT_MAX_PAPERS", "50")}
+        for i, line in enumerate(lines):
+            if line.strip().startswith("AI_MODEL="):
+                lines[i] = f"AI_MODEL={config.get('AI_MODEL', 'DeepSeek-V3.2-Thinking')}"
+                break
 
-# ========================
-# 同步配置
-# ========================
-YEARS_BACK={config.get("YEARS_BACK", "3")}               # 同步回溯的年数
-IMPORTANT_PAPERS_FILE=important_papers.txt
+        for i, line in enumerate(lines):
+            if line.strip().startswith("AI_BASE_URL="):
+                lines[i] = f"AI_BASE_URL={config.get('AI_BASE_URL', 'https://llmapi.paratera.com')}"
+                break
 
-# ========================
-# 可选配置
-# ========================
-# 日志级别: DEBUG, INFO, WARNING, ERROR (默认: INFO)
-LOG_LEVEL=INFO
+        # 爬虫配置
+        for i, line in enumerate(lines):
+            if line.strip().startswith("MAX_RESULTS_INITIAL="):
+                lines[i] = f"MAX_RESULTS_INITIAL={config.get('MAX_RESULTS_INITIAL', '10000')}"
+                break
 
-# 爬虫延迟（秒，避免频繁请求 arXiv API）
-CRAWL_DELAY=1.0
-"""
+        for i, line in enumerate(lines):
+            if line.strip().startswith("MAX_RESULTS_DAILY="):
+                lines[i] = f"MAX_RESULTS_DAILY={config.get('MAX_RESULTS_DAILY', '500')}"
+                break
+
+        # 搜索查询配置
+        default_search_queries = 'condensed matter physics AND cat:cond-mat.*; (ti:"density functional" OR abs:"density functional") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci OR cat:physics.chem-ph); (ti:"machine learning" OR abs:"machine learning") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci OR cat:physics.chem-ph)'
+        for i, line in enumerate(lines):
+            if line.strip().startswith("SEARCH_QUERIES="):
+                lines[i] = f"SEARCH_QUERIES={config.get('SEARCH_QUERIES', default_search_queries)}"
+                break
+
+        # 报告配置
+        for i, line in enumerate(lines):
+            if line.strip().startswith("REPORT_MAX_PAPERS="):
+                lines[i] = f"REPORT_MAX_PAPERS={config.get('REPORT_MAX_PAPERS', '50')}"
+                break
+
+        # 同步配置
+        for i, line in enumerate(lines):
+            if line.strip().startswith("YEARS_BACK="):
+                lines[i] = f"YEARS_BACK={config.get('YEARS_BACK', '5')}"
+                break
+
+        env_content = "\n".join(lines)
 
         env_file.write_text(env_content)
         click.echo(f"\n✅ 已在 {directory} 创建 .env 配置文件")
