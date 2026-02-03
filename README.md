@@ -6,15 +6,12 @@
 
 > 🌐 **语言说明**：本文档为中文版本。
 
-**arXiv Pulse** 是一个 Python 包，用于自动化爬取、总结和跟踪 arXiv 在凝聚态物理、密度泛函理论（DFT）、机器学习、力场和相关计算材料科学领域的最新研究论文。提供简化的命令行界面，通过 **8 个核心命令** 提供专业级的文献管理体验。
+**arXiv Pulse** 是一个 Python 包，用于自动化爬取、总结和跟踪 arXiv 在凝聚态物理、密度泛函理论（DFT）、机器学习、力场和相关计算材料科学领域的最新研究论文。提供简化的命令行界面，通过 **5 个核心命令** 提供专业级的文献管理体验。
 
 ## ✨ 核心功能
 
-- **📦 极简设计**：**4 个核心命令**覆盖完整文献管理流程
+- **📦 极简设计**：**5 个核心命令**覆盖完整文献管理流程
 - **🔍 智能搜索**：支持自然语言查询，AI 自动解析为学术关键词
-- **🔬 高级搜索**：多字段精细过滤（分类、作者、时间范围等）
-- **🔗 相似推荐**：基于分类重叠查找相似论文，拓展研究视野
-- **📋 搜索历史**：记录和重用成功搜索，提高检索效率
 - **🤖 AI 总结**：使用 OpenAI 兼容 API（如 DeepSeek、Paratera AI 等）生成简洁摘要和中文翻译
 - **💾 数据库存储**：SQLite 数据库存储完整论文元数据
 - **📊 智能报告**：自动同步最新论文后生成报告，确保数据时效性
@@ -88,16 +85,13 @@ pip install -e .
 - 使用 `--verbose` 选项显示所有调试信息
 - 通过环境变量 `LOG_LEVEL` 设置默认级别：`DEBUG`、`INFO`、`WARNING`、`ERROR`
 
-### 8个核心命令
+### 5个核心命令
 
 | 命令 | 说明 | 关键特性 |
 |------|------|----------|
 | **`pulse init`** | 初始化目录并自动同步历史论文 | ✅ 一键创建目录结构<br>✅ 自动同步5年历史论文<br>✅ 创建 `.env` 配置模板 |
 | **`pulse sync`** | 同步最新论文到数据库 | ✅ 专注于数据更新<br>✅ 可选择是否总结新论文<br>✅ 不自动生成报告 |
 | **`pulse search`** | 智能搜索论文（支持自然语言查询） | ✅ AI解析自然语言查询<br>✅ 自动前置同步确保数据最新<br>✅ 生成详细Markdown/CSV报告<br>✅ 包含中文翻译和PDF链接 |
-| **`pulse search-advanced`** | 高级搜索论文（支持多字段过滤） | ✅ AI解析自然语言查询<br>✅ 多字段精细过滤（分类、作者、时间等）<br>✅ 多种排序选项和匹配逻辑<br>✅ 生成详细报告 |
-| **`pulse similar`** | 查找与指定论文相似的论文 | ✅ 基于分类重叠计算相似度<br>✅ 可调节相似度阈值<br>✅ 发现相关研究方向<br>✅ 生成详细报告 |
-| **`pulse search-history`** | 显示搜索历史（按使用频率排序） | ✅ 查看最常用的搜索查询<br>✅ 统计使用频率和最后使用时间<br>✅ 快速重用成功搜索 |
 | **`pulse recent`** | 生成最近论文报告 | ✅ 先同步再报告，数据时效性强<br>✅ 自定义报告时间范围和论文数量<br>✅ 生成Markdown和CSV格式报告 |
 | **`pulse stat`** | 显示数据库统计信息 | ✅ 查看论文总数和总结率<br>✅ 分析论文分类和领域分布<br>✅ 查看时间分布和趋势 |
 
@@ -117,9 +111,9 @@ pulse init [目录路径] --years-back 5
 ```
 [工作目录]/
 ├── data/                    # 数据库存储目录
+│   └── important_papers.txt # 重要论文列表（在data目录内）
 ├── reports/                 # 报告输出目录  
-├── .env                     # 环境配置文件模板
-└── important_papers.txt     # 重要论文列表
+└── .env                     # 环境配置文件（由.ENV.TEMPLATE生成）
 ```
 
 **设计理念**：一键完成所有初始化工作，无需额外步骤。
@@ -199,63 +193,7 @@ pulse stat [目录路径]
 
 **设计理念**：提供全面的数据库洞察，帮助用户了解文献分布和研究趋势。
 
-#### `pulse search-advanced` - 高级搜索论文
-**功能**：支持多字段精细过滤的高级搜索，满足复杂文献检索需求。
 
-```bash
-pulse search-advanced "查询内容" [目录路径] --categories 分类1 --categories 分类2 --date-from 2026-01-01 --summarized-only
-```
-
-**参数**：
-- `--categories, -c`：包含的分类（可多次使用）
-- `--exclude-categories, -ec`：排除的分类（可多次使用）
-- `--primary-category, -pc`：主要分类
-- `--authors, -a`：作者姓名（可多次使用）
-- `--author-match`：作者匹配方式（contains/exact/any，默认：contains）
-- `--date-from`：起始日期（格式：YYYY-MM-DD）
-- `--date-to`：结束日期（格式：YYYY-MM-DD）
-- `--days-back`：回溯天数（例如：30表示最近30天）
-- `--summarized-only/--no-summarized-only`：仅显示已总结的论文
-- `--downloaded-only/--no-downloaded-only`：仅显示已下载的论文
-- `--sort-by`：排序字段（published/relevance_score/title/updated/created_at，默认：published）
-- `--sort-order`：排序顺序（asc/desc，默认：desc）
-- `--match-all/--match-any`：匹配所有条件（AND逻辑）或任一条件（OR逻辑）
-
-**设计理念**：为科研工作者提供专业级的文献检索工具，支持复杂查询和精细过滤。
-
-#### `pulse similar` - 查找相似论文
-**功能**：基于分类重叠查找与指定论文相似的论文，帮助发现相关研究。
-
-```bash
-pulse similar [arXiv ID] [目录路径] --threshold 0.5 --limit 10
-```
-
-**参数**：
-- `--threshold`：相似度阈值（0.0-1.0，默认：0.5）
-- `--limit`：返回结果的最大数量（默认：10）
-- `--years-back`：搜索前同步回溯的年数（默认：0，不更新）
-
-**算法**：计算分类重叠相似度 = 共同分类数 / 总分类数，返回相似度≥阈值的论文。
-
-**设计理念**：帮助研究者拓展文献视野，发现相关研究方向，避免信息孤岛。
-
-#### `pulse search-history` - 显示搜索历史
-**功能**：显示最常用的搜索查询及其使用频率，便于快速重用成功搜索。
-
-```bash
-pulse search-history [目录路径] --limit 10
-```
-
-**参数**：
-- `--limit`：显示的搜索查询数量（默认：10）
-
-**显示信息**：
-1. **搜索查询**：查询内容
-2. **使用次数**：该查询的使用频率统计
-3. **最后使用**：最近一次使用该查询的时间
-4. **最后论文ID**：最近一次使用该查询找到的论文ID
-
-**设计理念**：提高搜索效率，通过历史记录快速重用成功搜索，避免重复构建复杂查询。
 
 ## ⚙️ 配置说明
 
@@ -289,7 +227,7 @@ REPORT_MAX_PAPERS=50
 
 # 同步配置
 YEARS_BACK=3               # 同步回溯的年数
-IMPORTANT_PAPERS_FILE=important_papers.txt
+IMPORTANT_PAPERS_FILE=data/important_papers.txt
 
 # 日志配置
 LOG_LEVEL=INFO             # 日志级别: DEBUG, INFO, WARNING, ERROR (默认: INFO)
@@ -353,18 +291,19 @@ arxiv_pulse/                    # Python 包源码
 ├── search_engine.py           # 增强搜索引擎
 └── summarizer.py              # 论文总结器
 
-项目根目录/
+ 项目根目录/
 ├── pyproject.toml             # 包配置和依赖
 ├── README.md                  # 本文档
 ├── LICENSE                    # GPL-3.0 许可证
-
+├── .ENV.TEMPLATE              # 环境配置模板文件
 └── .gitignore                 # Git 忽略文件
 
 工作目录（用户使用）/
-├── .env                       # 环境配置
+├── .env                       # 环境配置文件（由.ENV.TEMPLATE生成）
 ├── data/                      # 数据库存储
-├── reports/                   # 生成的报告
-└── important_papers.txt       # 重要论文列表
+│   ├── arxiv_papers.db        # SQLite数据库文件
+│   └── important_papers.txt   # 重要论文列表
+└── reports/                   # 生成的报告目录
 ```
 
 ## 🗂️ 输出文件
