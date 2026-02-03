@@ -53,6 +53,7 @@ class SearchFilter:
 
     # 高级选项
     match_all: bool = False  # True: AND逻辑, False: OR逻辑
+    strict_match: bool = False  # True: 严格匹配（单词边界）, False: 模糊匹配
 
 
 class SearchEngine:
@@ -61,8 +62,10 @@ class SearchEngine:
     def __init__(self, db_session: Session):
         self.session = db_session
 
-    def build_text_filter(self, query: str, search_fields: List[str], match_all: bool = False):
-        """构建文本搜索过滤器，简单模糊匹配（支持单词拆分）"""
+    def build_text_filter(
+        self, query: str, search_fields: List[str], match_all: bool = False, strict_match: bool = False
+    ):
+        """构建文本搜索过滤器，支持严格匹配（单词边界）和模糊匹配"""
         if not query or not search_fields:
             return None
 
@@ -81,16 +84,46 @@ class SearchEngine:
         if not words:
             words = [query_lower]
 
+        # 同时获取原始查询的单词（保留大小写信息）用于判断是否需要严格匹配
+        original_words = re.split(r"[^\w]+", query, flags=re.UNICODE)
+        original_words = [w for w in original_words if w and len(w) > 1]
+        if not original_words:
+            original_words = [query]
+
         # 如果只有一个单词，使用简单的字段间OR逻辑
         if len(words) == 1:
             word = words[0]
+
             field_filters = []
             for field in search_fields:
                 if field == "title":
-                    field_filters.append(Paper.title.ilike(f"%{word}%"))
+                    if strict_match:
+                        # 严格匹配：单词边界（前后有空格或标点）
+                        # 使用多个LIKE条件覆盖常见情况
+                        field_filters.append(
+                            or_(
+                                Paper.title.ilike(f"{word} %"),
+                                Paper.title.ilike(f"% {word}"),
+                                Paper.title.ilike(f"% {word} %"),
+                                Paper.title.ilike(word),  # 整个标题就是这个词
+                            )
+                        )
+                    else:
+                        field_filters.append(Paper.title.ilike(f"%{word}%"))
                 elif field == "abstract":
-                    field_filters.append(Paper.abstract.ilike(f"%{word}%"))
+                    if strict_match:
+                        field_filters.append(
+                            or_(
+                                Paper.abstract.ilike(f"{word} %"),
+                                Paper.abstract.ilike(f"% {word}"),
+                                Paper.abstract.ilike(f"% {word} %"),
+                                Paper.abstract.ilike(word),
+                            )
+                        )
+                    else:
+                        field_filters.append(Paper.abstract.ilike(f"%{word}%"))
                 elif field == "categories":
+                    # 分类搜索通常不需要严格匹配
                     field_filters.append(Paper.categories.ilike(f"%{word}%"))
                 elif field == "search_query":
                     field_filters.append(Paper.search_query.ilike(f"%{word}%"))
@@ -271,8 +304,8 @@ class SearchEngine:
 
         return desc(column) if sort_order == "desc" else asc(column)
 
-    def search_papers(self, filter_config: SearchFilter) -> List[Paper]:
-        """执行搜索并返回论文列表"""
+    def _search_papers_basic(self, filter_config: SearchFilter) -> List[Paper]:
+        """基础搜索逻辑（原有实现）"""
         try:
             query = self.session.query(Paper)
 
@@ -282,7 +315,10 @@ class SearchEngine:
             # 文本搜索
             if filter_config.query:
                 text_filter = self.build_text_filter(
-                    filter_config.query, filter_config.search_fields, filter_config.match_all
+                    filter_config.query,
+                    filter_config.search_fields,
+                    filter_config.match_all,
+                    filter_config.strict_match,
                 )
                 if text_filter is not None:
                     filters.append(text_filter)
@@ -333,6 +369,100 @@ class SearchEngine:
             output.debug(f"搜索失败详情: {traceback.format_exc()}")
             return []
 
+    def search_papers(self, filter_config: SearchFilter) -> List[Paper]:
+        """执行搜索并返回论文列表，支持严格匹配分级排序"""
+        try:
+            # 如果不启用严格匹配，使用原有逻辑
+            if not filter_config.strict_match:
+                return self._search_papers_basic(filter_config)
+
+            # 如果查询为空，无法进行严格匹配搜索
+            if not filter_config.query:
+                return self._search_papers_basic(filter_config)
+
+            # 启用严格匹配：执行分级搜索
+            import re
+
+            # 第一步：获取模糊匹配的结果（不限制数量，以便后续过滤）
+            # 创建模糊匹配的配置副本
+            from copy import copy
+
+            fuzzy_config = copy(filter_config)
+            fuzzy_config.strict_match = False
+            # 移除分页限制，获取所有匹配结果
+            fuzzy_config.limit = 1000000  # 大数字，获取所有匹配结果
+            fuzzy_config.offset = 0
+
+            fuzzy_papers = self._search_papers_basic(fuzzy_config)
+
+            if not fuzzy_papers:
+                return []
+
+            # 第二步：从模糊匹配结果中筛选出严格匹配的论文
+            strict_papers = []
+            non_strict_papers = []
+
+            # 准备查询词用于严格匹配检查
+            # filter_config.query 已在前面的检查中确认非空
+            assert filter_config.query is not None
+            query_text = filter_config.query.lower()
+            # 拆分为单词
+            words = re.split(r"[^\w]+", query_text, flags=re.UNICODE)
+            words = [w for w in words if w and len(w) > 1]
+            if not words:
+                words = [query_text]
+
+            # 检查每篇论文是否严格匹配
+            for paper in fuzzy_papers:
+                is_strict = False
+
+                # 检查标题和摘要
+                text_to_check = ""
+                if "title" in filter_config.search_fields:
+                    text_to_check += (paper.title or "").lower() + " "
+                if "abstract" in filter_config.search_fields:
+                    text_to_check += (paper.abstract or "").lower() + " "
+                if "categories" in filter_config.search_fields:
+                    text_to_check += (paper.categories or "").lower() + " "
+                if "search_query" in filter_config.search_fields:
+                    text_to_check += (paper.search_query or "").lower() + " "
+                if "authors" in filter_config.search_fields:
+                    text_to_check += (paper.authors or "").lower() + " "
+
+                # 检查每个单词是否以单词边界形式出现
+                all_words_strict = True
+                for word in words:
+                    # 使用正则表达式检查单词边界
+                    pattern = r"\b" + re.escape(word) + r"\b"
+                    if not re.search(pattern, text_to_check):
+                        all_words_strict = False
+                        break
+
+                if all_words_strict:
+                    strict_papers.append(paper)
+                else:
+                    non_strict_papers.append(paper)
+
+            # 第三步：合并结果，严格匹配在前
+            all_papers = strict_papers + non_strict_papers
+
+            # 第四步：应用原始的分页限制
+            start_idx = filter_config.offset
+            end_idx = filter_config.offset + filter_config.limit
+            paginated_papers = all_papers[start_idx:end_idx]
+
+            output.debug(
+                f"分级搜索找到 {len(strict_papers)} 篇严格匹配, {len(non_strict_papers)} 篇非严格匹配, 返回 {len(paginated_papers)} 篇"
+            )
+            return paginated_papers
+
+        except Exception as e:
+            output.error(f"分级搜索失败: {str(e)}")
+            import traceback
+
+            output.debug(f"分级搜索失败详情: {traceback.format_exc()}")
+            return []
+
     def search_similar_papers(
         self, paper_id: str, limit: int = 10, threshold: float = 0.5
     ) -> List[tuple[Paper, float]]:
@@ -350,10 +480,10 @@ class SearchEngine:
 
             # 计算简单相似度：分类重叠
             similar_papers_with_scores = []
-            target_cats = set(target_paper.categories.split()) if target_paper.categories else set()
+            target_cats = set(target_paper.categories.split()) if target_paper.categories is not None else set()  # type: ignore
 
             for paper in all_papers:
-                if not paper.categories:
+                if paper.categories is None:  # type: ignore
                     continue
 
                 paper_cats = set(paper.categories.split())

@@ -4,6 +4,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional
 import logging
 import os
+import urllib.request
+import ssl
+from html.parser import HTMLParser
 
 from arxiv_pulse.models import Database, Paper
 from arxiv_pulse.config import Config
@@ -17,9 +20,7 @@ class ReportGenerator:
     def __init__(self):
         self.db = Database()
         self.config = Config
-        self.total_tokens_used = 0  # 总token使用量
-        self.total_cost = 0.0  # 总费用（元）
-        self.token_price_per_million = Config.TOKEN_PRICE_PER_MILLION  # 每百万token价格，可从配置覆盖
+        self.total_tokens_used = 0
 
         # 抑制第三方库的详细日志
         import logging
@@ -123,6 +124,162 @@ class ReportGenerator:
         if text.endswith("```"):
             text = text[:-3].strip()
         return text
+
+    def get_first_figure_url(self, arxiv_id: str) -> Optional[str]:
+        """获取论文的第一个图片URL，改进版"""
+        try:
+            # 构建HTML页面URL
+            url = f"https://arxiv.org/html/{arxiv_id}"
+            # 设置SSL上下文
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+
+            # 发送请求
+            req = urllib.request.Request(url, headers={"User-Agent": "arXiv-Pulse/1.0"})
+            response = urllib.request.urlopen(req, timeout=10, context=context)
+            html_content = response.read().decode("utf-8", errors="ignore")
+
+            import re
+
+            # 方法1：查找<figure>标签内的图片（通常包含图表）
+            figure_pattern = r'<figure[^>]*>.*?<img[^>]+src=["\']([^"\']+)["\'][^>]*>.*?</figure>'
+            figure_matches = re.findall(figure_pattern, html_content, re.IGNORECASE | re.DOTALL)
+
+            if figure_matches:
+                # 使用第一个figure中的图片
+                first_img_src = figure_matches[0]
+                return self._normalize_image_url(first_img_src, url)
+
+            # 方法2：查找所有img标签，捕获src、alt、width、height属性
+            img_pattern = r'<img[^>]+src=["\']([^"\']+)["\'][^>]*>'
+            img_tags = re.findall(img_pattern, html_content, re.IGNORECASE)
+
+            if not img_tags:
+                return None
+
+            # 收集图片信息
+            image_candidates = []
+            for img_tag in img_tags:
+                # 提取属性
+                src_match = re.search(r'src=["\']([^"\']+)["\']', img_tag, re.IGNORECASE)
+                if not src_match:
+                    continue
+
+                src = src_match.group(1)
+                src_lower = src.lower()
+
+                # 跳过常见的不相关图片
+                if any(
+                    exclude in src_lower
+                    for exclude in [
+                        "logo",
+                        "icon",
+                        "spacer",
+                        "pixel",
+                        "arrow",
+                        "button",
+                        "feed-icon",
+                        "rss",
+                        "twitter",
+                        "facebook",
+                        "youtube",
+                        "header",
+                        "footer",
+                        "nav",
+                        "menu",
+                        "banner",
+                    ]
+                ):
+                    continue
+
+                # 跳过base64图片
+                if src_lower.startswith("data:image"):
+                    continue
+
+                # 提取alt文本
+                alt_match = re.search(r'alt=["\']([^"\']*)["\']', img_tag, re.IGNORECASE)
+                alt = alt_match.group(1) if alt_match else ""
+
+                # 提取尺寸信息
+                width_match = re.search(r'width=["\'](\d+)["\']', img_tag, re.IGNORECASE)
+                height_match = re.search(r'height=["\'](\d+)["\']', img_tag, re.IGNORECASE)
+                width = int(width_match.group(1)) if width_match else 0
+                height = int(height_match.group(1)) if height_match else 0
+
+                # 计算图片优先级分数
+                score = 0
+
+                # 优先选择alt文本包含"figure"或"fig"的图片
+                alt_lower = alt.lower()
+                if "figure" in alt_lower or "fig" in alt_lower:
+                    score += 100
+
+                # 优先选择大尺寸图片（假设图表较大）
+                if width > 300 and height > 200:
+                    score += 50
+                elif width > 100 and height > 100:
+                    score += 20
+
+                # 优先选择常见图片格式
+                if src_lower.endswith((".png", ".jpg", ".jpeg", ".gif")):
+                    score += 10
+
+                image_candidates.append({"src": src, "alt": alt, "width": width, "height": height, "score": score})
+
+            if not image_candidates:
+                return None
+
+            # 按分数排序，选择最高分的图片
+            image_candidates.sort(key=lambda x: x["score"], reverse=True)
+            best_image = image_candidates[0]
+
+            # 标准化URL
+            return self._normalize_image_url(best_image["src"], url)
+
+        except Exception as e:
+            # 静默失败，返回None
+            return None
+
+    def _normalize_image_url(self, img_src: str, base_url: str) -> str:
+        """标准化图片URL：处理相对路径"""
+        # 如果是绝对URL，直接返回
+        if img_src.startswith("http"):
+            return img_src
+
+        # 从base_url中提取arxiv_id
+        # base_url格式: https://arxiv.org/html/{arxiv_id}
+        import re
+
+        arxiv_id_match = re.search(r"/html/([^/]+)$", base_url)
+        arxiv_id = arxiv_id_match.group(1) if arxiv_id_match else ""
+
+        # 处理根相对路径（以/开头）
+        if img_src.startswith("/"):
+            # 如果路径以/html/开头但缺少arxiv_id
+            if img_src.startswith("/html/"):
+                # 移除/html/前缀
+                path_without_html = img_src[6:]  # 移除 "/html/"
+                # 构建正确路径：/html/{arxiv_id}/{path}
+                return f"https://arxiv.org/html/{arxiv_id}/{path_without_html}"
+            else:
+                # 其他根相对路径
+                return f"https://arxiv.org{img_src}"
+
+        # 处理相对路径（如 fig/flowchart_v8.png）
+        # 移除开头的 "./"
+        if img_src.startswith("./"):
+            img_src = img_src[2:]
+
+        # 确保base_url以"/"结尾
+        if not base_url.endswith("/"):
+            base_url = base_url + "/"
+
+        # 确保img_src不以"/"开头
+        if img_src.startswith("/"):
+            img_src = img_src[1:]
+
+        return base_url + img_src
 
     def calculate_relevance_score(self, paper) -> int:
         """计算论文相关度评级 (1-5星)"""
@@ -276,37 +433,12 @@ class ReportGenerator:
                 current_tokens = usage.total_tokens
                 self.total_tokens_used += current_tokens
 
-                # DeepSeek实际价格：输入0.14元/百万token，输出0.28元/百万token
-                # 如果用户指定了价格则使用用户价格，否则使用实际价格
-                if self.token_price_per_million is not None:
-                    # 使用用户指定的统一价格
-                    cost = (current_tokens / 1_000_000) * self.token_price_per_million
-                else:
-                    # 使用DeepSeek实际价格
-                    input_cost = (usage.prompt_tokens / 1_000_000) * 0.14
-                    output_cost = (usage.completion_tokens / 1_000_000) * 0.28
-                    cost = input_cost + output_cost
-
-                # 更新累计总费用
-                self.total_cost += cost
-                total_cost_formatted = f"{self.total_cost:.4f}"
-                output.info(
-                    f"✓ 翻译完成 | 本次: {current_tokens} tokens ({cost:.4f}¥) | 累计: {self.total_tokens_used} tokens (¥{total_cost_formatted})"
-                )
+                output.info(f"✓ 翻译完成 | 本次: {current_tokens} tokens | 累计: {self.total_tokens_used} tokens")
             else:
                 # 估算token使用（约4字符/1token）
                 estimated_tokens = len(text) // 4 + 500  # 基础估计
                 self.total_tokens_used += estimated_tokens
-                # 计算当前批次费用
-                price_per_million = (
-                    self.token_price_per_million if self.token_price_per_million is not None else 0.21
-                )  # DeepSeek平均价格
-                current_cost = (estimated_tokens / 1_000_000) * price_per_million
-                self.total_cost += current_cost
-                total_cost_formatted = f"{self.total_cost:.4f}"
-                output.info(
-                    f"✓ 翻译完成 | 本次: ~{estimated_tokens} tokens ({current_cost:.4f}¥) | 累计: {self.total_tokens_used} tokens (¥{total_cost_formatted})"
-                )
+                output.info(f"✓ 翻译完成 | 本次: ~{estimated_tokens} tokens | 累计: {self.total_tokens_used} tokens")
 
             translated = response.choices[0].message.content
             return translated.strip() if translated else ""
@@ -315,143 +447,70 @@ class ReportGenerator:
             output.error("DeepSeek翻译失败", details={"exception": str(e)})
             raise e
 
-    def generate_daily_report(self) -> Dict[str, Any]:
-        """Generate daily report of new papers"""
-        output.do("生成每日报告")
-
-        with self.db.get_session() as session:
-            # Get papers from last 24 hours
-            cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=24)
-            new_papers = (
-                session.query(Paper)
-                .filter(Paper.created_at >= cutoff)
-                .order_by(Paper.published.desc())
-                .limit(self.config.REPORT_MAX_PAPERS)
-                .all()
-            )
-
-            # Get summarized papers
-            summarized = [p for p in new_papers if getattr(p, "summarized", False) == True]
-
-            # Group by category/query
-            by_query = {}
-            for paper in new_papers:
-                query = paper.search_query or "Unknown"
-                if query not in by_query:
-                    by_query[query] = []
-                by_query[query].append(paper)
-
-            # Statistics
-            stats = {
-                "total_new": len(new_papers),
-                "summarized_new": len(summarized),
-                "papers_by_query": {k: len(v) for k, v in by_query.items()},
-                "date_generated": datetime.now().isoformat(),
-                "report_type": "daily",
-            }
-
-            return {
-                "stats": stats,
-                "papers": new_papers,
-                "summarized_papers": summarized,
-                "grouped_papers": by_query,
-            }
-
-    def generate_weekly_report(self) -> Dict[str, Any]:
-        """Generate weekly report"""
-        output.do("生成每周报告")
-
-        with self.db.get_session() as session:
-            # Get papers from last 7 days
-            cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
-            recent_papers = (
-                session.query(Paper)
-                .filter(Paper.created_at >= cutoff)
-                .order_by(Paper.published.desc())
-                .limit(self.config.REPORT_MAX_PAPERS)
-                .all()
-            )
-
-            # Get database stats
-            db_stats = self.db.get_statistics()
-
-            # Top categories
-            categories = db_stats.get("categories_distribution", {})
-            top_categories = sorted(categories.items(), key=lambda x: x[1], reverse=True)[:10]
-
-            # Statistics
-            stats = {
-                "total_recent": len(recent_papers),
-                "database_stats": db_stats,
-                "top_categories": dict(top_categories),
-                "date_generated": datetime.now().isoformat(),
-                "report_type": "weekly",
-            }
-
-            return {
-                "stats": stats,
-                "recent_papers": recent_papers,
-                "database_stats": db_stats,
-            }
-
     def save_markdown_report(self, report_data: Dict[str, Any], filename: Optional[str] = None) -> str:
         """Save report as markdown file"""
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            report_type = report_data.get("stats", {}).get("report_type", "report")
-            filename = f"{report_type}_{timestamp}.md"
+            stats = report_data.get("stats", {})
+            report_type = stats.get("report_type", "report")
+
+            # 如果是搜索报告，添加搜索关键词到文件名
+            if report_type == "search":
+                # 获取搜索查询，优先使用original_query，其次使用search_terms的第一个
+                search_query = stats.get("original_query", "")
+                if not search_query and stats.get("search_terms"):
+                    search_terms = stats.get("search_terms", [])
+                    if isinstance(search_terms, list) and len(search_terms) > 0:
+                        search_query = search_terms[0]
+
+                # 处理搜索查询：取前20个字符，空格替换为下划线
+                if search_query:
+                    # 只保留字母、数字、中文，其他字符替换为下划线
+                    import re
+
+                    # 移除特殊字符，保留字母、数字、中文、空格
+                    cleaned = re.sub(r"[^\w\s\u4e00-\u9fff]", "_", search_query)
+                    # 将多个空格替换为单个下划线
+                    cleaned = re.sub(r"\s+", "_", cleaned)
+                    # 取前20个字符
+                    keywords = cleaned[:20]
+                    # 移除末尾的下划线
+                    keywords = keywords.rstrip("_")
+                    filename = f"{report_type}_{timestamp}_{keywords}.md"
+                else:
+                    filename = f"{report_type}_{timestamp}.md"
+            else:
+                filename = f"{report_type}_{timestamp}.md"
 
         filepath = os.path.join(self.config.REPORT_DIR, filename)
 
         # 重置token统计（每次新报告开始时）
         self.total_tokens_used = 0
-        self.total_cost = 0.0
         output.info("开始生成报告 - token计数已重置")
 
         # Generate markdown content
         stats = report_data["stats"]
 
         # 报告类型中文映射
-        report_type_chinese = {"daily": "每日", "weekly": "每周", "recent": "最近", "search": "搜索"}
+        report_type_chinese = {"recent": "最近", "search": "搜索"}
         report_type = report_type_chinese.get(stats["report_type"], stats["report_type"])
 
-        markdown_content = f"""# arXiv 文献报告
+        markdown_content = f"""本报告由 [arXiv-Pulse](https://github.com/kYangLi/ArXiv-Pulse) 自动生成。
+
+# arXiv 文献报告
 **生成时间**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 **报告类型**: {report_type}报告
 
 ## 统计摘要
 """
 
-        if stats["report_type"] == "daily":
-            markdown_content += f"""
-- **今日新论文**: {stats["total_new"]}
-- **今日已总结**: {stats["summarized_new"]}
-- **总结率**: {stats["summarized_new"] / stats["total_new"]:.1%} (如果总数 > 0)
-
-### 按搜索查询统计
-"""
-            for query, count in stats["papers_by_query"].items():
-                markdown_content += f"- **{query}**: {count} 篇论文\n"
-
-        elif stats["report_type"] == "weekly":
-            markdown_content += f"""
-- **本周论文**: {stats["total_recent"]}
-- **数据库总论文**: {stats["database_stats"]["total_papers"]}
-- **已总结论文**: {stats["database_stats"]["summarized_papers"]}
-- **总体总结率**: {stats["database_stats"]["summarized_papers"] / stats["database_stats"]["total_papers"]:.1%} (如果总数 > 0)
-
-### 热门分类
-"""
-            for category, count in stats["top_categories"].items():
-                markdown_content += f"- **{category}**: {count} 篇论文\n"
-
-        elif stats["report_type"] == "recent":
+        if stats["report_type"] == "recent":
             markdown_content += f"""
 - **最近论文**: {stats["total_recent"]} (最近 {stats["days_back"]} 天)
 - **数据库总论文**: {stats.get("database_stats", {}).get("total_papers", "N/A")}
 - **已总结论文**: {stats.get("database_stats", {}).get("summarized_papers", "N/A")}
 
-### 热门分类
+### 分类统计
 """
             for category, count in stats.get("top_categories", {}).items():
                 markdown_content += f"- **{category}**: {count} 篇论文\n"
@@ -472,13 +531,13 @@ class ReportGenerator:
             else:
                 markdown_content += f"- **{search_terms}**\n"
 
-            markdown_content += "\n### 热门分类\n"
+            markdown_content += "\n### 分类统计\n"
             for category, count in stats.get("top_categories", {}).items():
                 markdown_content += f"- **{category}**: {count} 篇论文\n"
 
         # Add paper details
         if "papers" in report_data and report_data["papers"]:
-            markdown_content += "\n## 新论文\n\n"
+            markdown_content += "\n## 论文列表\n\n"
 
             papers = report_data["papers"][:50]  # Limit to 50 papers
             total_papers = len(papers)
@@ -559,8 +618,15 @@ class ReportGenerator:
                         markdown_content += f"**摘要 (Abstract)**: 无摘要\n\n"
 
                     markdown_content += f"**arXiv ID**: [{paper.arxiv_id}](https://arxiv.org/abs/{paper.arxiv_id})\n"
-                    markdown_content += f"**PDF**: [下载 (Download)]({paper.pdf_url})\n\n"
-                    markdown_content += "---\n\n"
+                    markdown_content += f"**PDF**: [下载 (Download)]({paper.pdf_url})\n"
+
+                    # 获取图1图片URL（放在最后，不显示标签，网络问题时不显示）
+                    output.do(f"[{i}/{total_papers}] 获取图1图片")
+                    figure_url = self.get_first_figure_url(paper.arxiv_id)
+                    if figure_url:
+                        markdown_content += f"\n![图片]({figure_url})\n"
+
+                    markdown_content += "\n---\n\n"
 
                 except Exception as e:
                     output.error(
@@ -572,14 +638,9 @@ class ReportGenerator:
         # Add recommendations section
         markdown_content += "\n## 建议\n\n"
 
-        if stats["report_type"] == "daily":
-            markdown_content += "1. 浏览您感兴趣领域的新论文\n"
-            markdown_content += "2. 查看已总结的论文以快速了解内容\n"
-            markdown_content += "3. 将相关论文添加到阅读列表\n"
-        else:
-            markdown_content += "1. 回顾您研究领域的每周趋势\n"
-            markdown_content += "2. 从热门分类中识别新兴主题\n"
-            markdown_content += "3. 规划下周的阅读计划\n"
+        markdown_content += "1. 浏览您感兴趣领域的论文\n"
+        markdown_content += "2. 查看已总结的论文以快速了解内容\n"
+        markdown_content += "3. 将相关论文添加到阅读列表\n"
 
         # Save to file
         with open(filepath, "w", encoding="utf-8") as f:
@@ -587,8 +648,7 @@ class ReportGenerator:
 
         # 显示最终token统计
         if self.total_tokens_used > 0:
-            total_cost_formatted = f"{self.total_cost:.4f}"
-            output.info(f"报告生成完成 - 总计: {self.total_tokens_used} tokens (¥{total_cost_formatted})")
+            output.info(f"报告生成完成 - 总计: {self.total_tokens_used} tokens")
 
         output.done(f"报告已保存: {filepath}")
         return filepath
@@ -655,63 +715,12 @@ class ReportGenerator:
             output.warn("没有论文数据可保存为CSV")
             return None
 
-    def generate_and_save_daily_report(self) -> List[str]:
-        """Generate and save daily report (returns list of saved files)"""
-        report_data = self.generate_daily_report()
-
-        saved_files = []
-
-        # Save markdown report
-        md_file = self.save_markdown_report(report_data)
-        if md_file:
-            saved_files.append(md_file)
-
-        # Save CSV report
-        csv_file = self.save_csv_report(report_data)
-        if csv_file:
-            saved_files.append(csv_file)
-
-        return saved_files
-
-    def generate_and_save_weekly_report(self) -> List[str]:
-        """Generate and save weekly report"""
-        report_data = self.generate_weekly_report()
-
-        saved_files = []
-
-        # Save markdown report
-        md_file = self.save_markdown_report(report_data)
-        if md_file:
-            saved_files.append(md_file)
-
-        # Save CSV report
-        csv_file = self.save_csv_report(report_data)
-        if csv_file:
-            saved_files.append(csv_file)
-
-        return saved_files
-
 
 def main():
     """Test report generator"""
     generator = ReportGenerator()
 
     print("Testing report generator...")
-
-    # Generate daily report
-    print("\nGenerating daily report...")
-    daily_data = generator.generate_daily_report()
-    print(f"Daily stats: {daily_data['stats']}")
-
-    # Save reports
-    print("\nSaving reports...")
-    saved_files = generator.generate_and_save_daily_report()
-    print(f"Saved files: {saved_files}")
-
-    # Generate weekly report
-    print("\nGenerating weekly report...")
-    weekly_data = generator.generate_weekly_report()
-    print(f"Weekly stats: {weekly_data['stats'].get('total_recent', 0)} recent papers")
 
     # Check report directory
     report_dir = Config.REPORT_DIR

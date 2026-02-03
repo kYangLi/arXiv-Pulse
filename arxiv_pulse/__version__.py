@@ -29,5 +29,5 @@ try:
 
 except importlib.metadata.PackageNotFoundError:
     # 包未安装时使用默认版本
-    __version__ = "0.6.1"
-    __version_info__ = (0, 6, 1)
+    __version__ = "0.6.2"
+    __version_info__ = (0, 6, 2)

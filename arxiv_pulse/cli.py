@@ -266,16 +266,16 @@ def setup_environment(directory: Path):
         Config.AI_API_KEY = os.getenv("AI_API_KEY")
         Config.AI_MODEL = os.getenv("AI_MODEL", "DeepSeek-V3.2-Thinking")
         Config.AI_BASE_URL = os.getenv("AI_BASE_URL", "https://llmapi.paratera.com")
-        Config.SUMMARY_MAX_TOKENS = int(os.getenv("SUMMARY_MAX_TOKENS", "2000"))
-        Config.TOKEN_PRICE_PER_MILLION = float(os.getenv("TOKEN_PRICE_PER_MILLION", "3.0"))
+        Config.SUMMARY_MAX_TOKENS = int(os.getenv("SUMMARY_MAX_TOKENS", "10000"))
+
         Config.MAX_RESULTS_INITIAL = int(os.getenv("MAX_RESULTS_INITIAL", "10000"))
         Config.MAX_RESULTS_DAILY = int(os.getenv("MAX_RESULTS_DAILY", "500"))
-        Config.YEARS_BACK = int(os.getenv("YEARS_BACK", "3"))
+        Config.YEARS_BACK = int(os.getenv("YEARS_BACK", "5"))
         Config.IMPORTANT_PAPERS_FILE = os.getenv("IMPORTANT_PAPERS_FILE", "data/important_papers.txt")
         Config.ARXIV_MAX_RESULTS = int(os.getenv("ARXIV_MAX_RESULTS", "30000"))
         Config.ARXIV_SORT_BY = os.getenv("ARXIV_SORT_BY", "submittedDate")
         Config.ARXIV_SORT_ORDER = os.getenv("ARXIV_SORT_ORDER", "descending")
-        Config.REPORT_MAX_PAPERS = int(os.getenv("REPORT_MAX_PAPERS", "50"))
+        Config.REPORT_MAX_PAPERS = int(os.getenv("REPORT_MAX_PAPERS", "64"))
 
         # 更新 SEARCH_QUERIES
         search_queries_raw = os.getenv(
@@ -898,6 +898,10 @@ def interactive_configuration():
     click.echo(f"\n📊 智能建议（基于您选择的 {num_selected_fields} 个研究领域）")
     click.echo("-" * 40)
 
+    # 初始化建议变量（用于LSP类型检查）
+    recommended_initial = 0
+    recommended_daily = 0
+
     # 根据领域数量提供建议
     if num_selected_fields <= 6:
         click.echo("✅ 您选择了少量领域，保持默认配置即可。")
@@ -1024,7 +1028,7 @@ def init(directory, years_back):
         # 报告配置
         for i, line in enumerate(lines):
             if line.strip().startswith("REPORT_MAX_PAPERS="):
-                lines[i] = f"REPORT_MAX_PAPERS={config.get('REPORT_MAX_PAPERS', '50')}"
+                lines[i] = f"REPORT_MAX_PAPERS={config.get('REPORT_MAX_PAPERS', '64')}"
                 break
 
         # 同步配置
@@ -1124,13 +1128,15 @@ def sync(directory, years_back, summarize, force):
 @cli.command()
 @click.argument("query")
 @click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
-@click.option("--limit", default=20, help="返回结果的最大数量（默认：20）")
-@click.option("--years-back", type=int, default=0, help="搜索前同步回溯的年数（默认：0，不更新）")
+@click.option("--limit", default=64, help="返回结果的最大数量（默认：64）")
+@click.option(
+    "--years-back", type=int, default=0, help="搜索前先下载最近N年的论文到本地数据库（默认：0，表示不更新数据库）"
+)
 @click.option("--use-ai/--no-ai", default=True, help="是否使用AI理解自然语言查询（默认：是）")
 @click.option("--summarize/--no-summarize", default=True, help="是否自动总结未总结的论文（默认：是）")
 @click.option("--max-summarize", type=int, default=0, help="最大总结论文数（默认：0表示无限制）")
 @click.option("--categories", "-c", multiple=True, help="包含的分类（可多次使用）")
-@click.option("--days-back", type=int, help="回溯天数（例如：30表示最近30天）")
+@click.option("--days-back", type=int, default=0, help="只搜索最近N天的论文（默认：0，表示不限制时间）")
 @click.option("--authors", "-a", multiple=True, help="作者姓名（可多次使用）")
 @click.option(
     "--sort-by",
@@ -1138,8 +1144,24 @@ def sync(directory, years_back, summarize, force):
     default="published",
     help="排序字段",
 )
+@click.option(
+    "--strict-match/--no-strict-match",
+    default=False,
+    help="启用严格匹配（单词边界），严格匹配结果在前，模糊匹配结果在后",
+)
 def search(
-    query, directory, limit, years_back, use_ai, summarize, max_summarize, categories, days_back, authors, sort_by
+    query,
+    directory,
+    limit,
+    years_back,
+    use_ai,
+    summarize,
+    max_summarize,
+    categories,
+    days_back,
+    authors,
+    sort_by,
+    strict_match,
 ):
     """智能搜索论文（支持自然语言查询和基本过滤）"""
     directory = Path(directory).resolve()
@@ -1207,11 +1229,12 @@ def search(
 
             ai_response = response.choices[0].message.content
             try:
-                search_terms = json.loads(ai_response)
-                if isinstance(search_terms, list) and len(search_terms) > 0:
-                    click.echo(f"AI解析的搜索词: {', '.join(search_terms[:3])}")
-                    if len(search_terms) > 3:
-                        click.echo(f"  以及 {len(search_terms) - 3} 个其他关键词")
+                if ai_response:
+                    search_terms = json.loads(ai_response)
+                    if isinstance(search_terms, list) and len(search_terms) > 0:
+                        click.echo(f"AI解析的搜索词: {', '.join(search_terms[:3])}")
+                        if len(search_terms) > 3:
+                            click.echo(f"  以及 {len(search_terms) - 3} 个其他关键词")
             except:
                 # 如果AI响应不是有效JSON，使用原始查询
                 pass
@@ -1240,6 +1263,7 @@ def search(
             sort_by=sort_by,
             sort_order="desc",
             match_all=True,  # AND逻辑：匹配所有搜索词
+            strict_match=strict_match,
         )
 
         # 执行搜索
@@ -1263,7 +1287,7 @@ def search(
 
         # 输出简要结果和报告文件
         for i, paper in enumerate(papers_to_show[:5], 1):  # 只显示前5篇作为预览
-            authors = json.loads(paper.authors) if paper.authors else []
+            authors = json.loads(paper.authors) if paper.authors is not None else []  # type: ignore
             author_names = [a.get("name", "") for a in authors[:2]]
             if len(authors) > 2:
                 author_names.append("等")
@@ -1361,7 +1385,11 @@ def stat(directory):
 
         for paper in papers:
             if paper.categories:
-                for cat in paper.categories.split():
+                # 按逗号分割，然后去除空白字符和尾随逗号
+                categories = [cat.strip().rstrip(",") for cat in paper.categories.split(",")]
+                # 使用集合去重，避免同一论文中分类重复计数
+                unique_cats = set(cat for cat in categories if cat)
+                for cat in unique_cats:
                     category_counts[cat] = category_counts.get(cat, 0) + 1
 
         # 按数量排序

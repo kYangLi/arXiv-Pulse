@@ -25,17 +25,16 @@ class Config:
     AI_BASE_URL = os.getenv("AI_BASE_URL", "https://llmapi.paratera.com")
 
     # 模型配置：SUMMARY_MODEL 现在复用 AI_MODEL
-    SUMMARY_MAX_TOKENS = int(os.getenv("SUMMARY_MAX_TOKENS", 2000))
+    SUMMARY_MAX_TOKENS = int(os.getenv("SUMMARY_MAX_TOKENS", 10000))
 
     # Report generation settings
-    TOKEN_PRICE_PER_MILLION = float(os.getenv("TOKEN_PRICE_PER_MILLION", 3.0))
 
     # Paths
     REPORT_DIR = os.getenv("REPORT_DIR", "reports")
     DATA_DIR = os.path.dirname(DATABASE_URL.replace("sqlite:///", ""))
 
     # Report generation limits
-    REPORT_MAX_PAPERS = int(os.getenv("REPORT_MAX_PAPERS", "50"))
+    REPORT_MAX_PAPERS = int(os.getenv("REPORT_MAX_PAPERS", "64"))
 
     # ArXiv API
     ARXIV_MAX_RESULTS = int(os.getenv("ARXIV_MAX_RESULTS", 30000))
@@ -43,7 +42,7 @@ class Config:
     ARXIV_SORT_ORDER = os.getenv("ARXIV_SORT_ORDER", "descending")
 
     # Sync configuration
-    YEARS_BACK = int(os.getenv("YEARS_BACK", 3))  # Years to look back for initial sync
+    YEARS_BACK = int(os.getenv("YEARS_BACK", 5))  # Years to look back for initial sync
     IMPORTANT_PAPERS_FILE = os.getenv("IMPORTANT_PAPERS_FILE", "data/important_papers.txt")
 
     @classmethod
