@@ -20,7 +20,6 @@ class ReportGenerator:
         self.total_tokens_used = 0  # 总token使用量
         self.total_cost = 0.0  # 总费用（元）
         self.token_price_per_million = Config.TOKEN_PRICE_PER_MILLION  # 每百万token价格，可从配置覆盖
-        self.summary_sentences_limit = Config.SUMMARY_SENTENCES_LIMIT  # 摘要句子数限制
 
         # 抑制第三方库的详细日志
         import logging
@@ -209,47 +208,6 @@ class ReportGenerator:
 
         # 确保分数在1-5之间
         return max(1, min(5, score))
-
-    def _truncate_to_sentences(self, text: str, max_sentences: Optional[int] = None) -> str:
-        """将文本截断为指定数量的句子（支持中英文）"""
-        if not text:
-            return ""
-
-        if max_sentences is None:
-            max_sentences = self.summary_sentences_limit
-
-        import re
-
-        # 支持中英文句子分隔符：句号、问号、感叹号、分号、省略号
-        # 英文: . ? ! ; ... 中文: 。！？；…
-        pattern = r"([。！？；…\.\?!;]+|\.{3,})"
-        parts = re.split(pattern, text)
-
-        sentences = []
-        current = ""
-        for i, part in enumerate(parts):
-            current += part
-            if i % 2 == 1:  # 分隔符部分
-                sentences.append(current)
-                current = ""
-
-        # 如果最后还有未结束的句子
-        if current:
-            sentences.append(current)
-
-        # 如果分割失败，按长度简单截断
-        if len(sentences) == 0:
-            return text[:200] + "..." if len(text) > 200 else text
-
-        # 取前max_sentences句
-        result = "".join(sentences[:max_sentences])
-
-        # 如果截断后比原文本短很多，添加省略号
-        if len(result) < len(text) * 0.8:
-            # 移除末尾的句子分隔符，添加省略号
-            result = result.rstrip("。！？；….?!;") + "…"
-
-        return result
 
     def translate_text(self, text: str, target_lang: str = "zh") -> str:
         """使用DeepSeek或OpenAI API翻译文本，优先使用缓存"""

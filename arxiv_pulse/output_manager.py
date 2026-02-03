@@ -11,7 +11,7 @@
 [error]   - 错误信息（简洁）
 [debug]   - 调试信息（默认不显示）
 
-所有详细日志同时写入日志文件，控制台只显示简洁信息。
+所有输出仅显示在控制台，不写入日志文件。
 """
 
 import sys
@@ -72,33 +72,29 @@ class OutputManager:
         if not self._initialized:
             self._initialized = True
             self._console_enabled = True
-            self._file_logger = None
-            self._min_level = OutputLevel.DO  # 默认显示DO及以上（包括DONE, TIPS, INFO等）
+            # 从环境变量读取日志级别，默认为INFO
+            log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+            level_map = {
+                "DEBUG": OutputLevel.DEBUG,
+                "INFO": OutputLevel.INFO,
+                "WARNING": OutputLevel.WARN,
+                "WARN": OutputLevel.WARN,
+                "ERROR": OutputLevel.ERROR,
+                "DO": OutputLevel.DO,
+                "DONE": OutputLevel.DONE,
+                "TIPS": OutputLevel.TIPS,
+            }
+            self._min_level = level_map.get(log_level, OutputLevel.INFO)
             self._suppressed_modules = set()
-            self._setup_file_logger()
+            # 创建一个基本的日志记录器（不写入文件）
+            self._file_logger = logging.getLogger("arxiv_pulse")
+            self._file_logger.setLevel(logging.DEBUG)
+            # 添加NullHandler避免"No handlers"警告
+            if not self._file_logger.handlers:
+                self._file_logger.addHandler(logging.NullHandler())
 
             # 抑制第三方库的详细日志
             self._suppress_third_party_logs()
-
-    def _setup_file_logger(self):
-        """设置文件日志记录器"""
-        # 创建日志目录
-        os.makedirs("logs", exist_ok=True)
-
-        # 配置文件日志记录器
-        self._file_logger = logging.getLogger("arxiv_crawler")
-        self._file_logger.setLevel(logging.DEBUG)
-
-        # 移除现有处理器
-        for handler in self._file_logger.handlers[:]:
-            self._file_logger.removeHandler(handler)
-
-        # 添加文件处理器
-        file_handler = logging.FileHandler("logs/arxiv_pulse.log", encoding="utf-8")
-        file_handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-        file_handler.setFormatter(formatter)
-        self._file_logger.addHandler(file_handler)
 
     def _suppress_third_party_logs(self):
         """抑制第三方库的详细日志"""
@@ -117,16 +113,18 @@ class OutputManager:
             return False
 
         # 检查级别
+        # 数字越小表示级别越低（越不重要）
         level_order = {
-            OutputLevel.DO: 0,
-            OutputLevel.DONE: 1,
-            OutputLevel.TIPS: 2,
-            OutputLevel.INFO: 3,
-            OutputLevel.WARN: 4,
-            OutputLevel.ERROR: 5,
-            OutputLevel.DEBUG: 6,
+            OutputLevel.DEBUG: 0,  # 最低级别
+            OutputLevel.INFO: 1,
+            OutputLevel.WARN: 2,
+            OutputLevel.ERROR: 3,
+            OutputLevel.DO: 4,  # 操作提示，通常显示
+            OutputLevel.DONE: 5,
+            OutputLevel.TIPS: 6,
         }
 
+        # 只有级别数字 >= 最小级别数字的才显示
         return level_order[level] >= level_order[self._min_level]
 
     def _output(
@@ -137,28 +135,6 @@ class OutputManager:
         details: Optional[Dict[str, Any]] = None,
     ):
         """统一输出方法"""
-        # 记录到文件日志
-        log_level = {
-            OutputLevel.DO: logging.INFO,
-            OutputLevel.DONE: logging.INFO,
-            OutputLevel.TIPS: logging.INFO,
-            OutputLevel.INFO: logging.INFO,
-            OutputLevel.WARN: logging.WARNING,
-            OutputLevel.ERROR: logging.ERROR,
-            OutputLevel.DEBUG: logging.DEBUG,
-        }[level]
-
-        # 构建详细日志消息
-        log_message = message
-        if module:
-            log_message = f"[{module}] {message}"
-        if details:
-            details_str = " ".join(f"{k}={v}" for k, v in details.items())
-            log_message = f"{log_message} | {details_str}"
-
-        # 写入文件日志
-        self._file_logger.log(log_level, log_message)
-
         # 控制台输出
         if self._console_enabled and self._should_output(level, module):
             # 获取标签和颜色
@@ -228,7 +204,15 @@ class OutputManager:
     @classmethod
     def get_file_logger(cls) -> logging.Logger:
         """获取文件日志记录器"""
-        return cls()._file_logger
+        instance = cls()
+        if instance._file_logger is None:
+            # 创建基本的日志记录器作为回退
+            instance._file_logger = logging.getLogger("arxiv_pulse_fallback")
+            instance._file_logger.setLevel(logging.DEBUG)
+            if not instance._file_logger.handlers:
+                instance._file_logger.addHandler(logging.NullHandler())
+        assert instance._file_logger is not None
+        return instance._file_logger
 
 
 # 简化别名

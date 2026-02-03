@@ -75,6 +75,19 @@ pip install -e .
 
 ## 📋 核心命令参考
 
+### 全局选项
+
+所有命令都支持以下全局选项：
+
+- `-v, --verbose`：显示详细输出（包括调试信息）
+- `--version`：显示版本信息
+- `-h, --help`：显示命令帮助信息
+
+**日志级别控制**：
+- 默认输出级别为 `INFO`，隐藏调试信息
+- 使用 `--verbose` 选项显示所有调试信息
+- 通过环境变量 `LOG_LEVEL` 设置默认级别：`DEBUG`、`INFO`、`WARNING`、`ERROR`
+
 ### 8个核心命令
 
 | 命令 | 说明 | 关键特性 |
@@ -105,7 +118,6 @@ pulse init [目录路径] --years-back 5
 [工作目录]/
 ├── data/                    # 数据库存储目录
 ├── reports/                 # 报告输出目录  
-├── logs/                    # 日志目录
 ├── .env                     # 环境配置文件模板
 └── important_papers.txt     # 重要论文列表
 ```
@@ -113,17 +125,26 @@ pulse init [目录路径] --years-back 5
 **设计理念**：一键完成所有初始化工作，无需额外步骤。
 
 #### `pulse sync` - 同步最新论文
-**功能**：仅同步最新论文到数据库，不生成报告。
+**功能**：同步最新论文到数据库，不生成报告。支持普通模式和强制模式。
 
 ```bash
+# 普通模式：只下载缺失的新论文，默认回溯1年
 pulse sync [目录路径] --years-back 1 --no-summarize
+
+# 强制模式：重新下载最近N年的所有论文，忽略重复检查，默认回溯5年
+pulse sync [目录路径] --force --years-back 5 --no-summarize
 ```
 
 **参数**：
-- `--years-back`：同步回溯的年数（默认：1年）
+- `--years-back`：同步回溯的年数（默认：强制模式5年，普通模式1年）
 - `--summarize/--no-summarize`：是否总结新论文（默认：否）
+- `--force`：强制同步：重新下载最近N年的所有论文，忽略重复检查，默认回溯5年
 
-**设计理念**：专注于数据更新，让用户控制是否总结论文。
+**使用场景**：
+- **普通模式**：日常更新，只获取最新发布的论文
+- **强制模式**：初始化新数据库、修复数据缺失、更新配置后重新获取历史论文
+
+**设计理念**：专注于数据更新，提供灵活的同步策略，让用户根据需求选择普通更新或完全重新同步。
 
 #### `pulse search` - 智能搜索论文
 **功能**：在数据库中搜索论文，支持自然语言查询和AI解析。
@@ -252,8 +273,9 @@ AI_BASE_URL=https://llmapi.paratera.com
 DATABASE_URL=sqlite:///data/arxiv_papers.db
 
 # 爬虫配置
-MAX_RESULTS_INITIAL=100    # init命令每个查询的论文数
-MAX_RESULTS_DAILY=20       # sync命令每个查询的论文数
+MAX_RESULTS_INITIAL=10000    # init命令每个查询的论文数
+MAX_RESULTS_DAILY=500       # sync命令每个查询的论文数
+ARXIV_MAX_RESULTS=30000    # arXiv API最大返回论文数限制
 
 # 搜索查询（分号分隔，允许查询中包含逗号）
 # 通过交互式配置选择研究领域后自动生成
@@ -262,13 +284,16 @@ SEARCH_QUERIES=condensed matter physics AND cat:cond-mat.*; (ti:"density functio
 # 报告配置
 REPORT_DIR=reports
 SUMMARY_MAX_TOKENS=2000    # 总结和翻译的最大token数
-SUMMARY_SENTENCES_LIMIT=3
 TOKEN_PRICE_PER_MILLION=3.0
 REPORT_MAX_PAPERS=50
 
 # 同步配置
 YEARS_BACK=3               # 同步回溯的年数
 IMPORTANT_PAPERS_FILE=important_papers.txt
+
+# 日志配置
+LOG_LEVEL=INFO             # 日志级别: DEBUG, INFO, WARNING, ERROR (默认: INFO)
+CRAWL_DELAY=1.0            # 爬虫延迟（秒，避免频繁请求 arXiv API）
 ```
 
 ### 研究领域
@@ -339,7 +364,6 @@ arxiv_pulse/                    # Python 包源码
 ├── .env                       # 环境配置
 ├── data/                      # 数据库存储
 ├── reports/                   # 生成的报告
-├── logs/                      # 应用日志
 └── important_papers.txt       # 重要论文列表
 ```
 
@@ -354,9 +378,7 @@ arxiv_pulse/                    # Python 包源码
 - **最近论文报告**：`reports/recent_YYYYMMDD_HHMMSS.md` 和 `.csv` (通过 `pulse recent` 生成)
 - **报告内容**：论文详情、AI总结、中文翻译、相关度评级、费用统计、PDF链接
 
-### 日志
-- `logs/arxiv_pulse.log` - 主要应用日志
-- `logs/summarizer.log` - 总结器日志
+
 
 ## 🔧 高级使用
 
@@ -466,6 +488,30 @@ tail -f logs/summarizer.log
 
 ## 📋 更新日志
 
+### v0.6.0 (2026-02-03)
+
+**重要功能增强和配置优化：**
+
+1. **arXiv API 限制优化**：
+   - 修正错误的 "arXiv API 限制为 1000 篇" 假设
+   - 将 `ARXIV_MAX_RESULTS` 默认值从 1000 提升到 30000（arXiv API 官方最大值）
+   - 支持一次性获取 7000+ 篇论文，满足大规模文献收集需求
+
+2. **配置系统重构**：
+   - 明确区分 `MAX_RESULTS_INITIAL`（业务逻辑限制）和 `ARXIV_MAX_RESULTS`（技术 API 限制）
+   - 优化配置优先级：`min(MAX_RESULTS_INITIAL, ARXIV_MAX_RESULTS, 30000)`
+   - 更新所有配置文件模板和文档说明
+
+3. **代码质量改进**：
+   - 修复 LSP 导入警告和类型错误
+   - 增强配置文件的一致性和可维护性
+   - 更新依赖版本和开发环境配置
+
+4. **文档系统化整理**：
+   - 重新组织 README 结构，突出核心功能和配置说明
+   - 添加详细的配置项解释和使用场景说明
+   - 优化命令参考表格，提升可读性
+
 ### v0.5.3 (2026-02-03)
 
 **重要修复和改进：**
@@ -489,6 +535,12 @@ tail -f logs/summarizer.log
    - 修复 `cli.py` 中的缩进错误
    - 更新版本信息元数据
    - 重新安装包确保一致性
+
+5. **日志系统改进**：
+   - 添加 `LOG_LEVEL` 环境变量控制输出级别：`DEBUG`、`INFO`、`WARNING`、`ERROR`
+   - 添加全局 `--verbose` 选项显示详细调试信息
+   - 默认隐藏调试信息（如 `Paper XXXX already exists in database`）
+   - 修复 `output_manager.py` 类型错误，增强稳定性
 
 ### v0.5.0 (2025-02-03)
 

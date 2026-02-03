@@ -43,11 +43,26 @@ class ArXivCrawler:
             cutoff_date: Optional UTC datetime cutoff; papers older than this will be skipped
                          and iteration will stop early due to descending date order.
         """
+        # Map sort_by string to arxiv enum
+        sort_by_map = {
+            "submittedDate": arxiv.SortCriterion.SubmittedDate,
+            "lastUpdatedDate": arxiv.SortCriterion.LastUpdatedDate,
+            "relevance": arxiv.SortCriterion.Relevance,
+        }
+        sort_by = sort_by_map.get(Config.ARXIV_SORT_BY, arxiv.SortCriterion.SubmittedDate)
+
+        # Map sort_order string to arxiv enum
+        sort_order_map = {
+            "descending": arxiv.SortOrder.Descending,
+            "ascending": arxiv.SortOrder.Ascending,
+        }
+        sort_order = sort_order_map.get(Config.ARXIV_SORT_ORDER, arxiv.SortOrder.Descending)
+
         search = arxiv.Search(
             query=query,
             max_results=max_results,
-            sort_by=arxiv.SortCriterion.SubmittedDate,
-            sort_order=arxiv.SortOrder.Descending,
+            sort_by=sort_by,
+            sort_order=sort_order,
         )
 
         results = []
@@ -108,51 +123,6 @@ class ArXivCrawler:
                 )
 
         output.done(f"保存完成: {len(saved_papers)} 篇新论文")
-        return saved_papers
-
-    def save_papers_force(self, papers: List[arxiv.Result], search_query: str) -> List[Paper]:
-        """Save papers to database in force mode - update existing papers"""
-        saved_papers = []
-        for paper in tqdm(papers, desc="强制保存论文"):
-            try:
-                arxiv_id = paper.entry_id.split("/")[-1]
-                paper_obj = Paper.from_arxiv_entry(paper, search_query)
-
-                # Check if paper exists
-                if self.db.paper_exists(arxiv_id):
-                    # Update existing paper with new data
-                    update_fields = {
-                        "title": paper_obj.title,
-                        "authors": paper_obj.authors,
-                        "abstract": paper_obj.abstract,
-                        "categories": paper_obj.categories,
-                        "primary_category": paper_obj.primary_category,
-                        "published": paper_obj.published,
-                        "updated": paper_obj.updated,
-                        "pdf_url": paper_obj.pdf_url,
-                        "doi": paper_obj.doi,
-                        "journal_ref": paper_obj.journal_ref,
-                        "comment": paper_obj.comment,
-                        "search_query": paper_obj.search_query,
-                        # Don't update relevance_score, keywords, downloaded, summarized, summary
-                        # as these are processing results
-                    }
-                    self.db.update_paper(arxiv_id, **update_fields)
-                    output.debug(f"更新论文: {arxiv_id}")
-                else:
-                    # Add new paper
-                    self.db.add_paper(paper_obj)
-                    output.debug(f"添加新论文: {arxiv_id}")
-
-                saved_papers.append(paper_obj)
-
-            except Exception as e:
-                output.error(
-                    "强制保存论文失败",
-                    details={"paper_id": paper.entry_id, "exception": str(e)},
-                )
-
-        output.done(f"强制保存完成: {len(saved_papers)} 篇论文")
         return saved_papers
 
     def initial_crawl(self) -> Dict[str, Any]:
@@ -259,16 +229,17 @@ class ArXivCrawler:
         Args:
             query: arXiv search query
             years_back: Number of years to look back
-            force: If True, force re-sync all papers from years_back years ago,
-                   ignoring existing papers and max results limits
+            force: If True, ignore all max results limits (MAX_RESULTS_INITIAL,
+                   MAX_RESULTS_DAILY, ARXIV_MAX_RESULTS) but still skip existing papers
         """
         output.do(f"同步查询: {query}" + (" (强制模式)" if force else ""))
 
         if force:
-            # Force mode: always start from years_back years ago
+            # Force mode: always start from years_back years ago, ignore all limits
             start_date = datetime.now(timezone.utc) - timedelta(days=365 * years_back)
             output.debug(f"强制同步: 获取最近 {years_back} 年的所有论文 ({start_date.strftime('%Y-%m-%d')} 到现在)")
-            max_results = Config.ARXIV_MAX_RESULTS  # Use maximum allowed
+            # Use a very large number to bypass all limits (arxiv API may have its own limits)
+            max_results = 30000  # Ignore MAX_RESULTS_INITIAL, MAX_RESULTS_DAILY, and ARXIV_MAX_RESULTS
         else:
             # Normal mode: get latest paper date in database for this query
             latest_date = self.get_latest_paper_date_for_query(query)
@@ -279,12 +250,14 @@ class ArXivCrawler:
                 # 减去一天以确保获取所有可能的新论文，避免因时间精度问题错过论文
                 start_date = start_date - timedelta(days=1)
                 output.debug(f"获取论文从 {start_date.strftime('%Y-%m-%d')} 到现在")
-                max_results = Config.ARXIV_MAX_RESULTS
+                # Use daily limit, but respect arXiv API maximum
+                max_results = min(Config.MAX_RESULTS_DAILY, Config.ARXIV_MAX_RESULTS)
             else:
                 # If no papers, fetch from years_back years ago
                 start_date = datetime.now(timezone.utc) - timedelta(days=365 * years_back)
                 output.debug(f"获取最近 {years_back} 年的论文 ({start_date.strftime('%Y-%m-%d')} 到现在)")
-                max_results = Config.ARXIV_MAX_RESULTS
+                # Use initial limit, but respect arXiv API maximum
+                max_results = min(Config.MAX_RESULTS_INITIAL, Config.ARXIV_MAX_RESULTS)
 
         # Search arXiv without date filter (use cutoff_date for early stopping)
         try:
@@ -294,15 +267,11 @@ class ArXivCrawler:
                 cutoff_date=start_date,
             )
 
-            if force:
-                # In force mode, save all papers (including existing ones)
-                saved = self.save_papers_force(papers, query)
-            else:
-                # Normal mode: filter out existing papers
-                new_papers = self.filter_new_papers(papers)
-                saved = self.save_papers(new_papers, query)
+            # Always filter out existing papers (even in force mode)
+            new_papers = self.filter_new_papers(papers)
+            saved = self.save_papers(new_papers, query)
 
-            output.done(f"同步完成: {len(saved)} 篇论文")
+            output.done(f"同步完成: {len(saved)} 篇新论文")
             time.sleep(1)  # Rate limiting
 
             return {
@@ -323,7 +292,7 @@ class ArXivCrawler:
 
         Args:
             years_back: Number of years to look back
-            force: If True, force re-sync all papers from years_back years ago
+            force: If True, ignore all max results limits but still skip existing papers
         """
         output.do(f"同步所有查询 (回溯 {years_back} 年)" + (" (强制模式)" if force else ""))
 

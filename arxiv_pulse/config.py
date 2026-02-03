@@ -6,8 +6,8 @@ class Config:
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///data/arxiv_papers.db")
 
     # Crawler
-    MAX_RESULTS_INITIAL = int(os.getenv("MAX_RESULTS_INITIAL", 100))
-    MAX_RESULTS_DAILY = int(os.getenv("MAX_RESULTS_DAILY", 20))
+    MAX_RESULTS_INITIAL = int(os.getenv("MAX_RESULTS_INITIAL", 10000))
+    MAX_RESULTS_DAILY = int(os.getenv("MAX_RESULTS_DAILY", 500))
 
     # Search queries - use semicolon as separator to allow commas in queries
     SEARCH_QUERIES_RAW = os.getenv(
@@ -28,7 +28,6 @@ class Config:
     SUMMARY_MAX_TOKENS = int(os.getenv("SUMMARY_MAX_TOKENS", 2000))
 
     # Report generation settings
-    SUMMARY_SENTENCES_LIMIT = int(os.getenv("SUMMARY_SENTENCES_LIMIT", 3))
     TOKEN_PRICE_PER_MILLION = float(os.getenv("TOKEN_PRICE_PER_MILLION", 3.0))
 
     # Paths
@@ -39,13 +38,13 @@ class Config:
     REPORT_MAX_PAPERS = int(os.getenv("REPORT_MAX_PAPERS", "50"))
 
     # ArXiv API
-    ARXIV_MAX_RESULTS = 1000
-    ARXIV_SORT_BY = "submittedDate"
-    ARXIV_SORT_ORDER = "descending"
+    ARXIV_MAX_RESULTS = int(os.getenv("ARXIV_MAX_RESULTS", 30000))
+    ARXIV_SORT_BY = os.getenv("ARXIV_SORT_BY", "submittedDate")
+    ARXIV_SORT_ORDER = os.getenv("ARXIV_SORT_ORDER", "descending")
 
     # Sync configuration
     YEARS_BACK = int(os.getenv("YEARS_BACK", 3))  # Years to look back for initial sync
-    IMPORTANT_PAPERS_FILE = os.getenv("IMPORTANT_PAPERS_FILE", "important_papers.txt")
+    IMPORTANT_PAPERS_FILE = os.getenv("IMPORTANT_PAPERS_FILE", "data/important_papers.txt")
 
     @classmethod
     def validate(cls):

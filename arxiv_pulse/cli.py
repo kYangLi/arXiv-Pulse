@@ -18,7 +18,7 @@ from arxiv_pulse.config import Config
 from arxiv_pulse.arxiv_crawler import ArXivCrawler
 from arxiv_pulse.summarizer import PaperSummarizer
 from arxiv_pulse.report_generator import ReportGenerator
-from arxiv_pulse.output_manager import output
+from arxiv_pulse.output_manager import output, OutputLevel
 from arxiv_pulse.search_engine import SearchEngine, SearchFilter
 from arxiv_pulse.__version__ import __version__
 
@@ -235,7 +235,6 @@ def setup_environment(directory: Path):
         # 创建必要的目录
         os.makedirs("data", exist_ok=True)
         os.makedirs("reports", exist_ok=True)
-        os.makedirs("logs", exist_ok=True)
 
         # 加载 .env 文件（如果存在）
         env_file = directory / ".env"
@@ -268,12 +267,14 @@ def setup_environment(directory: Path):
         Config.AI_MODEL = os.getenv("AI_MODEL", "DeepSeek-V3.2-Thinking")
         Config.AI_BASE_URL = os.getenv("AI_BASE_URL", "https://llmapi.paratera.com")
         Config.SUMMARY_MAX_TOKENS = int(os.getenv("SUMMARY_MAX_TOKENS", "2000"))
-        Config.SUMMARY_SENTENCES_LIMIT = int(os.getenv("SUMMARY_SENTENCES_LIMIT", "3"))
         Config.TOKEN_PRICE_PER_MILLION = float(os.getenv("TOKEN_PRICE_PER_MILLION", "3.0"))
-        Config.MAX_RESULTS_INITIAL = int(os.getenv("MAX_RESULTS_INITIAL", "100"))
-        Config.MAX_RESULTS_DAILY = int(os.getenv("MAX_RESULTS_DAILY", "20"))
+        Config.MAX_RESULTS_INITIAL = int(os.getenv("MAX_RESULTS_INITIAL", "10000"))
+        Config.MAX_RESULTS_DAILY = int(os.getenv("MAX_RESULTS_DAILY", "500"))
         Config.YEARS_BACK = int(os.getenv("YEARS_BACK", "3"))
-        Config.IMPORTANT_PAPERS_FILE = os.getenv("IMPORTANT_PAPERS_FILE", "important_papers.txt")
+        Config.IMPORTANT_PAPERS_FILE = os.getenv("IMPORTANT_PAPERS_FILE", "data/important_papers.txt")
+        Config.ARXIV_MAX_RESULTS = int(os.getenv("ARXIV_MAX_RESULTS", "30000"))
+        Config.ARXIV_SORT_BY = os.getenv("ARXIV_SORT_BY", "submittedDate")
+        Config.ARXIV_SORT_ORDER = os.getenv("ARXIV_SORT_ORDER", "descending")
         Config.REPORT_MAX_PAPERS = int(os.getenv("REPORT_MAX_PAPERS", "50"))
 
         # 更新 SEARCH_QUERIES
@@ -725,10 +726,15 @@ def generate_search_report(query, search_terms, papers, paper_limit=50, summariz
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
+@click.option("--verbose", "-v", is_flag=True, help="显示详细输出（包括调试信息）")
 @click.version_option(version=__version__, prog_name="arXiv Pulse")
-def cli():
+def cli(verbose):
     """arXiv Pulse: 智能arXiv文献追踪和分析系统"""
-    pass
+    if verbose:
+        output.set_min_level(OutputLevel.DEBUG)
+    else:
+        # 确保使用环境变量中的LOG_LEVEL（output manager已经处理）
+        pass
 
 
 def interactive_configuration():
@@ -930,9 +936,6 @@ def interactive_configuration():
     report_max_papers = click.prompt("每份报告显示的最大论文数", default=50, type=int, show_default=True)
     config["REPORT_MAX_PAPERS"] = str(report_max_papers)
 
-    summary_sentences_limit = click.prompt("摘要句子数限制", default=3, type=int, show_default=True)
-    config["SUMMARY_SENTENCES_LIMIT"] = str(summary_sentences_limit)
-
     click.echo("\n✅ 配置完成！")
     return config, int(years_back)
 
@@ -947,7 +950,6 @@ def init(directory, years_back):
     # 创建目录结构
     (directory / "data").mkdir(exist_ok=True)
     (directory / "reports").mkdir(exist_ok=True)
-    (directory / "logs").mkdir(exist_ok=True)
 
     # 创建 .env 文件（如果不存在）
     env_file = directory / ".env"
@@ -998,7 +1000,6 @@ SEARCH_QUERIES={config.get("SEARCH_QUERIES", 'condensed matter physics AND cat:c
 # ========================
 REPORT_DIR=reports
 SUMMARY_MAX_TOKENS=2000          # 总结和翻译的最大token数
-SUMMARY_SENTENCES_LIMIT={config.get("SUMMARY_SENTENCES_LIMIT", "3")}
 TOKEN_PRICE_PER_MILLION=3.0
 REPORT_MAX_PAPERS={config.get("REPORT_MAX_PAPERS", "50")}
 
@@ -1027,10 +1028,12 @@ CRAWL_DELAY=1.0
             years_back = 5  # 默认值
 
     # 创建 important_papers.txt（如果不存在）
-    important_file = directory / "important_papers.txt"
+    important_file = directory / Config.IMPORTANT_PAPERS_FILE
+    # 确保父目录存在
+    important_file.parent.mkdir(parents=True, exist_ok=True)
     if not important_file.exists():
         important_file.write_text("# 在此添加重要论文的arXiv ID，每行一个\n")
-        click.echo(f"✅ 已在 {directory} 创建 important_papers.txt 文件")
+        click.echo(f"✅ 已创建重要论文文件: {important_file}")
 
     # 设置环境并验证配置
     if not setup_environment(directory):
