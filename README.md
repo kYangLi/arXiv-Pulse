@@ -1,6 +1,6 @@
 # arXiv Pulse - 智能 arXiv 文献追踪系统
 
-![Version](https://img.shields.io/badge/version-0.5.0-blue)
+[![Version](https://img.shields.io/pypi/v/arxiv-pulse.svg)](https://pypi.org/project/arxiv-pulse/)
 ![Python](https://img.shields.io/badge/python-3.12%2B-green)
 ![License](https://img.shields.io/badge/license-GPL--3.0-orange)
 
@@ -10,7 +10,7 @@
 
 ## ✨ 核心功能
 
-- **📦 极简设计**：**8 个核心命令**覆盖完整文献管理流程
+- **📦 极简设计**：**4 个核心命令**覆盖完整文献管理流程
 - **🔍 智能搜索**：支持自然语言查询，AI 自动解析为学术关键词
 - **🔬 高级搜索**：多字段精细过滤（分类、作者、时间范围等）
 - **🔗 相似推荐**：基于分类重叠查找相似论文，拓展研究视野
@@ -21,11 +21,9 @@
 - **🔄 自动同步**：搜索和报告前自动更新数据库，保持数据最新
 - **💰 成本透明**：准确跟踪 API 使用费用，优化成本控制
 - **🎯 专注科研**：专为凝聚态物理、DFT、机器学习、力场等研究领域优化
-- **🎛️ 交互式配置**：引导式配置向导，支持 30+ 研究领域选择（v0.5.0）
-- **🧠 智能建议**：基于选择领域数量自动推荐优化配置（v0.5.0）
-- **🚩 个性化横幅**：根据研究领域显示定制化启动横幅（v0.5.0）
-- **🌐 通用 AI API**：支持所有 OpenAI 兼容服务（DeepSeek、Paratera AI 等）（v0.5.0）
-- **📅 工作日计算**：按工作日计算时间范围，排除周末（v0.5.0）
+- **🎛️ 交互式配置**：引导式配置向导，支持 30+ 研究领域选择
+- **🧠 智能建议**：基于选择领域数量自动推荐优化配置
+- **🌐 通用 AI API**：支持所有 OpenAI 兼容服务（DeepSeek、Paratera AI 等）
 
 ## 🚀 快速开始
 
@@ -51,10 +49,6 @@ pip install -e .
    pulse init .  # 自动创建目录并同步5年历史论文
    ```
 
-2. **交互式配置（推荐）**
-   ```bash
-   pulse init .  # 首次运行时会启动交互式配置向导
-   ```
    首次初始化时，配置向导将引导您完成：
    - 🔧 **AI API 配置**：设置 API 密钥、模型和 Base URL（支持所有 OpenAI 兼容服务）
    - 📊 **爬虫配置**：调整初始/每日最大论文数、回溯年数
@@ -276,8 +270,6 @@ REPORT_MAX_PAPERS=50
 YEARS_BACK=3               # 同步回溯的年数
 IMPORTANT_PAPERS_FILE=important_papers.txt
 ```
-
-**注意**：从 v0.5.0 开始，所有 AI 相关配置统一使用 `AI_*` 前缀变量。旧的 `DEEPSEEK_*` 变量已不再支持。建议首次运行 `pulse init .` 时使用交互式配置向导完成所有设置。
 
 ### 研究领域
 
