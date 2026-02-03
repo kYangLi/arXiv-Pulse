@@ -456,18 +456,26 @@ def print_banner_custom(fields):
     click.echo(banner)
 
 
-def sync_papers(years_back=1, summarize=False):
-    """同步论文（内部函数）"""
+def sync_papers(years_back=1, summarize=False, force=False):
+    """同步论文（内部函数）
+
+    Args:
+        years_back: 回溯的年数
+        summarize: 是否总结新论文
+        force: 是否强制同步（重新下载所有论文，忽略重复检查）
+    """
     crawler = ArXivCrawler()
     summarizer = PaperSummarizer()
 
-    click.echo(f"正在同步缺失论文（回溯 {years_back} 年）...")
+    mode_text = "强制同步" if force else "同步缺失论文"
+    click.echo(f"正在{mode_text}（回溯 {years_back} 年）...")
     click.echo("=" * 50)
 
     # 同步所有查询
     click.echo("1. 正在同步搜索查询...")
-    sync_result = crawler.sync_all_queries(years_back=years_back)
-    click.echo(f"   从查询添加了 {sync_result['total_new_papers']} 篇新论文")
+    sync_result = crawler.sync_all_queries(years_back=years_back, force=force)
+    result_text = "处理了" if force else "添加了"
+    click.echo(f"   从查询{result_text} {sync_result['total_new_papers']} 篇论文")
 
     # 同步重要论文
     click.echo("2. 正在同步重要论文...")
@@ -493,7 +501,7 @@ def sync_papers(years_back=1, summarize=False):
 
     click.echo("\n" + "=" * 50)
     click.echo("同步完成！")
-    click.echo(f"总共添加了新论文: {total_new}")
+    click.echo(f"总共{result_text}论文: {total_new}")
     click.echo(f"数据库现有 {crawl_stats['total_papers']} 篇论文")
     click.echo(f"已总结: {summary_stats['summarized_papers']} ({summary_stats['summarization_rate']:.1%})")
 
@@ -503,6 +511,7 @@ def sync_papers(years_back=1, summarize=False):
         "sync_result": sync_result,
         "important_result": important_result,
         "stats": {"crawl_stats": crawl_stats, "summary_stats": summary_stats},
+        "force_mode": force,
     }
 
 
@@ -1064,10 +1073,15 @@ CRAWL_DELAY=1.0
 
 @cli.command()
 @click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
-@click.option("--years-back", type=int, default=1, help="同步回溯的年数（默认：1年）")
+@click.option("--years-back", type=int, default=None, help="同步回溯的年数（默认：强制模式5年，普通模式1年）")
 @click.option("--summarize/--no-summarize", default=False, help="是否总结新论文（默认：否）")
-def sync(directory, years_back, summarize):
-    """同步最新论文到数据库"""
+@click.option("--force", is_flag=True, default=False, help="强制同步：重新下载最近N年的所有论文，忽略重复检查")
+def sync(directory, years_back, summarize, force):
+    """同步最新论文到数据库
+
+    强制模式(--force): 重新下载最近N年的所有论文，忽略重复检查，默认回溯5年。
+    普通模式: 只下载缺失的新论文，默认回溯1年。
+    """
     directory = Path(directory).resolve()
     click.echo(f"正在同步 arXiv Pulse 于 {directory}")
 
@@ -1076,8 +1090,13 @@ def sync(directory, years_back, summarize):
 
     print_banner()
 
+    # 设置默认years_back值
+    if years_back is None:
+        years_back = 5 if force else 1
+        click.echo(f"使用默认回溯年数: {years_back} 年")
+
     # 同步论文
-    sync_result = sync_papers(years_back=years_back, summarize=summarize)
+    sync_result = sync_papers(years_back=years_back, summarize=summarize, force=force)
 
     click.echo("\n" + "=" * 50)
     click.echo("同步完成！数据库已更新。")
@@ -1115,7 +1134,7 @@ def search(
     crawler = ArXivCrawler()
     if years_back > 0:
         click.echo(f"搜索前先同步最近 {years_back} 年论文...")
-        sync_result = sync_papers(years_back=years_back, summarize=False)
+        sync_result = sync_papers(years_back=years_back, summarize=False, force=False)
         crawler = sync_result["crawler"]
 
     click.echo(f"\n正在搜索: '{query}'")
@@ -1263,7 +1282,7 @@ def recent(directory, limit, days_back, years_back, summarize, max_summarize):
     # 先同步论文
     if years_back > 0:
         click.echo(f"报告前先同步最近 {years_back} 年论文...")
-        sync_papers(years_back=years_back, summarize=False)
+        sync_papers(years_back=years_back, summarize=False, force=False)
 
     # 生成报告
     click.echo("\n" + "=" * 50)

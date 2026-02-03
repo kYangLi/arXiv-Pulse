@@ -110,6 +110,51 @@ class ArXivCrawler:
         output.done(f"保存完成: {len(saved_papers)} 篇新论文")
         return saved_papers
 
+    def save_papers_force(self, papers: List[arxiv.Result], search_query: str) -> List[Paper]:
+        """Save papers to database in force mode - update existing papers"""
+        saved_papers = []
+        for paper in tqdm(papers, desc="强制保存论文"):
+            try:
+                arxiv_id = paper.entry_id.split("/")[-1]
+                paper_obj = Paper.from_arxiv_entry(paper, search_query)
+
+                # Check if paper exists
+                if self.db.paper_exists(arxiv_id):
+                    # Update existing paper with new data
+                    update_fields = {
+                        "title": paper_obj.title,
+                        "authors": paper_obj.authors,
+                        "abstract": paper_obj.abstract,
+                        "categories": paper_obj.categories,
+                        "primary_category": paper_obj.primary_category,
+                        "published": paper_obj.published,
+                        "updated": paper_obj.updated,
+                        "pdf_url": paper_obj.pdf_url,
+                        "doi": paper_obj.doi,
+                        "journal_ref": paper_obj.journal_ref,
+                        "comment": paper_obj.comment,
+                        "search_query": paper_obj.search_query,
+                        # Don't update relevance_score, keywords, downloaded, summarized, summary
+                        # as these are processing results
+                    }
+                    self.db.update_paper(arxiv_id, **update_fields)
+                    output.debug(f"更新论文: {arxiv_id}")
+                else:
+                    # Add new paper
+                    self.db.add_paper(paper_obj)
+                    output.debug(f"添加新论文: {arxiv_id}")
+
+                saved_papers.append(paper_obj)
+
+            except Exception as e:
+                output.error(
+                    "强制保存论文失败",
+                    details={"paper_id": paper.entry_id, "exception": str(e)},
+                )
+
+        output.done(f"强制保存完成: {len(saved_papers)} 篇论文")
+        return saved_papers
+
     def initial_crawl(self) -> Dict[str, Any]:
         """Perform initial crawl with multiple queries"""
         output.do("开始初始爬取")
@@ -208,35 +253,56 @@ class ArXivCrawler:
             )
             return latest_paper.published if latest_paper else None  # type: ignore
 
-    def sync_query(self, query: str, years_back: int = 3) -> Dict[str, Any]:
-        """Sync papers for a specific query, fetching missing papers from recent years"""
-        output.do(f"同步查询: {query}")
+    def sync_query(self, query: str, years_back: int = 3, force: bool = False) -> Dict[str, Any]:
+        """Sync papers for a specific query, fetching missing papers from recent years
 
-        # Get latest paper date in database for this query
-        latest_date = self.get_latest_paper_date_for_query(query)
+        Args:
+            query: arXiv search query
+            years_back: Number of years to look back
+            force: If True, force re-sync all papers from years_back years ago,
+                   ignoring existing papers and max results limits
+        """
+        output.do(f"同步查询: {query}" + (" (强制模式)" if force else ""))
 
-        if latest_date:
-            # If we have papers, fetch from latest date onward
-            start_date = latest_date.replace(tzinfo=timezone.utc)
-            # 减去一天以确保获取所有可能的新论文，避免因时间精度问题错过论文
-            start_date = start_date - timedelta(days=1)
-            output.debug(f"获取论文从 {start_date.strftime('%Y-%m-%d')} 到现在")
-        else:
-            # If no papers, fetch from years_back years ago
+        if force:
+            # Force mode: always start from years_back years ago
             start_date = datetime.now(timezone.utc) - timedelta(days=365 * years_back)
-            output.debug(f"获取最近 {years_back} 年的论文 ({start_date.strftime('%Y-%m-%d')} 到现在)")
+            output.debug(f"强制同步: 获取最近 {years_back} 年的所有论文 ({start_date.strftime('%Y-%m-%d')} 到现在)")
+            max_results = Config.ARXIV_MAX_RESULTS  # Use maximum allowed
+        else:
+            # Normal mode: get latest paper date in database for this query
+            latest_date = self.get_latest_paper_date_for_query(query)
+
+            if latest_date:
+                # If we have papers, fetch from latest date onward
+                start_date = latest_date.replace(tzinfo=timezone.utc)
+                # 减去一天以确保获取所有可能的新论文，避免因时间精度问题错过论文
+                start_date = start_date - timedelta(days=1)
+                output.debug(f"获取论文从 {start_date.strftime('%Y-%m-%d')} 到现在")
+                max_results = Config.ARXIV_MAX_RESULTS
+            else:
+                # If no papers, fetch from years_back years ago
+                start_date = datetime.now(timezone.utc) - timedelta(days=365 * years_back)
+                output.debug(f"获取最近 {years_back} 年的论文 ({start_date.strftime('%Y-%m-%d')} 到现在)")
+                max_results = Config.ARXIV_MAX_RESULTS
 
         # Search arXiv without date filter (use cutoff_date for early stopping)
         try:
             papers = self.search_arxiv(
                 query,
-                max_results=Config.ARXIV_MAX_RESULTS,
+                max_results=max_results,
                 cutoff_date=start_date,
             )
-            new_papers = self.filter_new_papers(papers)
-            saved = self.save_papers(new_papers, query)
 
-            output.done(f"同步完成: {len(saved)} 篇新论文")
+            if force:
+                # In force mode, save all papers (including existing ones)
+                saved = self.save_papers_force(papers, query)
+            else:
+                # Normal mode: filter out existing papers
+                new_papers = self.filter_new_papers(papers)
+                saved = self.save_papers(new_papers, query)
+
+            output.done(f"同步完成: {len(saved)} 篇论文")
             time.sleep(1)  # Rate limiting
 
             return {
@@ -245,29 +311,36 @@ class ArXivCrawler:
                 "total_found": len(papers),
                 "new_papers": len(saved),
                 "saved_papers": saved,
+                "force_mode": force,
             }
 
         except Exception as e:
             output.error(f"同步查询失败: {query}", details={"exception": str(e)})
-            return {"query": query, "error": str(e), "new_papers": 0}
+            return {"query": query, "error": str(e), "new_papers": 0, "force_mode": force}
 
-    def sync_all_queries(self, years_back: int = 3) -> Dict[str, Any]:
-        """Sync all configured search queries"""
-        output.do(f"同步所有查询 (回溯 {years_back} 年)")
+    def sync_all_queries(self, years_back: int = 3, force: bool = False) -> Dict[str, Any]:
+        """Sync all configured search queries
+
+        Args:
+            years_back: Number of years to look back
+            force: If True, force re-sync all papers from years_back years ago
+        """
+        output.do(f"同步所有查询 (回溯 {years_back} 年)" + (" (强制模式)" if force else ""))
 
         all_results = []
         total_new = 0
 
         for query in self.config.SEARCH_QUERIES:
-            result = self.sync_query(query, years_back)
+            result = self.sync_query(query, years_back, force)
             all_results.append(result)
             total_new += result.get("new_papers", 0)
 
-        output.done(f"同步完成: 共 {total_new} 篇新论文")
+        output.done(f"同步完成: 共 {total_new} 篇论文")
         return {
             "total_new_papers": total_new,
             "query_results": all_results,
             "years_back": years_back,
+            "force_mode": force,
         }
 
     def sync_important_papers(self) -> Dict[str, Any]:
