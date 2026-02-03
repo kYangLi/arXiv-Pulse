@@ -193,46 +193,28 @@ pulse stat [目录路径]
 
 **设计理念**：提供全面的数据库洞察，帮助用户了解文献分布和研究趋势。
 
-
-
 ## ⚙️ 配置说明
 
 ### 环境变量（`.env` 文件）
 
-初始化目录时会自动创建 `.env` 模板文件，或首次运行 `pulse init .` 时通过交互式配置生成：
+初始化目录时会自动创建 `.env` 配置文件，或首次运行 `pulse init .` 时通过交互式配置生成。所有配置项均支持通过环境变量覆盖。
 
-```bash
-# AI API 配置 (支持所有 OpenAI 兼容服务，如 DeepSeek、Paratera AI、OpenAI 等)
-AI_API_KEY=your_api_key_here
-AI_MODEL=DeepSeek-V3.2-Thinking
-AI_BASE_URL=https://llmapi.paratera.com
+**主要配置类别：**
 
-# 数据库配置
-DATABASE_URL=sqlite:///data/arxiv_papers.db
+1. **AI API 配置** - 支持所有 OpenAI 兼容服务（DeepSeek、Paratera AI、OpenAI 等）
+2. **数据库配置** - SQLite 数据库连接设置
+3. **爬虫配置** - 论文获取限制、排序方式、API 参数
+4. **搜索查询配置** - 分号分隔的研究领域查询列表
+5. **报告配置** - 报告生成、AI 总结、费用估算设置
+6. **同步配置** - 回溯年数、重要论文追踪
+7. **日志配置** - 输出级别、爬虫延迟
 
-# 爬虫配置
-MAX_RESULTS_INITIAL=10000    # init命令每个查询的论文数
-MAX_RESULTS_DAILY=500       # sync命令每个查询的论文数
-ARXIV_MAX_RESULTS=30000    # arXiv API最大返回论文数限制
+**详细配置说明请参考项目根目录下的 `.ENV.TEMPLATE` 文件，其中包含完整的配置项列表、默认值和详细注释。**
 
-# 搜索查询（分号分隔，允许查询中包含逗号）
-# 通过交互式配置选择研究领域后自动生成
-SEARCH_QUERIES=condensed matter physics AND cat:cond-mat.*; (ti:"density functional" OR abs:"density functional") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci OR cat:physics.chem-ph); (ti:"machine learning" OR abs:"machine learning") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci OR cat:physics.chem-ph); (ti:"force field" OR abs:"force field") AND (cat:physics.comp-ph OR cat:cond-mat.soft OR cat:physics.chem-ph); (ti:"first principles" OR abs:"first principles" OR ti:"ab initio" OR abs:"ab initio") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci); (ti:"molecular dynamics" OR abs:"molecular dynamics") AND (cat:physics.comp-ph OR cat:cond-mat.soft OR cat:physics.chem-ph); (ti:"quantum chemistry" OR abs:"quantum chemistry") AND (cat:physics.chem-ph OR cat:physics.comp-ph); cat:cond-mat.mtrl-sci AND (ti:"computational" OR abs:"computational" OR ti:"simulation" OR abs:"simulation")
-
-# 报告配置
-REPORT_DIR=reports
-SUMMARY_MAX_TOKENS=2000    # 总结和翻译的最大token数
-TOKEN_PRICE_PER_MILLION=3.0
-REPORT_MAX_PAPERS=50
-
-# 同步配置
-YEARS_BACK=3               # 同步回溯的年数
-IMPORTANT_PAPERS_FILE=data/important_papers.txt
-
-# 日志配置
-LOG_LEVEL=INFO             # 日志级别: DEBUG, INFO, WARNING, ERROR (默认: INFO)
-CRAWL_DELAY=1.0            # 爬虫延迟（秒，避免频繁请求 arXiv API）
-```
+**使用建议：**
+- 首次使用建议运行 `pulse init .` 通过交互式配置向导自动生成优化配置
+- 如需手动配置，将 `.ENV.TEMPLATE` 复制为 `.env` 并根据需要修改
+- 交互式配置向导支持 30+ 个专业研究领域选择，并基于选择数量提供智能参数建议
 
 ### 研究领域
 
