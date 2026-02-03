@@ -10,7 +10,7 @@ from pathlib import Path
 import click
 from dotenv import load_dotenv
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import questionary
 import wcwidth
 
