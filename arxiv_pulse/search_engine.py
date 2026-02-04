@@ -192,14 +192,21 @@ class SearchEngine:
                 if author_filters:
                     word_and_filters.append(and_(*author_filters))
 
-        # 组合所有过滤器：短语匹配 OR 顺序匹配 OR 单词AND匹配
+        # 根据match_all参数组合过滤器
         all_filters = []
-        if phrase_filters:
-            all_filters.append(or_(*phrase_filters))
-        if sequence_filters:
-            all_filters.append(or_(*sequence_filters))
-        if word_and_filters:
-            all_filters.append(or_(*word_and_filters))
+
+        if match_all:
+            # AND逻辑：只使用单词AND匹配（要求所有单词都出现）
+            if word_and_filters:
+                all_filters.append(or_(*word_and_filters))
+        else:
+            # OR逻辑：使用所有匹配类型（短语匹配 OR 顺序匹配 OR 单词AND匹配）
+            if phrase_filters:
+                all_filters.append(or_(*phrase_filters))
+            if sequence_filters:
+                all_filters.append(or_(*sequence_filters))
+            if word_and_filters:
+                all_filters.append(or_(*word_and_filters))
 
         if not all_filters:
             return None

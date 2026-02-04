@@ -190,7 +190,7 @@ class ArXivCrawler:
             "saved_papers": all_saved,
         }
 
-    def crawl_by_categories(self, categories: List[str], max_results: int = 50) -> Dict[str, Any]:
+    def crawl_by_categories(self, categories: List[str], max_results: int = 64) -> Dict[str, Any]:
         """Crawl specific arXiv categories"""
         all_saved = []
 

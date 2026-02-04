@@ -127,6 +127,23 @@ class TranslationCache(Base):
         return f"<TranslationCache(id={self.id}, hash={self.source_text_hash[:16]}...)>"
 
 
+class FigureCache(Base):
+    __tablename__ = "figure_cache"
+
+    id = Column(Integer, primary_key=True)
+    arxiv_id = Column(String(50), nullable=False, unique=True, index=True)
+    figure_url = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+    )
+
+    def __repr__(self):
+        return f"<FigureCache(id={self.id}, arxiv_id={self.arxiv_id})>"
+
+
 class Database:
     def __init__(self):
         self.engine = create_engine(Config.DATABASE_URL)
@@ -172,7 +189,7 @@ class Database:
                 .all()
             )
 
-    def get_papers_by_category(self, category, limit=50):
+    def get_papers_by_category(self, category, limit=64):
         """Get papers by category"""
         with self.get_session() as session:
             return (
@@ -259,5 +276,39 @@ class Database:
         with self.get_session() as session:
             cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_old)
             deleted_count = session.query(TranslationCache).filter(TranslationCache.updated_at < cutoff_date).delete()
+            session.commit()
+            return deleted_count
+
+    def get_figure_cache(self, arxiv_id: str) -> Optional[str]:
+        """获取缓存的图片URL"""
+        with self.get_session() as session:
+            cache_entry = session.query(FigureCache).filter_by(arxiv_id=arxiv_id).first()
+            if cache_entry:
+                return cache_entry.figure_url
+            return None
+
+    def set_figure_cache(self, arxiv_id: str, figure_url: str) -> None:
+        """缓存图片URL"""
+        with self.get_session() as session:
+            # 检查是否已存在缓存
+            existing = session.query(FigureCache).filter_by(arxiv_id=arxiv_id).first()
+            if existing:
+                # 更新现有缓存
+                existing.figure_url = figure_url
+                existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            else:
+                # 创建新缓存
+                cache_entry = FigureCache(
+                    arxiv_id=arxiv_id,
+                    figure_url=figure_url,
+                )
+                session.add(cache_entry)
+            session.commit()
+
+    def clear_old_figure_cache(self, days_old: int = 30) -> int:
+        """清理旧的图片缓存"""
+        with self.get_session() as session:
+            cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_old)
+            deleted_count = session.query(FigureCache).filter(FigureCache.updated_at < cutoff_date).delete()
             session.commit()
             return deleted_count

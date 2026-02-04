@@ -489,7 +489,7 @@ def sync_papers(years_back=1, summarize=False, force=False):
     total_new = sync_result["total_new_papers"] + important_result["added"]
     if summarize and total_new > 0:
         click.echo("3. 正在总结新论文...")
-        summarize_result = summarizer.summarize_pending_papers(limit=min(50, total_new))
+        summarize_result = summarizer.summarize_pending_papers(limit=min(64, total_new))
         click.echo(f"   已总结 {summarize_result['successful']} 篇论文")
     elif total_new > 0:
         click.echo("3. 跳过论文总结")
@@ -531,9 +531,10 @@ def get_workday_cutoff(days_back):
     return current - timedelta(days=days_to_go_back)
 
 
-def generate_report(paper_limit=50, days_back=2, summarize=True, max_summarize=10):
+def generate_report(paper_limit=64, days_back=2, summarize=True, max_summarize=10, cache=True):
     """生成最近论文的报告（内部函数）"""
     reporter = ReportGenerator()
+    reporter.use_cache = cache
 
     # 设置报告限制
     original_limit = Config.REPORT_MAX_PAPERS
@@ -554,29 +555,8 @@ def generate_report(paper_limit=50, days_back=2, summarize=True, max_summarize=1
                 .all()
             )
 
-            # 总结未总结的论文（限制数量避免过多API调用）
-            summarized_count = 0
+            # 创建总结器（用于统计，实际总结将在报告生成时进行）
             summarizer = PaperSummarizer()
-
-            if summarize:
-                for paper in recent_papers:
-                    if paper.summarized is False and (max_summarize == 0 or summarized_count < max_summarize):
-                        if summarizer.summarize_paper(paper):
-                            summarized_count += 1
-                            # 刷新论文对象以获取更新后的总结数据
-                            session.refresh(paper)
-
-                if summarized_count > 0:
-                    output.info(f"已总结 {summarized_count} 篇论文用于报告")
-                    # 显示累计token使用情况
-                    summary_stats = summarizer.get_summary_stats()
-                    token_usage = summary_stats.get("token_usage", {})
-                    if token_usage:
-                        output.info(
-                            f"累计Token使用: 提示 {token_usage.get('total_prompt_tokens', 0)}, "
-                            f"完成 {token_usage.get('total_completion_tokens', 0)}, "
-                            f"总计 {token_usage.get('total_tokens', 0)}"
-                        )
 
             # 计算热门分类
             category_counts = {}
@@ -606,6 +586,8 @@ def generate_report(paper_limit=50, days_back=2, summarize=True, max_summarize=1
                         "summarized_papers": summary_stats["summarized_papers"],
                     },
                     "top_categories": top_categories,
+                    "summarize": summarize,
+                    "max_summarize": max_summarize,
                 },
                 "papers": recent_papers,
             }
@@ -628,9 +610,10 @@ def generate_report(paper_limit=50, days_back=2, summarize=True, max_summarize=1
         Config.REPORT_MAX_PAPERS = original_limit
 
 
-def generate_search_report(query, search_terms, papers, paper_limit=50, summarize=True, max_summarize=10):
+def generate_search_report(query, search_terms, papers, paper_limit=64, summarize=True, max_summarize=10, cache=True):
     """生成搜索结果的报告（内部函数）"""
     reporter = ReportGenerator()
+    reporter.use_cache = cache
 
     # 如果没有找到论文，不生成报告
     if not papers:
@@ -642,36 +625,8 @@ def generate_search_report(query, search_terms, papers, paper_limit=50, summariz
     Config.REPORT_MAX_PAPERS = paper_limit
 
     try:
-        # 总结未总结的论文（限制数量避免过多API调用）
-        summarized_count = 0
+        # 创建总结器（用于统计，实际总结将在报告生成时进行）
         summarizer = PaperSummarizer()
-
-        if summarize:
-            # 收集需要总结的论文ID
-            papers_to_summarize = []
-            for paper in papers:
-                if paper.summarized is False and (max_summarize == 0 or summarized_count < max_summarize):
-                    papers_to_summarize.append(paper)
-                    summarized_count += 1
-
-            # 总结论文
-            for paper in papers_to_summarize:
-                summarizer.summarize_paper(paper)
-
-            if summarized_count > 0:
-                output.info(f"已总结 {summarized_count} 篇论文用于报告")
-                # 重新获取论文数据以确保包含最新总结
-                with summarizer.db.get_session() as session:
-                    from arxiv_pulse.models import Paper
-
-                    paper_ids = [p.arxiv_id for p in papers]
-                    # 按原始顺序重新查询论文
-                    updated_papers = []
-                    for paper_id in paper_ids:
-                        paper = session.query(Paper).filter_by(arxiv_id=paper_id).first()
-                        if paper:
-                            updated_papers.append(paper)
-                    papers = updated_papers
 
         # 计算热门分类
         category_counts = {}
@@ -686,7 +641,6 @@ def generate_search_report(query, search_terms, papers, paper_limit=50, summariz
 
         # 获取数据库总体统计
         crawler = ArXivCrawler()
-        summarizer = PaperSummarizer()
         crawl_stats = crawler.get_crawler_stats()
         summary_stats = summarizer.get_summary_stats()
 
@@ -703,6 +657,8 @@ def generate_search_report(query, search_terms, papers, paper_limit=50, summariz
                     "summarized_papers": summary_stats["summarized_papers"],
                 },
                 "top_categories": top_categories,
+                "summarize": summarize,
+                "max_summarize": max_summarize,
             },
             "papers": papers,
         }
@@ -913,7 +869,7 @@ def interactive_configuration():
         click.echo(f"   - 每日同步每个查询最大论文数: {recommended_daily}")
     else:
         recommended_initial = 1000
-        recommended_daily = 50
+        recommended_daily = 64
         click.echo(f"⚠️  您选择了大量领域 ({num_selected_fields}个)，强烈建议调整爬虫配置：")
         click.echo(f"   - 初始同步每个查询最大论文数: {recommended_initial}")
         click.echo(f"   - 每日同步每个查询最大论文数: {recommended_daily}")
@@ -934,7 +890,7 @@ def interactive_configuration():
     click.echo("\n📄 报告配置")
     click.echo("-" * 40)
 
-    report_max_papers = click.prompt("每份报告显示的最大论文数", default=50, type=int, show_default=True)
+    report_max_papers = click.prompt("每份报告显示的最大论文数", default=64, type=int, show_default=True)
     config["REPORT_MAX_PAPERS"] = str(report_max_papers)
 
     click.echo("\n✅ 配置完成！")
@@ -1149,6 +1105,7 @@ def sync(directory, years_back, summarize, force):
     default=False,
     help="启用严格匹配（单词边界），严格匹配结果在前，模糊匹配结果在后",
 )
+@click.option("--no-cache", is_flag=True, default=False, help="禁用图片URL缓存")
 def search(
     query,
     directory,
@@ -1162,6 +1119,7 @@ def search(
     authors,
     sort_by,
     strict_match,
+    no_cache,
 ):
     """智能搜索论文（支持自然语言查询和基本过滤）"""
     directory = Path(directory).resolve()
@@ -1249,25 +1207,63 @@ def search(
         # 使用增强搜索引擎进行模糊搜索
         search_engine = SearchEngine(session)
 
-        # 将搜索词合并为一个查询（搜索引擎会处理单词拆分和同义词扩展）
-        combined_query = " ".join(search_terms)
+        # 解析搜索短语：如果只有一个元素且包含逗号，按逗号分割
+        phrases = []
+        if len(search_terms) == 1 and "," in search_terms[0]:
+            # 按逗号分割，去除前后空格
+            phrases = [phrase.strip() for phrase in search_terms[0].split(",") if phrase.strip()]
+        else:
+            # 使用现有的搜索词作为短语
+            phrases = search_terms
 
-        filter_config = SearchFilter(
-            query=combined_query,
-            search_fields=["title", "abstract"],
-            categories=list(categories) if categories else None,
-            authors=list(authors) if authors else None,
-            author_match="contains",  # 默认使用包含匹配
-            days_back=days_back,
-            limit=limit * min(len(search_terms), 2),  # 扩大限制但最多2倍，避免过多结果
-            sort_by=sort_by,
-            sort_order="desc",
-            match_all=True,  # AND逻辑：匹配所有搜索词
-            strict_match=strict_match,
-        )
+        # 如果只有一个短语，使用原有逻辑
+        if len(phrases) == 1:
+            combined_query = phrases[0]
+            filter_config = SearchFilter(
+                query=combined_query,
+                search_fields=["title", "abstract"],
+                categories=list(categories) if categories else None,
+                authors=list(authors) if authors else None,
+                author_match="contains",  # 默认使用包含匹配
+                days_back=days_back,
+                limit=limit * min(len(phrases), 2),  # 扩大限制但最多2倍，避免过多结果
+                sort_by=sort_by,
+                sort_order="desc",
+                match_all=True,  # 短语内部使用AND逻辑
+                strict_match=strict_match,
+            )
+            # 执行搜索
+            papers_to_show = search_engine.search_papers(filter_config)
+        else:
+            # 多个短语：分别搜索每个短语（短语内部AND，短语之间OR）
+            all_papers = []
+            for phrase in phrases:
+                filter_config = SearchFilter(
+                    query=phrase,
+                    search_fields=["title", "abstract"],
+                    categories=list(categories) if categories else None,
+                    authors=list(authors) if authors else None,
+                    author_match="contains",
+                    days_back=days_back,
+                    limit=limit * 2,  # 扩大限制以避免丢失结果
+                    sort_by=sort_by,
+                    sort_order="desc",
+                    match_all=True,  # 短语内部使用AND逻辑
+                    strict_match=strict_match,
+                )
+                phrase_papers = search_engine.search_papers(filter_config)
+                all_papers.extend(phrase_papers)
 
-        # 执行搜索
-        papers_to_show = search_engine.search_papers(filter_config)
+            # 去重：基于arxiv_id
+            seen_ids = set()
+            papers_to_show = []
+            for paper in all_papers:
+                if paper.arxiv_id not in seen_ids:
+                    seen_ids.add(paper.arxiv_id)
+                    papers_to_show.append(paper)
+
+            # 按发布日期排序（降序）
+            papers_to_show.sort(key=lambda p: p.published if p.published else datetime.min, reverse=True)
 
         # 确保不超过限制
         papers_to_show = papers_to_show[:limit]
@@ -1283,6 +1279,7 @@ def search(
             paper_limit=limit,
             summarize=summarize,
             max_summarize=max_summarize,
+            cache=not no_cache,
         )
 
         # 输出简要结果和报告文件
@@ -1295,7 +1292,7 @@ def search(
             click.echo(f"\n{i}. {paper.title}")
             click.echo(f"   作者: {', '.join(author_names)}")
             click.echo(f"   arXiv ID: {paper.arxiv_id}")
-            click.echo(f"   发布日期: {paper.published.strftime('%Y-%m-%d') if paper.published else 'N/A'}")
+            click.echo(f"   发布日期: {paper.published.strftime('%Y-%m-%d') if paper.published is not None else 'N/A'}")
 
         if len(papers_to_show) > 5:
             click.echo(f"\n... 以及 {len(papers_to_show) - 5} 篇更多论文")
@@ -1308,12 +1305,13 @@ def search(
 
 @cli.command()
 @click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
-@click.option("--limit", default=50, help="报告中包含的最大论文数（默认：50）")
+@click.option("--limit", default=64, help="报告中包含的最大论文数（默认：64，与REPORT_MAX_PAPERS配置一致）")
 @click.option("--days-back", type=int, default=2, help="包含最近多少天的论文（默认：2天）")
 @click.option("--years-back", type=int, default=1, help="报告前同步回溯的年数（默认：1年）")
 @click.option("--summarize/--no-summarize", default=True, help="是否自动总结未总结的论文（默认：是）")
 @click.option("--max-summarize", type=int, default=0, help="最大总结论文数（默认：0表示无限制）")
-def recent(directory, limit, days_back, years_back, summarize, max_summarize):
+@click.option("--no-cache", is_flag=True, default=False, help="禁用图片URL缓存")
+def recent(directory, limit, days_back, years_back, summarize, max_summarize, no_cache):
     """生成最近论文的报告（先同步最新论文）"""
     directory = Path(directory).resolve()
 
@@ -1331,7 +1329,9 @@ def recent(directory, limit, days_back, years_back, summarize, max_summarize):
     click.echo("\n" + "=" * 50)
     click.echo(f"正在生成最近 {days_back} 天论文报告...")
 
-    files = generate_report(paper_limit=limit, days_back=days_back, summarize=summarize, max_summarize=max_summarize)
+    files = generate_report(
+        paper_limit=limit, days_back=days_back, summarize=summarize, max_summarize=max_summarize, cache=not no_cache
+    )
 
     click.echo(f"报告生成完成：")
     for f in files:
@@ -1384,7 +1384,7 @@ def stat(directory):
         category_counts = {}
 
         for paper in papers:
-            if paper.categories:
+            if paper.categories is not None and paper.categories:  # type: ignore[truthy-function]
                 # 按逗号分割，然后去除空白字符和尾随逗号
                 categories = [cat.strip().rstrip(",") for cat in paper.categories.split(",")]
                 # 使用集合去重，避免同一论文中分类重复计数
@@ -1407,7 +1407,7 @@ def stat(directory):
         # 按年统计
         year_stats = {}
         for paper in papers:
-            if paper.published:
+            if paper.published is not None:
                 year = paper.published.year
                 year_stats[year] = year_stats.get(year, 0) + 1
 

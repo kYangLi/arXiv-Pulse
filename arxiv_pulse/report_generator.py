@@ -11,6 +11,7 @@ from html.parser import HTMLParser
 from arxiv_pulse.models import Database, Paper
 from arxiv_pulse.config import Config
 from arxiv_pulse.output_manager import output
+from arxiv_pulse.summarizer import PaperSummarizer
 
 # 使用根日志记录器的配置（保留用于向后兼容）
 logger = logging.getLogger(__name__)
@@ -21,6 +22,9 @@ class ReportGenerator:
         self.db = Database()
         self.config = Config
         self.total_tokens_used = 0
+        self.summarizer = PaperSummarizer()
+        self.figure_cache = {}  # 缓存arxiv_id -> 图片URL
+        self.use_cache = True  # 默认启用缓存
 
         # 抑制第三方库的详细日志
         import logging
@@ -125,8 +129,26 @@ class ReportGenerator:
             text = text[:-3].strip()
         return text
 
-    def get_first_figure_url(self, arxiv_id: str) -> Optional[str]:
+    def get_first_figure_url(self, arxiv_id: str, use_cache: Optional[bool] = None) -> Optional[str]:
         """获取论文的第一个图片URL，改进版"""
+        # 确定是否使用缓存
+        if use_cache is None:
+            use_cache = getattr(self, "use_cache", True)
+
+        # 检查缓存
+        if use_cache and arxiv_id in self.figure_cache:
+            output.info(f"✓ 图片缓存命中 ({len(self.figure_cache[arxiv_id])} 字符)")
+            return self.figure_cache[arxiv_id]
+
+        # 检查数据库缓存
+        if use_cache:
+            db_cached_url = self.db.get_figure_cache(arxiv_id)
+            if db_cached_url:
+                output.info(f"✓ 图片缓存命中 ({len(db_cached_url)} 字符)")
+                # 更新内存缓存
+                self.figure_cache[arxiv_id] = db_cached_url
+                return db_cached_url
+
         try:
             # 构建HTML页面URL
             url = f"https://arxiv.org/html/{arxiv_id}"
@@ -149,7 +171,15 @@ class ReportGenerator:
             if figure_matches:
                 # 使用第一个figure中的图片
                 first_img_src = figure_matches[0]
-                return self._normalize_image_url(first_img_src, url)
+                result = self._normalize_image_url(first_img_src, url)
+                # 缓存结果
+                if use_cache:
+                    self.figure_cache[arxiv_id] = result
+                    try:
+                        self.db.set_figure_cache(arxiv_id, result)
+                    except Exception as e:
+                        output.warn(f"保存图片缓存到数据库失败: {arxiv_id} - {str(e)[:100]}")
+                return result
 
             # 方法2：查找所有img标签，捕获src、alt、width、height属性
             img_pattern = r'<img[^>]+src=["\']([^"\']+)["\'][^>]*>'
@@ -235,7 +265,15 @@ class ReportGenerator:
             best_image = image_candidates[0]
 
             # 标准化URL
-            return self._normalize_image_url(best_image["src"], url)
+            result = self._normalize_image_url(best_image["src"], url)
+            # 缓存结果
+            if use_cache:
+                self.figure_cache[arxiv_id] = result
+                try:
+                    self.db.set_figure_cache(arxiv_id, result)
+                except Exception as e:
+                    output.warn(f"保存图片缓存到数据库失败: {arxiv_id} - {str(e)[:100]}")
+            return result
 
         except Exception as e:
             # 静默失败，返回None
@@ -539,12 +577,41 @@ class ReportGenerator:
         if "papers" in report_data and report_data["papers"]:
             markdown_content += "\n## 论文列表\n\n"
 
-            papers = report_data["papers"][:50]  # Limit to 50 papers
+            papers = report_data["papers"][: self.config.REPORT_MAX_PAPERS]  # Limit to configured maximum
             total_papers = len(papers)
+            total_found = stats.get("total_found", total_papers)
+            output.info(f"共找到 {total_found} 篇论文，将处理前 {total_papers} 篇")
 
             for i, paper in enumerate(papers, 1):
                 try:
                     output.do(f"[{i}/{total_papers}] 处理论文: {paper.arxiv_id}")
+
+                    # 检查是否需要总结这篇论文
+                    summarize_flag = stats.get("summarize", True)
+                    max_summarize = stats.get("max_summarize", 10)
+                    summarized_count = getattr(self, "_summarized_count", 0)
+
+                    if (
+                        summarize_flag
+                        and paper.summarized is False
+                        and (max_summarize == 0 or summarized_count < max_summarize)
+                    ):
+                        output.do(f"[{i}/{total_papers}] 总结论文")
+                        if self.summarizer.summarize_paper(paper):
+                            summarized_count += 1
+                            self._summarized_count = summarized_count
+                            # 重新查询获取更新后的论文数据
+                            with self.db.get_session() as session:
+                                from arxiv_pulse.models import Paper
+
+                                updated_paper = session.query(Paper).filter_by(arxiv_id=paper.arxiv_id).first()
+                                if updated_paper:
+                                    paper = updated_paper
+                    elif summarize_flag and paper.summarized is True:
+                        output.do(f"[{i}/{total_papers}] 总结论文")
+                        summary_length = len(str(paper.summary or ""))
+                        output.info(f"✓ 缓存命中 ({summary_length} 字符)")
+
                     authors = json.loads(paper.authors) if paper.authors else []
                     author_names = [a.get("name", "") for a in authors[:3]]
                     if len(authors) > 3:
@@ -622,7 +689,7 @@ class ReportGenerator:
 
                     # 获取图1图片URL（放在最后，不显示标签，网络问题时不显示）
                     output.do(f"[{i}/{total_papers}] 获取图1图片")
-                    figure_url = self.get_first_figure_url(paper.arxiv_id)
+                    figure_url = self.get_first_figure_url(str(paper.arxiv_id), use_cache=self.use_cache)
                     if figure_url:
                         markdown_content += f"\n![图片]({figure_url})\n"
 
