@@ -133,7 +133,7 @@ class ArXivCrawler:
         for query in self.config.SEARCH_QUERIES:
             output.do(f"搜索: {query}")
             try:
-                papers = self.search_arxiv(query, max_results=self.config.MAX_RESULTS_INITIAL)
+                papers = self.search_arxiv(query, max_results=self.config.ARXIV_MAX_RESULTS)
                 new_papers = self.filter_new_papers(papers)
                 saved = self.save_papers(new_papers, query)
                 all_saved.extend(saved)
@@ -166,7 +166,7 @@ class ArXivCrawler:
                 # 使用cutoff_date参数实现早期终止
                 papers = self.search_arxiv(
                     query,
-                    max_results=self.config.MAX_RESULTS_DAILY,
+                    max_results=self.config.ARXIV_MAX_RESULTS,
                     cutoff_date=cutoff_date,
                 )
 
@@ -223,23 +223,30 @@ class ArXivCrawler:
             )
             return latest_paper.published if latest_paper else None  # type: ignore
 
-    def sync_query(self, query: str, years_back: int = 3, force: bool = False) -> Dict[str, Any]:
+    def sync_query(
+        self, query: str, years_back: int = 3, force: bool = False, arxiv_max_results: Optional[int] = None
+    ) -> Dict[str, Any]:
         """Sync papers for a specific query, fetching missing papers from recent years
 
         Args:
             query: arXiv search query
             years_back: Number of years to look back
-            force: If True, ignore all max results limits (MAX_RESULTS_INITIAL,
-                   MAX_RESULTS_DAILY, ARXIV_MAX_RESULTS) but still skip existing papers
+            force: If True, continue querying even after encountering existing papers,
+                  skip existing papers only (no download)
+            arxiv_max_results: Maximum papers to fetch from arXiv API (default: Config.ARXIV_MAX_RESULTS)
+            arxiv_max_results: Maximum papers to fetch from arXiv API (default: Config.ARXIV_MAX_RESULTS)
         """
         output.do(f"同步查询: {query}" + (" (强制模式)" if force else ""))
 
+        # Set max_results
+        if arxiv_max_results is None:
+            arxiv_max_results = Config.ARXIV_MAX_RESULTS
+
         if force:
-            # Force mode: always start from years_back years ago, ignore all limits
+            # Force mode: always start from years_back years ago, continue querying
             start_date = datetime.now(timezone.utc) - timedelta(days=365 * years_back)
             output.debug(f"强制同步: 获取最近 {years_back} 年的所有论文 ({start_date.strftime('%Y-%m-%d')} 到现在)")
-            # Use a very large number to bypass all limits (arxiv API may have its own limits)
-            max_results = 30000  # Ignore MAX_RESULTS_INITIAL, MAX_RESULTS_DAILY, and ARXIV_MAX_RESULTS
+            output.debug(f"最大返回论文数: {arxiv_max_results}")
         else:
             # Normal mode: get latest paper date in database for this query
             latest_date = self.get_latest_paper_date_for_query(query)
@@ -250,20 +257,18 @@ class ArXivCrawler:
                 # 减去一天以确保获取所有可能的新论文，避免因时间精度问题错过论文
                 start_date = start_date - timedelta(days=1)
                 output.debug(f"获取论文从 {start_date.strftime('%Y-%m-%d')} 到现在")
-                # Use daily limit, but respect arXiv API maximum
-                max_results = min(Config.MAX_RESULTS_DAILY, Config.ARXIV_MAX_RESULTS)
+                output.debug(f"最大返回论文数: {arxiv_max_results}")
             else:
                 # If no papers, fetch from years_back years ago
                 start_date = datetime.now(timezone.utc) - timedelta(days=365 * years_back)
                 output.debug(f"获取最近 {years_back} 年的论文 ({start_date.strftime('%Y-%m-%d')} 到现在)")
-                # Use initial limit, but respect arXiv API maximum
-                max_results = min(Config.MAX_RESULTS_INITIAL, Config.ARXIV_MAX_RESULTS)
+                output.debug(f"最大返回论文数: {arxiv_max_results}")
 
-        # Search arXiv without date filter (use cutoff_date for early stopping)
+        # Search arXiv with cutoff_date for early stopping
         try:
             papers = self.search_arxiv(
                 query,
-                max_results=max_results,
+                max_results=arxiv_max_results,
                 cutoff_date=start_date,
             )
 
@@ -272,6 +277,20 @@ class ArXivCrawler:
             saved = self.save_papers(new_papers, query)
 
             output.done(f"同步完成: {len(saved)} 篇新论文")
+
+            if force:
+                # Force mode: check if we hit the limit
+                if len(papers) >= arxiv_max_results:
+                    output.info(f"达到最大返回论文数限制 ({arxiv_max_results})，可能还有更多论文未获取")
+                else:
+                    output.info(f"查询完成，共找到 {len(papers)} 篇论文")
+            else:
+                # Normal mode: check if we stopped early due to existing papers
+                if len(papers) < arxiv_max_results and len(new_papers) < len(papers):
+                    output.info(
+                        f"遇到已存在的论文，提前停止同步。共查询 {len(papers)} 篇，其中 {len(papers) - len(new_papers)} 篇已存在"
+                    )
+
             time.sleep(1)  # Rate limiting
 
             return {
@@ -287,20 +306,28 @@ class ArXivCrawler:
             output.error(f"同步查询失败: {query}", details={"exception": str(e)})
             return {"query": query, "error": str(e), "new_papers": 0, "force_mode": force}
 
-    def sync_all_queries(self, years_back: int = 3, force: bool = False) -> Dict[str, Any]:
+    def sync_all_queries(
+        self, years_back: int = 3, force: bool = False, arxiv_max_results: Optional[int] = None
+    ) -> Dict[str, Any]:
         """Sync all configured search queries
 
         Args:
             years_back: Number of years to look back
-            force: If True, ignore all max results limits but still skip existing papers
+            force: If True, continue querying even after encountering existing papers,
+                  skip existing papers only (no download)
+            arxiv_max_results: Maximum papers to fetch from arXiv API (default: Config.ARXIV_MAX_RESULTS)
         """
         output.do(f"同步所有查询 (回溯 {years_back} 年)" + (" (强制模式)" if force else ""))
+
+        # Set max_results
+        if arxiv_max_results is None:
+            arxiv_max_results = Config.ARXIV_MAX_RESULTS
 
         all_results = []
         total_new = 0
 
         for query in self.config.SEARCH_QUERIES:
-            result = self.sync_query(query, years_back, force)
+            result = self.sync_query(query, years_back, force, arxiv_max_results)
             all_results.append(result)
             total_new += result.get("new_papers", 0)
 
@@ -310,6 +337,7 @@ class ArXivCrawler:
             "query_results": all_results,
             "years_back": years_back,
             "force_mode": force,
+            "arxiv_max_results": arxiv_max_results,
         }
 
     def sync_important_papers(self) -> Dict[str, Any]:

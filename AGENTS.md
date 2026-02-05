@@ -55,7 +55,7 @@ from arxiv_pulse.config import Config
 ### Naming Conventions
 - **Classes**: `PascalCase` (`ArXivCrawler`)
 - **Variables/Functions**: `snake_case` (`search_arxiv`)
-- **Constants**: `UPPER_SNAKE_CASE` (`MAX_RESULTS_INITIAL`)
+- **Constants**: `UPPER_SNAKE_CASE` (`ARXIV_MAX_RESULTS`)
 - **Private**: `_private_method()`
 - **Database tables**: Plural `snake_case` (`papers`)
 

@@ -268,11 +268,9 @@ def setup_environment(directory: Path):
         Config.AI_BASE_URL = os.getenv("AI_BASE_URL", "https://llmapi.paratera.com")
         Config.SUMMARY_MAX_TOKENS = int(os.getenv("SUMMARY_MAX_TOKENS", "10000"))
 
-        Config.MAX_RESULTS_INITIAL = int(os.getenv("MAX_RESULTS_INITIAL", "10000"))
-        Config.MAX_RESULTS_DAILY = int(os.getenv("MAX_RESULTS_DAILY", "500"))
         Config.YEARS_BACK = int(os.getenv("YEARS_BACK", "5"))
         Config.IMPORTANT_PAPERS_FILE = os.getenv("IMPORTANT_PAPERS_FILE", "data/important_papers.txt")
-        Config.ARXIV_MAX_RESULTS = int(os.getenv("ARXIV_MAX_RESULTS", "30000"))
+        Config.ARXIV_MAX_RESULTS = int(os.getenv("ARXIV_MAX_RESULTS", "10000"))
         Config.ARXIV_SORT_BY = os.getenv("ARXIV_SORT_BY", "submittedDate")
         Config.ARXIV_SORT_ORDER = os.getenv("ARXIV_SORT_ORDER", "descending")
         Config.REPORT_MAX_PAPERS = int(os.getenv("REPORT_MAX_PAPERS", "64"))
@@ -457,24 +455,29 @@ def print_banner_custom(fields):
     click.echo(banner)
 
 
-def sync_papers(years_back=1, summarize=False, force=False):
+def sync_papers(years_back=1, summarize=False, force=False, arxiv_max_results=None):
     """同步论文（内部函数）
 
     Args:
         years_back: 回溯的年数
         summarize: 是否总结新论文
-        force: 是否强制同步（重新下载所有论文，忽略重复检查）
+        force: 是否强制同步（继续查询，跳过已存在论文）
+        arxiv_max_results: arXiv API 最大返回论文数（默认：Config.ARXIV_MAX_RESULTS）
     """
     crawler = ArXivCrawler()
     summarizer = PaperSummarizer()
 
+    # 设置 arxiv_max_results
+    if arxiv_max_results is None:
+        arxiv_max_results = Config.ARXIV_MAX_RESULTS
+
     mode_text = "强制同步" if force else "同步缺失论文"
-    click.echo(f"正在{mode_text}（回溯 {years_back} 年）...")
+    click.echo(f"正在{mode_text}（回溯 {years_back} 年，最大 {arxiv_max_results} 篇）...")
     click.echo("=" * 50)
 
     # 同步所有查询
     click.echo("1. 正在同步搜索查询...")
-    sync_result = crawler.sync_all_queries(years_back=years_back, force=force)
+    sync_result = crawler.sync_all_queries(years_back=years_back, force=force, arxiv_max_results=arxiv_max_results)
     result_text = "处理了" if force else "添加了"
     click.echo(f"   从查询{result_text} {sync_result['total_new_papers']} 篇论文")
 
@@ -767,11 +770,8 @@ def interactive_configuration():
     click.echo("\n📊 爬虫配置")
     click.echo("-" * 40)
 
-    max_results_initial = click.prompt("初始同步每个查询的最大论文数", default=10000, type=int, show_default=True)
-    config["MAX_RESULTS_INITIAL"] = str(max_results_initial)
-
-    max_results_daily = click.prompt("每日同步每个查询的最大论文数", default=500, type=int, show_default=True)
-    config["MAX_RESULTS_DAILY"] = str(max_results_daily)
+    arxiv_max_results = click.prompt("arXiv API 最大返回论文数", default=10000, type=int, show_default=True)
+    config["ARXIV_MAX_RESULTS"] = str(arxiv_max_results)
 
     years_back = click.prompt("初始同步回溯的年数", default=5, type=int, show_default=True)
     config["YEARS_BACK"] = str(years_back)
@@ -854,37 +854,28 @@ def interactive_configuration():
     click.echo(f"\n📊 智能建议（基于您选择的 {num_selected_fields} 个研究领域）")
     click.echo("-" * 40)
 
-    # 初始化建议变量（用于LSP类型检查）
-    recommended_initial = 0
-    recommended_daily = 0
-
     # 根据领域数量提供建议
+    recommended_max_results = 0
     if num_selected_fields <= 6:
         click.echo("✅ 您选择了少量领域，保持默认配置即可。")
+        recommended_max_results = 10000
     elif num_selected_fields <= 10:
-        recommended_initial = 4000
-        recommended_daily = 200
-        click.echo(f"⚠️  您选择了中等数量领域，建议调整爬虫配置以避免过多论文：")
-        click.echo(f"   - 初始同步每个查询最大论文数: {recommended_initial}")
-        click.echo(f"   - 每日同步每个查询最大论文数: {recommended_daily}")
+        recommended_max_results = 4000
+        click.echo(f"⚠️  您选择了中等数量领域，建议调整 ARXIV_MAX_RESULTS：")
+        click.echo(f"   - arXiv API 最大返回论文数: {recommended_max_results}")
     else:
-        recommended_initial = 1000
-        recommended_daily = 64
-        click.echo(f"⚠️  您选择了大量领域 ({num_selected_fields}个)，强烈建议调整爬虫配置：")
-        click.echo(f"   - 初始同步每个查询最大论文数: {recommended_initial}")
-        click.echo(f"   - 每日同步每个查询最大论文数: {recommended_daily}")
+        recommended_max_results = 1000
+        click.echo(f"⚠️  您选择了大量领域 ({num_selected_fields}个)，强烈建议调整 ARXIV_MAX_RESULTS：")
+        click.echo(f"   - arXiv API 最大返回论文数: {recommended_max_results}")
         click.echo(f"   - 注意：同步大量领域可能需要较长时间和更多存储空间。")
 
     # 询问用户是否应用建议
     if num_selected_fields > 6:
-        if click.confirm("\n💡 是否应用上述建议调整爬虫配置？", default=True):
-            config["MAX_RESULTS_INITIAL"] = str(recommended_initial)
-            config["MAX_RESULTS_DAILY"] = str(recommended_daily)
-            click.echo(
-                f"✅ 已应用建议配置：MAX_RESULTS_INITIAL={recommended_initial}, MAX_RESULTS_DAILY={recommended_daily}"
-            )
+        if click.confirm("\n💡 是否应用上述建议调整 ARXIV_MAX_RESULTS？", default=True):
+            config["ARXIV_MAX_RESULTS"] = str(recommended_max_results)
+            click.echo(f"✅ 已应用建议配置：ARXIV_MAX_RESULTS={recommended_max_results}")
         else:
-            click.echo("ℹ️  保持您原有的爬虫配置。")
+            click.echo("ℹ️  保持您原有的 ARXIV_MAX_RESULTS 配置。")
 
     # 4. 报告配置
     click.echo("\n📄 报告配置")
@@ -960,13 +951,8 @@ def init(directory):
 
         # 爬虫配置
         for i, line in enumerate(lines):
-            if line.strip().startswith("MAX_RESULTS_INITIAL="):
-                lines[i] = f"MAX_RESULTS_INITIAL={config.get('MAX_RESULTS_INITIAL', '10000')}"
-                break
-
-        for i, line in enumerate(lines):
-            if line.strip().startswith("MAX_RESULTS_DAILY="):
-                lines[i] = f"MAX_RESULTS_DAILY={config.get('MAX_RESULTS_DAILY', '500')}"
+            if line.strip().startswith("ARXIV_MAX_RESULTS="):
+                lines[i] = f"ARXIV_MAX_RESULTS={config.get('ARXIV_MAX_RESULTS', '10000')}"
                 break
 
         # 搜索查询配置
@@ -1046,14 +1032,18 @@ def init(directory):
 
 @cli.command()
 @click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
-@click.option("--years-back", type=int, default=None, help="同步回溯的年数（默认：强制模式5年，普通模式1年）")
-@click.option("--summarize/--no-summarize", default=False, help="是否总结新论文（默认：否）")
-@click.option("--force", is_flag=True, default=False, help="强制同步：重新下载最近N年的所有论文，忽略重复检查")
-def sync(directory, years_back, summarize, force):
+@click.option("--years-back", type=int, default=None, help="同步回溯的年数（默认：5年）")
+@click.option("--force", is_flag=True, default=False, help="强制同步：继续查询，跳过已存在的论文")
+@click.option(
+    "--arxiv-max-results", type=int, default=None, help="arXiv API 最大返回论文数（默认：ARXIV_MAX_RESULTS配置）"
+)
+def sync(directory, years_back, force, arxiv_max_results):
     """同步最新论文到数据库
 
-    强制模式(--force): 重新下载最近N年的所有论文，忽略重复检查，默认回溯5年。
-    普通模式: 只下载缺失的新论文，默认回溯1年。
+    普通模式（无 --force）: 按时间从近到早同步，遇到已存在的论文立即停止。
+    强制模式（--force）: 继续查询，跳过已存在的论文，用于扩展数据库。
+
+    注意: 无论是否使用 --force，都不会下载已存在的论文。
     """
     directory = Path(directory).resolve()
     click.echo(f"正在同步 arXiv Pulse 于 {directory}")
@@ -1065,11 +1055,16 @@ def sync(directory, years_back, summarize, force):
 
     # 设置默认years_back值
     if years_back is None:
-        years_back = 5 if force else 1
+        years_back = Config.YEARS_BACK
         click.echo(f"使用默认回溯年数: {years_back} 年")
 
+    # 设置 arxiv_max_results 值
+    if arxiv_max_results is None:
+        arxiv_max_results = Config.ARXIV_MAX_RESULTS
+        click.echo(f"使用 ARXIV_MAX_RESULTS 配置: {arxiv_max_results}")
+
     # 同步论文
-    sync_result = sync_papers(years_back=years_back, summarize=summarize, force=force)
+    sync_result = sync_papers(years_back=years_back, summarize=False, force=force, arxiv_max_results=arxiv_max_results)
 
     click.echo("\n" + "=" * 50)
     click.echo("同步完成！数据库已更新。")

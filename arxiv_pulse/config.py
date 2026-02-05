@@ -5,10 +5,6 @@ class Config:
     # Database
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///data/arxiv_papers.db")
 
-    # Crawler
-    MAX_RESULTS_INITIAL = int(os.getenv("MAX_RESULTS_INITIAL", 10000))
-    MAX_RESULTS_DAILY = int(os.getenv("MAX_RESULTS_DAILY", 500))
-
     # Search queries - use semicolon as separator to allow commas in queries
     SEARCH_QUERIES_RAW = os.getenv(
         "SEARCH_QUERIES",
@@ -37,7 +33,7 @@ class Config:
     REPORT_MAX_PAPERS = int(os.getenv("REPORT_MAX_PAPERS", "64"))
 
     # ArXiv API
-    ARXIV_MAX_RESULTS = int(os.getenv("ARXIV_MAX_RESULTS", 30000))
+    ARXIV_MAX_RESULTS = int(os.getenv("ARXIV_MAX_RESULTS", 10000))
     ARXIV_SORT_BY = os.getenv("ARXIV_SORT_BY", "submittedDate")
     ARXIV_SORT_ORDER = os.getenv("ARXIV_SORT_ORDER", "descending")
 
