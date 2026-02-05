@@ -14,13 +14,14 @@ from .report_generator import ReportGenerator
 from .summarizer import PaperSummarizer
 
 __all__ = [
+    "__version__"
     "ArXivCrawler",
     "Config",
     "Database",
-    "Paper",
-    "TranslationCache",
     "OutputManager",
-    "output",
-    "ReportGenerator",
+    "Paper",
     "PaperSummarizer",
+    "ReportGenerator",
+    "TranslationCache",
+    "output",
 ]

@@ -899,8 +899,7 @@ def interactive_configuration():
 
 @cli.command()
 @click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
-@click.option("--years-back", type=int, default=None, help="初始同步回溯的年数（默认：交互式配置）")
-def init(directory, years_back):
+def init(directory):
     """初始化目录并同步历史论文"""
     directory = Path(directory).resolve()
 
@@ -914,14 +913,10 @@ def init(directory, years_back):
 
     if not env_file.exists():
         # 交互式配置
-        config, interactive_years_back = interactive_configuration()
+        config, years_back = interactive_configuration()
 
         # 保存自定义横幅字段
         custom_banner_fields = config.get("_SELECTED_FIELD_NAMES", [])
-
-        # 如果命令行参数没有指定 years_back，使用交互式配置的值
-        if years_back is None:
-            years_back = interactive_years_back
 
         # 读取 .ENV.TEMPLATE 文件作为基础模板
         template_file = Path(__file__).parent / ".ENV.TEMPLATE"
@@ -1000,8 +995,7 @@ def init(directory, years_back):
 
     else:
         click.echo(f".env 文件已存在于 {directory}")
-        if years_back is None:
-            years_back = 5  # 默认值
+        years_back = Config.YEARS_BACK  # 使用配置文件中的值
 
     # 创建 important_papers.txt（如果不存在）
     important_file = directory / Config.IMPORTANT_PAPERS_FILE
@@ -1085,14 +1079,11 @@ def sync(directory, years_back, summarize, force):
 @click.argument("query")
 @click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
 @click.option("--limit", default=64, help="返回结果的最大数量（默认：64）")
+@click.option("--update/--no-update", default=False, help="搜索前是否更新数据库（默认：否，是则使用YEARS_BACK配置）")
 @click.option(
-    "--years-back", type=int, default=0, help="搜索前先下载最近N年的论文到本地数据库（默认：0，表示不更新数据库）"
+    "--time-range", "-t", default="0", help="搜索时间范围，如'1y'=1年、'6m'=6个月、'30d'=30天（默认：0，表示不限制）"
 )
-@click.option("--use-ai/--no-ai", default=True, help="是否使用AI理解自然语言查询（默认：是）")
-@click.option("--summarize/--no-summarize", default=True, help="是否自动总结未总结的论文（默认：是）")
-@click.option("--max-summarize", type=int, default=0, help="最大总结论文数（默认：0表示无限制）")
 @click.option("--categories", "-c", multiple=True, help="包含的分类（可多次使用）")
-@click.option("--days-back", type=int, default=0, help="只搜索最近N天的论文（默认：0，表示不限制时间）")
 @click.option("--authors", "-a", multiple=True, help="作者姓名（可多次使用）")
 @click.option(
     "--sort-by",
@@ -1100,25 +1091,16 @@ def sync(directory, years_back, summarize, force):
     default="published",
     help="排序字段",
 )
-@click.option(
-    "--strict-match/--no-strict-match",
-    default=False,
-    help="启用严格匹配（单词边界），严格匹配结果在前，模糊匹配结果在后",
-)
 @click.option("--no-cache", is_flag=True, default=False, help="禁用图片URL缓存")
 def search(
     query,
     directory,
     limit,
-    years_back,
-    use_ai,
-    summarize,
-    max_summarize,
+    update,
+    time_range,
     categories,
-    days_back,
     authors,
     sort_by,
-    strict_match,
     no_cache,
 ):
     """智能搜索论文（支持自然语言查询和基本过滤）"""
@@ -1131,7 +1113,8 @@ def search(
 
     # 如果需要，先同步最新论文
     crawler = ArXivCrawler()
-    if years_back > 0:
+    if update:
+        years_back = Config.YEARS_BACK
         click.echo(f"搜索前先同步最近 {years_back} 年论文...")
         sync_result = sync_papers(years_back=years_back, summarize=False, force=False)
         crawler = sync_result["crawler"]
@@ -1141,8 +1124,8 @@ def search(
 
     search_terms = [query]
 
-    # 如果启用AI且配置了AI API密钥，尝试解析自然语言查询
-    if use_ai and Config.AI_API_KEY:
+    # 如果配置了AI API密钥，尝试解析自然语言查询
+    if Config.AI_API_KEY:
         try:
             import openai
 
@@ -1207,6 +1190,21 @@ def search(
         # 使用增强搜索引擎进行模糊搜索
         search_engine = SearchEngine(session)
 
+        # 解析时间范围
+        days_back = 0
+        if time_range and time_range != "0":
+            time_range = time_range.lower()
+            if time_range.endswith("d"):
+                days_back = int(time_range[:-1])
+            elif time_range.endswith("m"):
+                days_back = int(time_range[:-1]) * 30
+            elif time_range.endswith("y"):
+                days_back = int(time_range[:-1]) * 365
+            else:
+                # 默认按天处理
+                days_back = int(time_range)
+            click.echo(f"搜索时间范围: 最近 {days_back} 天")
+
         # 解析搜索短语：如果只有一个元素且包含逗号，按逗号分割
         phrases = []
         if len(search_terms) == 1 and "," in search_terms[0]:
@@ -1230,7 +1228,6 @@ def search(
                 sort_by=sort_by,
                 sort_order="desc",
                 match_all=True,  # 短语内部使用AND逻辑
-                strict_match=strict_match,
             )
             # 执行搜索
             papers_to_show = search_engine.search_papers(filter_config)
@@ -1249,7 +1246,6 @@ def search(
                     sort_by=sort_by,
                     sort_order="desc",
                     match_all=True,  # 短语内部使用AND逻辑
-                    strict_match=strict_match,
                 )
                 phrase_papers = search_engine.search_papers(filter_config)
                 all_papers.extend(phrase_papers)
@@ -1277,8 +1273,8 @@ def search(
             search_terms,
             papers_to_show,
             paper_limit=limit,
-            summarize=summarize,
-            max_summarize=max_summarize,
+            summarize=Config.AI_API_KEY is not None,  # 有AI key就总结
+            max_summarize=0,  # 0表示无限制，总结所有搜索到的论文
             cache=not no_cache,
         )
 
@@ -1306,12 +1302,11 @@ def search(
 @cli.command()
 @click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
 @click.option("--limit", default=64, help="报告中包含的最大论文数（默认：64，与REPORT_MAX_PAPERS配置一致）")
-@click.option("--days-back", type=int, default=2, help="包含最近多少天的论文（默认：2天）")
-@click.option("--years-back", type=int, default=1, help="报告前同步回溯的年数（默认：1年）")
-@click.option("--summarize/--no-summarize", default=True, help="是否自动总结未总结的论文（默认：是）")
-@click.option("--max-summarize", type=int, default=0, help="最大总结论文数（默认：0表示无限制）")
+@click.option(
+    "--days-back", "-d", type=int, default=2, help="包含最近多少天的工作日论文（默认：2天，0表示不更新数据库）"
+)
 @click.option("--no-cache", is_flag=True, default=False, help="禁用图片URL缓存")
-def recent(directory, limit, days_back, years_back, summarize, max_summarize, no_cache):
+def recent(directory, limit, days_back, no_cache):
     """生成最近论文的报告（先同步最新论文）"""
     directory = Path(directory).resolve()
 
@@ -1320,8 +1315,9 @@ def recent(directory, limit, days_back, years_back, summarize, max_summarize, no
 
     print_banner()
 
-    # 先同步论文
-    if years_back > 0:
+    # 如果 days_back 不是 0，先同步论文
+    if days_back > 0:
+        years_back = Config.YEARS_BACK
         click.echo(f"报告前先同步最近 {years_back} 年论文...")
         sync_papers(years_back=years_back, summarize=False, force=False)
 
@@ -1330,7 +1326,40 @@ def recent(directory, limit, days_back, years_back, summarize, max_summarize, no
     click.echo(f"正在生成最近 {days_back} 天论文报告...")
 
     files = generate_report(
-        paper_limit=limit, days_back=days_back, summarize=summarize, max_summarize=max_summarize, cache=not no_cache
+        paper_limit=limit,
+        days_back=days_back,
+        summarize=Config.AI_API_KEY is not None,  # 有AI key就总结
+        max_summarize=0,  # 0表示无限制，总结所有论文
+        cache=not no_cache,
+    )
+
+
+@click.option("--no-cache", is_flag=True, default=False, help="禁用图片URL缓存")
+def recent(directory, limit, time_back, no_cache):
+    """生成最近论文的报告（先同步最新论文）"""
+    directory = Path(directory).resolve()
+
+    if not setup_environment(directory):
+        sys.exit(1)
+
+    print_banner()
+
+    # 如果 time_back 不是 0，先同步论文
+    if time_back > 0:
+        years_back = Config.YEARS_BACK
+        click.echo(f"报告前先同步最近 {years_back} 年论文...")
+        sync_papers(years_back=years_back, summarize=False, force=False)
+
+    # 生成报告
+    click.echo("\n" + "=" * 50)
+    click.echo(f"正在生成最近 {time_back} 天论文报告...")
+
+    files = generate_report(
+        paper_limit=limit,
+        days_back=time_back,
+        summarize=Config.AI_API_KEY is not None,  # 有AI key就总结
+        max_summarize=0,  # 0表示无限制，总结所有论文
+        cache=not no_cache,
     )
 
     click.echo(f"报告生成完成：")
