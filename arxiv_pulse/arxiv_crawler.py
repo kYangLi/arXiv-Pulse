@@ -229,6 +229,38 @@ class ArXivCrawler:
             latest_paper = session.query(Paper).order_by(Paper.published.desc()).first()
             return latest_paper.published if latest_paper else None  # type: ignore
 
+    def get_sync_description(self, years_back: int, force: bool) -> str:
+        """获取同步描述
+
+        Args:
+            years_back: 回溯的年数
+            force: 是否强制模式
+
+        Returns:
+            str: 同步描述
+        """
+        if force:
+            # 强制模式：显示同步到 years_back 设置的日期
+            start_date = datetime.now(timezone.utc) - timedelta(days=365 * years_back)
+            mode_text = "强制同步"
+            return f"{mode_text} (回溯 {years_back} 年: {start_date.strftime('%Y-%m-%d')} 到现在)"
+
+        # 普通模式：计算实际需要同步的天数
+        latest_date = self.get_latest_paper_date_for_any_query()
+
+        if latest_date is None:
+            # 从未同步过
+            return f"首次同步 (回溯 {years_back} 年)"
+
+        # 计算距离上次同步的天数
+        days_since_sync = (datetime.now(timezone.utc) - latest_date.replace(tzinfo=timezone.utc)).days
+
+        # 如果上次同步天数 > years_back，还是按 years_back
+        if days_since_sync > years_back * 365:
+            return f"同步 (回溯 {years_back} 年: 上次同步 {latest_date.strftime('%Y-%m-%d')}，距离现在已超过 {years_back} 年)"
+
+        return f"同步 (最近 {days_since_sync} 天: 上次同步 {latest_date.strftime('%Y-%m-%d')})"
+
     def sync_query(
         self, query: str, years_back: int = 3, force: bool = False, arxiv_max_results: Optional[int] = None
     ) -> Dict[str, Any]:
@@ -323,7 +355,9 @@ class ArXivCrawler:
                   skip existing papers only (no download)
             arxiv_max_results: Maximum papers to fetch from arXiv API (default: Config.ARXIV_MAX_RESULTS)
         """
-        output.do(f"同步所有查询 (回溯 {years_back} 年)" + (" (强制模式)" if force else ""))
+        # 获取友好的同步描述
+        sync_description = self.get_sync_description(years_back, force)
+        output.do(f"同步所有查询 ({sync_description})" + (" (强制模式)" if force else ""))
 
         # Set max_results
         if arxiv_max_results is None:
