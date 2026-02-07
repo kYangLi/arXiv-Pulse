@@ -11,6 +11,7 @@ import click
 from dotenv import load_dotenv
 import json
 from datetime import datetime, timedelta, timezone
+from typing import Dict, Any, Optional
 import questionary
 import wcwidth
 
@@ -455,6 +456,60 @@ def print_banner_custom(fields):
     click.echo(banner)
 
 
+def get_sync_info(years_back: int, force: bool) -> Dict[str, Any]:
+    """获取同步信息
+
+    Args:
+        years_back: 回溯的年数
+        force: 是否强制模式
+
+    Returns:
+        dict: {
+            'sync_description': str,  # 同步描述
+            'latest_date': Optional[datetime],  # 最新论文日期
+            'days_since_sync': Optional[int],  # 距离上次同步的天数
+        }
+    """
+    crawler = ArXivCrawler()
+
+    if force:
+        # 强制模式：显示同步到 years_back 设置的日期
+        start_date = datetime.now(timezone.utc) - timedelta(days=365 * years_back)
+        return {
+            "sync_description": f"同步最近 {years_back} 年 ({start_date.strftime('%Y-%m-%d')} 到现在)",
+            "latest_date": None,
+            "days_since_sync": years_back * 365,
+        }
+
+    # 普通模式：计算实际需要同步的天数
+    latest_date = crawler.get_latest_paper_date_for_any_query()
+
+    if latest_date is None:
+        # 从未同步过
+        return {
+            "sync_description": f"首次同步（回溯 {years_back} 年）",
+            "latest_date": None,
+            "days_since_sync": years_back * 365,
+        }
+
+    # 计算距离上次同步的天数
+    days_since_sync = (datetime.now(timezone.utc) - latest_date.replace(tzinfo=timezone.utc)).days
+
+    # 如果上次同步天数 > years_back，还是按 years_back
+    if days_since_sync > years_back * 365:
+        return {
+            "sync_description": f"同步 {years_back} 年（上次同步 {latest_date.strftime('%Y-%m-%d')}，距离现在已超过 {years_back} 年）",
+            "latest_date": latest_date,
+            "days_since_sync": years_back * 365,
+        }
+
+    return {
+        "sync_description": f"同步最近 {days_since_sync} 天（上次同步: {latest_date.strftime('%Y-%m-%d')}）",
+        "latest_date": latest_date,
+        "days_since_sync": days_since_sync,
+    }
+
+
 def sync_papers(years_back=1, summarize=False, force=False, arxiv_max_results=None):
     """同步论文（内部函数）
 
@@ -471,8 +526,11 @@ def sync_papers(years_back=1, summarize=False, force=False, arxiv_max_results=No
     if arxiv_max_results is None:
         arxiv_max_results = Config.ARXIV_MAX_RESULTS
 
+    # 获取同步信息
+    sync_info = get_sync_info(years_back, force)
+
     mode_text = "强制同步" if force else "同步缺失论文"
-    click.echo(f"正在{mode_text}（回溯 {years_back} 年，最大 {arxiv_max_results} 篇）...")
+    click.echo(f"正在{mode_text}（{sync_info['sync_description']}，最大 {arxiv_max_results} 篇）...")
     click.echo("=" * 50)
 
     # 同步所有查询
@@ -1106,13 +1164,14 @@ def search(
 
     print_banner()
 
-    # 如果需要，先同步最新论文
+    # 初始化 crawler（用于数据库会话）
     crawler = ArXivCrawler()
+
+    # 如果需要，先同步最新论文
     if update:
         years_back = Config.YEARS_BACK
-        click.echo(f"搜索前先同步最近 {years_back} 年论文...")
+        # 调用 sync_papers 函数
         sync_result = sync_papers(years_back=years_back, summarize=False, force=False)
-        crawler = sync_result["crawler"]
 
     click.echo(f"\n正在搜索: '{query}'")
     click.echo("=" * 50)
@@ -1313,7 +1372,7 @@ def recent(directory, limit, days_back, no_cache):
     # 如果 days_back 不是 0，先同步论文
     if days_back > 0:
         years_back = Config.YEARS_BACK
-        click.echo(f"报告前先同步最近 {years_back} 年论文...")
+        # 调用 sync_papers 函数
         sync_papers(years_back=years_back, summarize=False, force=False)
 
     # 生成报告

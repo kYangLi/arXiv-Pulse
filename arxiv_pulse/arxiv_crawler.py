@@ -223,6 +223,12 @@ class ArXivCrawler:
             )
             return latest_paper.published if latest_paper else None  # type: ignore
 
+    def get_latest_paper_date_for_any_query(self) -> Optional[datetime]:
+        """Get the latest paper date across all queries in database"""
+        with self.db.get_session() as session:
+            latest_paper = session.query(Paper).order_by(Paper.published.desc()).first()
+            return latest_paper.published if latest_paper else None  # type: ignore
+
     def sync_query(
         self, query: str, years_back: int = 3, force: bool = False, arxiv_max_results: Optional[int] = None
     ) -> Dict[str, Any]:
