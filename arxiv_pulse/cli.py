@@ -4,25 +4,24 @@ arXiv Pulse - 简化版命令行界面
 核心功能：初始化、更新同步、智能搜索、最近论文报告
 """
 
+import json
 import os
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
 import click
-from dotenv import load_dotenv
-import json
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, Optional
 import questionary
 import wcwidth
+from dotenv import load_dotenv
 
-from arxiv_pulse.config import Config
-from arxiv_pulse.arxiv_crawler import ArXivCrawler
-from arxiv_pulse.summarizer import PaperSummarizer
-from arxiv_pulse.report_generator import ReportGenerator
-from arxiv_pulse.output_manager import output, OutputLevel
-from arxiv_pulse.search_engine import SearchEngine, SearchFilter
 from arxiv_pulse.__version__ import __version__
-
+from arxiv_pulse.arxiv_crawler import ArXivCrawler
+from arxiv_pulse.config import Config
+from arxiv_pulse.output_manager import OutputLevel, output
+from arxiv_pulse.report_generator import ReportGenerator
+from arxiv_pulse.search_engine import SearchEngine, SearchFilter
+from arxiv_pulse.summarizer import PaperSummarizer
 
 # arXiv研究领域定义（用于交互式配置和横幅生成）
 RESEARCH_FIELDS = {
@@ -313,7 +312,7 @@ def generate_banner_title(env_file):
         if not env_path.exists():
             return ["凝聚态物理", "密度泛函理论", "机器学习", "力场"]
 
-        with open(env_path, "r", encoding="utf-8") as f:
+        with open(env_path, encoding="utf-8") as f:
             content = f.read()
 
         # 提取 SEARCH_QUERIES
@@ -389,7 +388,7 @@ def generate_banner_title(env_file):
         # 限制最多显示4个领域
         return fields[:4]
 
-    except Exception as e:
+    except Exception:
         # 出错时返回默认
         return ["凝聚态物理", "密度泛函理论", "机器学习", "力场"]
 
@@ -525,7 +524,7 @@ def sync_papers(years_back=1, summarize=False, force=False, arxiv_max_results=No
 
 def get_workday_cutoff(days_back):
     """计算排除周末的截止日期"""
-    current = datetime.now(timezone.utc).replace(tzinfo=None)
+    current = datetime.now(UTC).replace(tzinfo=None)
     workdays_counted = 0
     days_to_go_back = 0
 
@@ -865,13 +864,13 @@ def interactive_configuration():
         recommended_max_results = 10000
     elif num_selected_fields <= 10:
         recommended_max_results = 4000
-        click.echo(f"⚠️  您选择了中等数量领域，建议调整 ARXIV_MAX_RESULTS：")
+        click.echo("⚠️  您选择了中等数量领域，建议调整 ARXIV_MAX_RESULTS：")
         click.echo(f"   - arXiv API 最大返回论文数: {recommended_max_results}")
     else:
         recommended_max_results = 1000
         click.echo(f"⚠️  您选择了大量领域 ({num_selected_fields}个)，强烈建议调整 ARXIV_MAX_RESULTS：")
         click.echo(f"   - arXiv API 最大返回论文数: {recommended_max_results}")
-        click.echo(f"   - 注意：同步大量领域可能需要较长时间和更多存储空间。")
+        click.echo("   - 注意：同步大量领域可能需要较长时间和更多存储空间。")
 
     # 询问用户是否应用建议
     if num_selected_fields > 6:
@@ -1005,8 +1004,8 @@ def init(directory):
     click.echo("准备同步数据库")
     click.echo("=" * 60)
     click.echo(f"即将开始初始同步，回溯 {years_back} 年历史论文...")
-    click.echo(f"这可能会花费一些时间，具体取决于您选择的领域数量。")
-    click.echo(f"您可以在任何时候按 Ctrl+C 中断同步。")
+    click.echo("这可能会花费一些时间，具体取决于您选择的领域数量。")
+    click.echo("您可以在任何时候按 Ctrl+C 中断同步。")
 
     if not click.confirm("\n🚀 确认开始同步数据库吗？", default=True):
         click.echo("❌ 已取消同步")
@@ -1022,12 +1021,12 @@ def init(directory):
         banner_title = generate_banner_title(env_file)
     print_banner_custom(banner_title)
 
-    click.echo(f"\n🎉 arXiv Pulse 初始化完成！")
-    click.echo(f"\n📁 文件位置：")
+    click.echo("\n🎉 arXiv Pulse 初始化完成！")
+    click.echo("\n📁 文件位置：")
     click.echo(f"  配置文件: {env_file}")
     click.echo(f"  数据库: {directory}/data/arxiv_papers.db")
     click.echo(f"  报告目录: {directory}/reports/")
-    click.echo(f"\n🚀 下一步：")
+    click.echo("\n🚀 下一步：")
     click.echo(f"  1. 运行 'pulse sync {directory}' 更新最新论文")
     click.echo(f"  2. 运行 'pulse search \"关键词\" {directory}' 搜索论文")
     click.echo(f"  3. 运行 'pulse recent {directory}' 查看最近论文报告")
@@ -1185,7 +1184,6 @@ def search(
 
     # 在数据库中搜索
     with crawler.db.get_session() as session:
-        from arxiv_pulse.models import Paper
 
         # 使用增强搜索引擎进行模糊搜索
         search_engine = SearchEngine(session)
@@ -1293,10 +1291,10 @@ def search(
         if len(papers_to_show) > 5:
             click.echo(f"\n... 以及 {len(papers_to_show) - 5} 篇更多论文")
 
-        click.echo(f"\n报告生成完成：")
+        click.echo("\n报告生成完成：")
         for f in files:
             click.echo(f"  - {f}")
-        click.echo(f"\n详细论文信息、中文翻译和PDF链接请查看生成的Markdown报告。")
+        click.echo("\n详细论文信息、中文翻译和PDF链接请查看生成的Markdown报告。")
 
 
 @cli.command()
@@ -1334,39 +1332,6 @@ def recent(directory, limit, days_back, no_cache):
     )
 
 
-@click.option("--no-cache", is_flag=True, default=False, help="禁用图片URL缓存")
-def recent(directory, limit, time_back, no_cache):
-    """生成最近论文的报告（先同步最新论文）"""
-    directory = Path(directory).resolve()
-
-    if not setup_environment(directory):
-        sys.exit(1)
-
-    print_banner()
-
-    # 如果 time_back 不是 0，先同步论文
-    if time_back > 0:
-        years_back = Config.YEARS_BACK
-        click.echo(f"报告前先同步最近 {years_back} 年论文...")
-        sync_papers(years_back=years_back, summarize=False, force=False)
-
-    # 生成报告
-    click.echo("\n" + "=" * 50)
-    click.echo(f"正在生成最近 {time_back} 天论文报告...")
-
-    files = generate_report(
-        paper_limit=limit,
-        days_back=time_back,
-        summarize=Config.AI_API_KEY is not None,  # 有AI key就总结
-        max_summarize=0,  # 0表示无限制，总结所有论文
-        cache=not no_cache,
-    )
-
-    click.echo(f"报告生成完成：")
-    for f in files:
-        click.echo(f"  - {f}")
-
-
 @cli.command()
 @click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
 def stat(directory):
@@ -1391,23 +1356,23 @@ def stat(directory):
     summary_stats = summarizer.get_summary_stats()
 
     # 显示基本统计
-    click.echo(f"\n📊 基本统计:")
+    click.echo("\n📊 基本统计:")
     click.echo(f"   总论文数: {crawl_stats['total_papers']}")
     click.echo(f"   今日论文: {crawl_stats['papers_today']}")
     click.echo(f"   已总结论文: {summary_stats['summarized_papers']}")
     click.echo(f"   总结率: {summary_stats['summarization_rate']:.1%}")
 
     # 按搜索查询统计
-    click.echo(f"\n🔍 按搜索查询分布:")
+    click.echo("\n🔍 按搜索查询分布:")
     for query, count in crawl_stats["papers_by_query"].items():
         percentage = count / crawl_stats["total_papers"] * 100 if crawl_stats["total_papers"] > 0 else 0
         click.echo(f"   {query}: {count} 篇 ({percentage:.1f}%)")
 
     # 分类统计
-    click.echo(f"\n📁 分类统计:")
+    click.echo("\n📁 分类统计:")
     with crawler.db.get_session() as session:
+
         from arxiv_pulse.models import Paper
-        import json
 
         papers = session.query(Paper).all()
         category_counts = {}
@@ -1431,7 +1396,7 @@ def stat(directory):
             click.echo(f"   ... 以及 {len(sorted_categories) - 10} 个其他分类")
 
     # 时间分布
-    click.echo(f"\n📅 时间分布:")
+    click.echo("\n📅 时间分布:")
     with crawler.db.get_session() as session:
         # 按年统计
         year_stats = {}
@@ -1447,7 +1412,7 @@ def stat(directory):
 
     # 总结统计
     pending_papers = crawl_stats["total_papers"] - summary_stats["summarized_papers"]
-    click.echo(f"\n🤖 AI总结统计:")
+    click.echo("\n🤖 AI总结统计:")
     click.echo(f"   已总结: {summary_stats['summarized_papers']} 篇")
     click.echo(f"   待总结: {pending_papers} 篇")
     click.echo(f"   总结率: {summary_stats['summarization_rate']:.1%}")

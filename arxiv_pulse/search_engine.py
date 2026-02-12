@@ -2,11 +2,11 @@
 增强搜索引擎 - 提供高级搜索和过滤功能
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from sqlalchemy import and_, or_, not_, func, desc, asc
+from sqlalchemy import and_, asc, desc, func, not_, or_
 from sqlalchemy.orm import Session
 
 from arxiv_pulse.models import Paper
@@ -18,22 +18,22 @@ class SearchFilter:
     """搜索过滤器配置"""
 
     # 文本搜索
-    query: Optional[str] = None
-    search_fields: List[str] = field(default_factory=lambda: ["title", "abstract"])
+    query: str | None = None
+    search_fields: list[str] = field(default_factory=lambda: ["title", "abstract"])
 
     # 分类过滤
-    categories: Optional[List[str]] = None
-    exclude_categories: Optional[List[str]] = None
-    primary_category: Optional[str] = None
+    categories: list[str] | None = None
+    exclude_categories: list[str] | None = None
+    primary_category: str | None = None
 
     # 作者过滤
-    authors: Optional[List[str]] = None
+    authors: list[str] | None = None
     author_match: str = "contains"  # "contains", "exact", "any"
 
     # 时间过滤
-    date_from: Optional[datetime] = None
-    date_to: Optional[datetime] = None
-    days_back: Optional[int] = None
+    date_from: datetime | None = None
+    date_to: datetime | None = None
+    days_back: int | None = None
 
     # 处理状态过滤
     summarized_only: bool = False
@@ -48,7 +48,7 @@ class SearchFilter:
     sort_order: str = "desc"  # "asc", "desc"
 
     # 相似性搜索
-    similar_to_paper_id: Optional[str] = None
+    similar_to_paper_id: str | None = None
     similarity_threshold: float = 0.5
 
     # 高级选项
@@ -63,7 +63,7 @@ class SearchEngine:
         self.session = db_session
 
     def build_text_filter(
-        self, query: str, search_fields: List[str], match_all: bool = False, strict_match: bool = False
+        self, query: str, search_fields: list[str], match_all: bool = False, strict_match: bool = False
     ):
         """构建文本搜索过滤器，支持严格匹配（单词边界）和模糊匹配"""
         if not query or not search_fields:
@@ -216,9 +216,9 @@ class SearchEngine:
 
     def build_category_filter(
         self,
-        categories: Optional[List[str]] = None,
-        exclude_categories: Optional[List[str]] = None,
-        primary_category: Optional[str] = None,
+        categories: list[str] | None = None,
+        exclude_categories: list[str] | None = None,
+        primary_category: str | None = None,
     ):
         """构建分类过滤器"""
         filters = []
@@ -242,7 +242,7 @@ class SearchEngine:
 
         return and_(*filters) if filters else None
 
-    def build_author_filter(self, authors: Optional[List[str]] = None, match_type: str = "contains"):
+    def build_author_filter(self, authors: list[str] | None = None, match_type: str = "contains"):
         """构建作者过滤器"""
         if not authors:
             return None
@@ -261,17 +261,16 @@ class SearchEngine:
 
         if match_type == "any":
             return or_(*filters)
-        else:
-            return and_(*filters)
+        return and_(*filters)
 
     def build_date_filter(
-        self, date_from: Optional[datetime] = None, date_to: Optional[datetime] = None, days_back: Optional[int] = None
+        self, date_from: datetime | None = None, date_to: datetime | None = None, days_back: int | None = None
     ):
         """构建时间过滤器"""
         filters = []
 
         if days_back:
-            cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_back)
+            cutoff_date = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=days_back)
             filters.append(Paper.published >= cutoff_date)
 
         if date_from:
@@ -311,7 +310,7 @@ class SearchEngine:
 
         return desc(column) if sort_order == "desc" else asc(column)
 
-    def _search_papers_basic(self, filter_config: SearchFilter) -> List[Paper]:
+    def _search_papers_basic(self, filter_config: SearchFilter) -> list[Paper]:
         """基础搜索逻辑（原有实现）"""
         try:
             query = self.session.query(Paper)
@@ -370,13 +369,13 @@ class SearchEngine:
             return papers
 
         except Exception as e:
-            output.error(f"搜索失败: {str(e)}")
+            output.error(f"搜索失败: {e!s}")
             import traceback
 
             output.debug(f"搜索失败详情: {traceback.format_exc()}")
             return []
 
-    def search_papers(self, filter_config: SearchFilter) -> List[Paper]:
+    def search_papers(self, filter_config: SearchFilter) -> list[Paper]:
         """执行搜索并返回论文列表，支持严格匹配分级排序"""
         try:
             # 如果不启用严格匹配，使用原有逻辑
@@ -464,7 +463,7 @@ class SearchEngine:
             return paginated_papers
 
         except Exception as e:
-            output.error(f"分级搜索失败: {str(e)}")
+            output.error(f"分级搜索失败: {e!s}")
             import traceback
 
             output.debug(f"分级搜索失败详情: {traceback.format_exc()}")
@@ -472,7 +471,7 @@ class SearchEngine:
 
     def search_similar_papers(
         self, paper_id: str, limit: int = 10, threshold: float = 0.5
-    ) -> List[tuple[Paper, float]]:
+    ) -> list[tuple[Paper, float]]:
         """查找相似论文（基于标题和摘要的文本相似性）"""
         try:
             # 获取目标论文
@@ -511,7 +510,7 @@ class SearchEngine:
             output.error("相似论文搜索失败", details={"exception": str(e)})
             return []
 
-    def get_search_history(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_search_history(self, limit: int = 10) -> list[dict[str, Any]]:
         """获取搜索历史（从数据库中的search_query字段提取）"""
         try:
             # 查询所有使用过的搜索查询
@@ -549,8 +548,7 @@ class SearchEngine:
             output.error("获取搜索历史失败", details={"exception": str(e)})
             return []
 
-    def save_search_query(self, query: str, description: Optional[str] = None):
+    def save_search_query(self, query: str, description: str | None = None):
         """保存搜索查询到历史（简单实现）"""
         # 这里可以扩展为保存到单独的搜索历史表
         # 目前依赖于Paper表中的search_query字段
-        pass

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arxiv-pulse"
-version = "0.7.6"
+version = "0.7.7"
 authors = [
     {name = "Yang Li", email = "lyang.1915@gmail.com"},
 ]
@@ -72,5 +72,5 @@ line-length = 120
 
 [tool.ruff]
 line-length = 120
-select = ["E", "F", "I", "N", "UP", "YTT", "ANN", "ARG", "ASYNC", "B", "C4", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "Q", "RET", "RSE", "RUF", "SIM", "SLF", "TID", "TRY", "A", "W", "FIX"]
-ignore = ["E501", "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "D200", "D205", "D400", "D415"]
+select = []
+ignore = []

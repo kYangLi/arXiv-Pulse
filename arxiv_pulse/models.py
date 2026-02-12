@@ -1,19 +1,18 @@
+import json
+from datetime import UTC, datetime, timedelta
+
 from sqlalchemy import (
-    create_engine,
+    Boolean,
     Column,
+    DateTime,
+    Float,
     Integer,
     String,
     Text,
-    DateTime,
-    Boolean,
-    Float,
-    JSON,
+    create_engine,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime, timedelta, timezone
-import json
-from typing import Optional
 
 from arxiv_pulse.config import Config
 
@@ -48,11 +47,11 @@ class Paper(Base):
     summary = Column(Text)
 
     # Metadata
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
     updated_at = Column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
-        onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
     )
 
     def to_dict(self):
@@ -95,9 +94,11 @@ class Paper(Base):
             primary_category=entry.primary_category if hasattr(entry, "primary_category") else "",
             published=entry.published,
             updated=entry.updated if hasattr(entry, "updated") else None,
-            pdf_url=entry.pdf_url
-            if hasattr(entry, "pdf_url")
-            else f"https://arxiv.org/pdf/{entry.entry_id.split('/')[-1]}.pdf",
+            pdf_url=(
+                entry.pdf_url
+                if hasattr(entry, "pdf_url")
+                else f"https://arxiv.org/pdf/{entry.entry_id.split('/')[-1]}.pdf"
+            ),
             doi=entry.doi if hasattr(entry, "doi") else None,
             journal_ref=entry.journal_ref if hasattr(entry, "journal_ref") else None,
             comment=entry.comment if hasattr(entry, "comment") else None,
@@ -116,11 +117,11 @@ class TranslationCache(Base):
     source_text_hash = Column(String(64), nullable=False, unique=True, index=True)
     translated_text = Column(Text, nullable=False)
     target_language = Column(String(10), default="zh")
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
     updated_at = Column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
-        onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
     )
 
     def __repr__(self):
@@ -133,11 +134,11 @@ class FigureCache(Base):
     id = Column(Integer, primary_key=True)
     arxiv_id = Column(String(50), nullable=False, unique=True, index=True)
     figure_url = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
     updated_at = Column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
-        onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
     )
 
     def __repr__(self):
@@ -172,7 +173,7 @@ class Database:
             if paper:
                 for key, value in kwargs.items():
                     setattr(paper, key, value)
-                paper.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                paper.updated_at = datetime.now(UTC).replace(tzinfo=None)
                 session.commit()
                 return True
             return False
@@ -180,7 +181,7 @@ class Database:
     def get_recent_papers(self, days=7, limit=100):
         """Get recent papers"""
         with self.get_session() as session:
-            cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
+            cutoff_date = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=days)
             return (
                 session.query(Paper)
                 .filter(Paper.published >= cutoff_date)
@@ -228,7 +229,7 @@ class Database:
                 "categories_distribution": categories,
             }
 
-    def get_translation_cache(self, source_text: str, target_language: str = "zh") -> Optional[str]:
+    def get_translation_cache(self, source_text: str, target_language: str = "zh") -> str | None:
         """获取缓存的翻译结果"""
         import hashlib
 
@@ -258,7 +259,7 @@ class Database:
             if existing:
                 # 更新现有缓存
                 existing.translated_text = translated_text
-                existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                existing.updated_at = datetime.now(UTC).replace(tzinfo=None)
             else:
                 # 创建新缓存
                 cache_entry = TranslationCache(
@@ -274,12 +275,12 @@ class Database:
     def clear_old_translation_cache(self, days_old: int = 30) -> int:
         """清理旧的翻译缓存"""
         with self.get_session() as session:
-            cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_old)
+            cutoff_date = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=days_old)
             deleted_count = session.query(TranslationCache).filter(TranslationCache.updated_at < cutoff_date).delete()
             session.commit()
             return deleted_count
 
-    def get_figure_cache(self, arxiv_id: str) -> Optional[str]:
+    def get_figure_cache(self, arxiv_id: str) -> str | None:
         """获取缓存的图片URL"""
         with self.get_session() as session:
             cache_entry = session.query(FigureCache).filter_by(arxiv_id=arxiv_id).first()
@@ -295,7 +296,7 @@ class Database:
             if existing:
                 # 更新现有缓存
                 existing.figure_url = figure_url
-                existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                existing.updated_at = datetime.now(UTC).replace(tzinfo=None)
             else:
                 # 创建新缓存
                 cache_entry = FigureCache(
@@ -308,7 +309,7 @@ class Database:
     def clear_old_figure_cache(self, days_old: int = 30) -> int:
         """清理旧的图片缓存"""
         with self.get_session() as session:
-            cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_old)
+            cutoff_date = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=days_old)
             deleted_count = session.query(FigureCache).filter(FigureCache.updated_at < cutoff_date).delete()
             session.commit()
             return deleted_count

@@ -1,15 +1,14 @@
-import arxiv
-import asyncio
-import aiohttp
-import os
-from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta, timezone
-from tqdm import tqdm
-import time
 import logging
+import os
+import time
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from arxiv_pulse.models import Database, Paper
+import arxiv
+from tqdm import tqdm
+
 from arxiv_pulse.config import Config
+from arxiv_pulse.models import Database, Paper
 from arxiv_pulse.output_manager import output
 
 # 使用根日志记录器的配置（保留用于向后兼容）
@@ -31,9 +30,9 @@ class ArXivCrawler:
         self,
         query: str,
         max_results: int = 100,
-        days_back: Optional[int] = None,
-        cutoff_date: Optional[datetime] = None,
-    ) -> List[arxiv.Result]:
+        days_back: int | None = None,
+        cutoff_date: datetime | None = None,
+    ) -> list[arxiv.Result]:
         """Search arXiv for papers matching query
 
         Args:
@@ -72,9 +71,9 @@ class ArXivCrawler:
                 # Convert paper.published to UTC aware datetime
                 if paper.published.tzinfo is None:
                     # Assume naive datetime is UTC
-                    paper_date = paper.published.replace(tzinfo=timezone.utc)
+                    paper_date = paper.published.replace(tzinfo=UTC)
                 else:
-                    paper_date = paper.published.astimezone(timezone.utc)
+                    paper_date = paper.published.astimezone(UTC)
 
                 if paper_date < cutoff_date:
                     output.debug(f"遇到旧论文 ({paper_date.date()})，停止爬取")
@@ -89,7 +88,7 @@ class ArXivCrawler:
         output.debug(f"Found {len(results)} papers for query: {query}")
         return results
 
-    def filter_new_papers(self, papers: List[arxiv.Result]) -> List[arxiv.Result]:
+    def filter_new_papers(self, papers: list[arxiv.Result]) -> list[arxiv.Result]:
         """Filter out papers already in database"""
         new_papers = []
         for paper in papers:
@@ -102,7 +101,7 @@ class ArXivCrawler:
         output.debug(f"Filtered to {len(new_papers)} new papers")
         return new_papers
 
-    def save_papers(self, papers: List[arxiv.Result], search_query: str) -> List[Paper]:
+    def save_papers(self, papers: list[arxiv.Result], search_query: str) -> list[Paper]:
         """Save papers to database"""
         saved_papers = []
         for paper in tqdm(papers, desc="Saving papers"):
@@ -125,7 +124,7 @@ class ArXivCrawler:
         output.done(f"保存完成: {len(saved_papers)} 篇新论文")
         return saved_papers
 
-    def initial_crawl(self) -> Dict[str, Any]:
+    def initial_crawl(self) -> dict[str, Any]:
         """Perform initial crawl with multiple queries"""
         output.do("开始初始爬取")
         all_saved = []
@@ -151,13 +150,13 @@ class ArXivCrawler:
             "saved_papers": all_saved,
         }
 
-    def daily_update(self) -> Dict[str, Any]:
+    def daily_update(self) -> dict[str, Any]:
         """Perform daily update crawl with early stopping optimization"""
         output.do("开始每日更新")
         all_saved = []
 
         # 使用2天的时间窗口，因为arXiv通常在UTC 00:00-02:00更新
-        cutoff_date = datetime.now(timezone.utc) - timedelta(days=2)
+        cutoff_date = datetime.now(UTC) - timedelta(days=2)
         output.info(f"查找 {cutoff_date.date()} 之后的新论文")
 
         for query in self.config.SEARCH_QUERIES:
@@ -190,7 +189,7 @@ class ArXivCrawler:
             "saved_papers": all_saved,
         }
 
-    def crawl_by_categories(self, categories: List[str], max_results: int = 64) -> Dict[str, Any]:
+    def crawl_by_categories(self, categories: list[str], max_results: int = 64) -> dict[str, Any]:
         """Crawl specific arXiv categories"""
         all_saved = []
 
@@ -215,7 +214,7 @@ class ArXivCrawler:
             "saved_papers": all_saved,
         }
 
-    def get_latest_paper_date_for_query(self, query: str) -> Optional[datetime]:
+    def get_latest_paper_date_for_query(self, query: str) -> datetime | None:
         """Get the latest paper date for a specific query in database"""
         with self.db.get_session() as session:
             latest_paper = (
@@ -223,7 +222,7 @@ class ArXivCrawler:
             )
             return latest_paper.published if latest_paper else None  # type: ignore
 
-    def get_latest_paper_date_for_any_query(self) -> Optional[datetime]:
+    def get_latest_paper_date_for_any_query(self) -> datetime | None:
         """Get the latest paper date across all queries in database"""
         with self.db.get_session() as session:
             latest_paper = session.query(Paper).order_by(Paper.published.desc()).first()
@@ -241,7 +240,7 @@ class ArXivCrawler:
         """
         if force:
             # 强制模式：显示同步到 years_back 设置的日期
-            start_date = datetime.now(timezone.utc) - timedelta(days=365 * years_back)
+            start_date = datetime.now(UTC) - timedelta(days=365 * years_back)
             return f"同步 {years_back} 年 (从 {start_date.strftime('%Y-%m-%d')} 到现在)"
 
         # 普通模式：计算实际需要同步的天数
@@ -252,7 +251,7 @@ class ArXivCrawler:
             return f"首次同步 {years_back} 年"
 
         # 计算距离上次同步的天数
-        days_since_sync = (datetime.now(timezone.utc) - latest_date.replace(tzinfo=timezone.utc)).days
+        days_since_sync = (datetime.now(UTC) - latest_date.replace(tzinfo=UTC)).days
 
         # 如果上次同步天数 > years_back，还是按 years_back
         if days_since_sync > years_back * 365:
@@ -261,8 +260,8 @@ class ArXivCrawler:
         return f"同步最近 {days_since_sync} 天 (上次: {latest_date.strftime('%Y-%m-%d')})"
 
     def sync_query(
-        self, query: str, years_back: int = 3, force: bool = False, arxiv_max_results: Optional[int] = None
-    ) -> Dict[str, Any]:
+        self, query: str, years_back: int = 3, force: bool = False, arxiv_max_results: int | None = None
+    ) -> dict[str, Any]:
         """Sync papers for a specific query, fetching missing papers from recent years
 
         Args:
@@ -281,7 +280,7 @@ class ArXivCrawler:
 
         if force:
             # Force mode: always start from years_back years ago, continue querying
-            start_date = datetime.now(timezone.utc) - timedelta(days=365 * years_back)
+            start_date = datetime.now(UTC) - timedelta(days=365 * years_back)
             output.debug(f"强制同步: 获取最近 {years_back} 年的所有论文 ({start_date.strftime('%Y-%m-%d')} 到现在)")
             output.debug(f"最大返回论文数: {arxiv_max_results}")
         else:
@@ -290,14 +289,14 @@ class ArXivCrawler:
 
             if latest_date:
                 # If we have papers, fetch from latest date onward
-                start_date = latest_date.replace(tzinfo=timezone.utc)
+                start_date = latest_date.replace(tzinfo=UTC)
                 # 减去一天以确保获取所有可能的新论文，避免因时间精度问题错过论文
                 start_date = start_date - timedelta(days=1)
                 output.debug(f"获取论文从 {start_date.strftime('%Y-%m-%d')} 到现在")
                 output.debug(f"最大返回论文数: {arxiv_max_results}")
             else:
                 # If no papers, fetch from years_back years ago
-                start_date = datetime.now(timezone.utc) - timedelta(days=365 * years_back)
+                start_date = datetime.now(UTC) - timedelta(days=365 * years_back)
                 output.debug(f"获取最近 {years_back} 年的论文 ({start_date.strftime('%Y-%m-%d')} 到现在)")
                 output.debug(f"最大返回论文数: {arxiv_max_results}")
 
@@ -321,12 +320,11 @@ class ArXivCrawler:
                     output.info(f"达到最大返回论文数限制 ({arxiv_max_results})，可能还有更多论文未获取")
                 else:
                     output.info(f"查询完成，共找到 {len(papers)} 篇论文")
-            else:
-                # Normal mode: check if we stopped early due to existing papers
-                if len(papers) < arxiv_max_results and len(new_papers) < len(papers):
-                    output.info(
-                        f"遇到已存在的论文，提前停止同步。共查询 {len(papers)} 篇，其中 {len(papers) - len(new_papers)} 篇已存在"
-                    )
+            # Normal mode: check if we stopped early due to existing papers
+            elif len(papers) < arxiv_max_results and len(new_papers) < len(papers):
+                output.info(
+                    f"遇到已存在的论文，提前停止同步。共查询 {len(papers)} 篇，其中 {len(papers) - len(new_papers)} 篇已存在"
+                )
 
             time.sleep(1)  # Rate limiting
 
@@ -344,8 +342,8 @@ class ArXivCrawler:
             return {"query": query, "error": str(e), "new_papers": 0, "force_mode": force}
 
     def sync_all_queries(
-        self, years_back: int = 3, force: bool = False, arxiv_max_results: Optional[int] = None
-    ) -> Dict[str, Any]:
+        self, years_back: int = 3, force: bool = False, arxiv_max_results: int | None = None
+    ) -> dict[str, Any]:
         """Sync all configured search queries
 
         Args:
@@ -379,7 +377,7 @@ class ArXivCrawler:
             "arxiv_max_results": arxiv_max_results,
         }
 
-    def sync_important_papers(self) -> Dict[str, Any]:
+    def sync_important_papers(self) -> dict[str, Any]:
         """Ensure important papers are in database"""
         important_file = Config.IMPORTANT_PAPERS_FILE
         if not os.path.exists(important_file):
@@ -389,7 +387,7 @@ class ArXivCrawler:
         added = 0
         errors = []
 
-        with open(important_file, "r") as f:
+        with open(important_file) as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith("#"):
@@ -432,7 +430,7 @@ class ArXivCrawler:
             "errors": errors,
         }
 
-    def get_crawler_stats(self) -> Dict[str, Any]:
+    def get_crawler_stats(self) -> dict[str, Any]:
         """Get crawler statistics"""
         with self.db.get_session() as session:
             total = session.query(Paper).count()
@@ -451,36 +449,3 @@ class ArXivCrawler:
                 "papers_today": today_count,
                 "papers_by_query": by_query,
             }
-
-
-def main():
-    """Test the crawler"""
-    crawler = ArXivCrawler()
-
-    print("Testing arXiv crawler...")
-    print(f"Search queries: {Config.SEARCH_QUERIES}")
-
-    # Test with a small crawl
-    test_query = Config.SEARCH_QUERIES[0]
-    print(f"\nTesting search for: {test_query}")
-
-    papers = crawler.search_arxiv(test_query, max_results=5)
-    print(f"Found {len(papers)} papers")
-
-    if papers:
-        paper = papers[0]
-        print(f"\nSample paper:")
-        print(f"Title: {paper.title[:100]}...")
-        print(f"Authors: {[author.name for author in paper.authors[:3]]}")
-        print(f"Published: {paper.published}")
-        print(f"Categories: {paper.categories if hasattr(paper, 'categories') else paper.primary_category}")
-
-    # Get stats
-    stats = crawler.get_crawler_stats()
-    print(f"\nDatabase stats:")
-    print(f"Total papers: {stats['total_papers']}")
-    print(f"Papers today: {stats['papers_today']}")
-
-
-if __name__ == "__main__":
-    main()

@@ -1,15 +1,15 @@
 import json
-import pandas as pd
-from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Any, Optional
 import logging
 import os
-import urllib.request
 import ssl
-from html.parser import HTMLParser
+import urllib.request
+from datetime import datetime
+from typing import Any
 
-from arxiv_pulse.models import Database, Paper
+import pandas as pd
+
 from arxiv_pulse.config import Config
+from arxiv_pulse.models import Database
 from arxiv_pulse.output_manager import output
 from arxiv_pulse.summarizer import PaperSummarizer
 
@@ -129,7 +129,7 @@ class ReportGenerator:
             text = text[:-3].strip()
         return text
 
-    def get_first_figure_url(self, arxiv_id: str, use_cache: Optional[bool] = None) -> Optional[str]:
+    def get_first_figure_url(self, arxiv_id: str, use_cache: bool | None = None) -> str | None:
         """获取论文的第一个图片URL，改进版"""
         # 确定是否使用缓存
         if use_cache is None:
@@ -275,7 +275,7 @@ class ReportGenerator:
                     output.warn(f"保存图片缓存到数据库失败: {arxiv_id} - {str(e)[:100]}")
             return result
 
-        except Exception as e:
+        except Exception:
             # 静默失败，返回None
             return None
 
@@ -300,9 +300,8 @@ class ReportGenerator:
                 path_without_html = img_src[6:]  # 移除 "/html/"
                 # 构建正确路径：/html/{arxiv_id}/{path}
                 return f"https://arxiv.org/html/{arxiv_id}/{path_without_html}"
-            else:
-                # 其他根相对路径
-                return f"https://arxiv.org{img_src}"
+            # 其他根相对路径
+            return f"https://arxiv.org{img_src}"
 
         # 处理相对路径（如 fig/flowchart_v8.png）
         # 移除开头的 "./"
@@ -425,8 +424,7 @@ class ReportGenerator:
                 if translated and not translated.startswith("*"):
                     self.db.set_translation_cache(text, translated, target_lang)
                 return translated
-            else:
-                return "*翻译需要配置DeepSeek API密钥*"
+            return "*翻译需要配置DeepSeek API密钥*"
 
         except ImportError:
             return "*需要安装openai库*"
@@ -485,7 +483,7 @@ class ReportGenerator:
             output.error("DeepSeek翻译失败", details={"exception": str(e)})
             raise e
 
-    def save_markdown_report(self, report_data: Dict[str, Any], filename: Optional[str] = None) -> str:
+    def save_markdown_report(self, report_data: dict[str, Any], filename: str | None = None) -> str:
         """Save report as markdown file"""
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -574,7 +572,7 @@ class ReportGenerator:
                 markdown_content += f"- **{category}**: {count} 篇论文\n"
 
         # Add paper details
-        if "papers" in report_data and report_data["papers"]:
+        if report_data.get("papers"):
             markdown_content += "\n## 论文列表\n\n"
 
             papers = report_data["papers"][: self.config.REPORT_MAX_PAPERS]  # Limit to configured maximum
@@ -680,9 +678,9 @@ class ReportGenerator:
                         elif chinese_translation:
                             markdown_content += f"**中文翻译 (Chinese Translation)**: {chinese_translation}\n\n"
                         else:
-                            markdown_content += f"**中文翻译 (Chinese Translation)**: *翻译服务不可用*\n\n"
+                            markdown_content += "**中文翻译 (Chinese Translation)**: *翻译服务不可用*\n\n"
                     else:
-                        markdown_content += f"**摘要 (Abstract)**: 无摘要\n\n"
+                        markdown_content += "**摘要 (Abstract)**: 无摘要\n\n"
 
                     markdown_content += f"**arXiv ID**: [{paper.arxiv_id}](https://arxiv.org/abs/{paper.arxiv_id})\n"
                     markdown_content += f"**PDF**: [下载 (Download)]({paper.pdf_url})\n"
@@ -720,7 +718,7 @@ class ReportGenerator:
         output.done(f"报告已保存: {filepath}")
         return filepath
 
-    def save_csv_report(self, report_data: Dict[str, Any], filename: Optional[str] = None) -> Optional[str]:
+    def save_csv_report(self, report_data: dict[str, Any], filename: str | None = None) -> str | None:
         """Save report as CSV file"""
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -778,24 +776,5 @@ class ReportGenerator:
             df.to_csv(filepath, index=False, encoding="utf-8")
             output.done(f"CSV报告已保存: {filepath}")
             return filepath
-        else:
-            output.warn("没有论文数据可保存为CSV")
-            return None
-
-
-def main():
-    """Test report generator"""
-    generator = ReportGenerator()
-
-    print("Testing report generator...")
-
-    # Check report directory
-    report_dir = Config.REPORT_DIR
-    print(f"\nReport directory: {report_dir}")
-    if os.path.exists(report_dir):
-        files = os.listdir(report_dir)
-        print(f"Existing reports: {len(files)} files")
-
-
-if __name__ == "__main__":
-    main()
+        output.warn("没有论文数据可保存为CSV")
+        return None

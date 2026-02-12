@@ -1,12 +1,13 @@
 import json
 import logging
-from typing import List, Dict, Any, Optional
-from tqdm import tqdm
-import time
 import re
+import time
+from typing import Any
 
-from arxiv_pulse.models import Database, Paper
+from tqdm import tqdm
+
 from arxiv_pulse.config import Config
+from arxiv_pulse.models import Database, Paper
 from arxiv_pulse.output_manager import output
 
 # 使用根日志记录器的配置（保留用于向后兼容）
@@ -33,7 +34,7 @@ class PaperSummarizer:
         else:
             output.warn("AI API密钥未设置，使用基础总结")
 
-    def extract_keywords(self, text: str, max_keywords: int = 10) -> List[str]:
+    def extract_keywords(self, text: str, max_keywords: int = 10) -> list[str]:
         """Extract keywords from text using simple heuristics"""
         # Simple keyword extraction (can be improved)
         words = re.findall(r"\b[A-Za-z][a-z]{3,}\b", text.lower())
@@ -96,7 +97,7 @@ class PaperSummarizer:
             }
         )
 
-    def deepseek_summary(self, paper: Paper) -> Optional[str]:
+    def deepseek_summary(self, paper: Paper) -> str | None:
         """Generate summary using DeepSeek"""
         if not self.config.AI_API_KEY:
             return None
@@ -259,7 +260,7 @@ class PaperSummarizer:
             output.error(f"总结论文失败: {paper.arxiv_id}", details={"exception": str(e)})
             return False
 
-    def summarize_pending_papers(self, limit: int = 20) -> Dict[str, Any]:
+    def summarize_pending_papers(self, limit: int = 20) -> dict[str, Any]:
         """Summarize papers that need summarization"""
         papers = self.db.get_papers_to_summarize(limit=limit)
         output.do(f"找到 {len(papers)} 篇需要总结的论文")
@@ -282,7 +283,7 @@ class PaperSummarizer:
             "failed": failed,
         }
 
-    def get_summary_stats(self) -> Dict[str, Any]:
+    def get_summary_stats(self) -> dict[str, Any]:
         """Get summarization statistics"""
         with self.db.get_session() as session:
             total = session.query(Paper).count()
@@ -306,50 +307,3 @@ class PaperSummarizer:
                     "total_tokens": self.total_tokens,
                 },
             }
-
-
-def main():
-    """Test the summarizer"""
-    summarizer = PaperSummarizer()
-
-    print("Testing paper summarizer...")
-
-    # Get a paper to summarize
-    db = Database()
-    with db.get_session() as session:
-        paper = session.query(Paper).filter_by(summarized=False).first()
-
-        if paper:
-            print(f"\nPaper to summarize:")
-            print(f"Title: {paper.title[:100]}...")
-            print(f"Abstract preview: {paper.abstract[:200]}...")
-
-            # Test summarization
-            print(f"\nSummarizing...")
-            success = summarizer.summarize_paper(paper)
-
-            if success:
-                print("Summary successful!")
-
-                # Get updated paper
-                updated = session.query(Paper).filter_by(arxiv_id=paper.arxiv_id).first()
-                if updated and updated.summary:
-                    try:
-                        summary_data = json.loads(updated.summary)
-                        print(f"\nSummary: {summary_data.get('summary', '')[:300]}...")
-                        print(f"Keywords: {summary_data.get('keywords', [])[:5]}")
-                    except:
-                        print(f"Summary: {updated.summary[:300]}...")
-        else:
-            print("No papers available for summarization")
-
-    # Get stats
-    stats = summarizer.get_summary_stats()
-    print(f"\nSummarization stats:")
-    print(f"Total papers: {stats['total_papers']}")
-    print(f"Summarized: {stats['summarized_papers']}")
-    print(f"Rate: {stats['summarization_rate']:.1%}")
-
-
-if __name__ == "__main__":
-    main()

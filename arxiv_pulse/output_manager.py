@@ -14,12 +14,11 @@
 所有输出仅显示在控制台，不写入日志文件。
 """
 
-import sys
-import os
-import time
-from typing import Optional, Dict, Any
 import logging
+import os
+import sys
 from enum import Enum
+from typing import Any
 
 
 class OutputLevel(Enum):
@@ -107,7 +106,7 @@ class OutputManager:
             # 禁用传播，避免被根日志记录器处理
             logger.propagate = False
 
-    def _should_output(self, level: OutputLevel, module: Optional[str] = None) -> bool:
+    def _should_output(self, level: OutputLevel, module: str | None = None) -> bool:
         """检查是否应该输出"""
         if module and module in self._suppressed_modules:
             return False
@@ -131,8 +130,8 @@ class OutputManager:
         self,
         level: OutputLevel,
         message: str,
-        module: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        module: str | None = None,
+        details: dict[str, Any] | None = None,
     ):
         """统一输出方法"""
         # 控制台输出
@@ -151,37 +150,37 @@ class OutputManager:
 
     # 公共方法
     @classmethod
-    def do(cls, message: str, module: Optional[str] = None, **details):
+    def do(cls, message: str, module: str | None = None, **details):
         """正在执行的操作"""
         cls()._output(OutputLevel.DO, message, module, details)
 
     @classmethod
-    def done(cls, message: str, module: Optional[str] = None, **details):
+    def done(cls, message: str, module: str | None = None, **details):
         """操作完成"""
         cls()._output(OutputLevel.DONE, message, module, details)
 
     @classmethod
-    def tips(cls, message: str, module: Optional[str] = None, **details):
+    def tips(cls, message: str, module: str | None = None, **details):
         """提示信息"""
         cls()._output(OutputLevel.TIPS, message, module, details)
 
     @classmethod
-    def info(cls, message: str, module: Optional[str] = None, **details):
+    def info(cls, message: str, module: str | None = None, **details):
         """一般信息"""
         cls()._output(OutputLevel.INFO, message, module, details)
 
     @classmethod
-    def warn(cls, message: str, module: Optional[str] = None, **details):
+    def warn(cls, message: str, module: str | None = None, **details):
         """警告信息"""
         cls()._output(OutputLevel.WARN, message, module, details)
 
     @classmethod
-    def error(cls, message: str, module: Optional[str] = None, **details):
+    def error(cls, message: str, module: str | None = None, **details):
         """错误信息（简洁）"""
         cls()._output(OutputLevel.ERROR, message, module, details)
 
     @classmethod
-    def debug(cls, message: str, module: Optional[str] = None, **details):
+    def debug(cls, message: str, module: str | None = None, **details):
         """调试信息"""
         cls()._output(OutputLevel.DEBUG, message, module, details)
 
