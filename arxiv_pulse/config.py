@@ -14,6 +14,16 @@ def get_db():
     return _db_instance
 
 
+class classproperty:
+    """类属性描述符，支持 @classproperty 装饰器"""
+
+    def __init__(self, getter):
+        self.getter = getter
+
+    def __get__(self, instance, owner):
+        return self.getter(owner)
+
+
 class Config:
     @classmethod
     def _get(cls, key: str, default: str = "") -> str:
@@ -33,11 +43,11 @@ class Config:
         db = get_db()
         db.set_config(key, value)
 
-    @property
+    @classproperty
     def DATABASE_URL(cls) -> str:
         return os.getenv("DATABASE_URL", "sqlite:///data/arxiv_papers.db")
 
-    @property
+    @classproperty
     def AI_API_KEY(cls) -> str | None:
         key = cls._get("ai_api_key", "")
         return key if key else None
@@ -46,7 +56,7 @@ class Config:
     def AI_API_KEY(cls, value: str) -> None:
         cls._set("ai_api_key", value)
 
-    @property
+    @classproperty
     def AI_MODEL(cls) -> str:
         return cls._get("ai_model", "DeepSeek-V3.2-Thinking")
 
@@ -54,7 +64,7 @@ class Config:
     def AI_MODEL(cls, value: str) -> None:
         cls._set("ai_model", value)
 
-    @property
+    @classproperty
     def AI_BASE_URL(cls) -> str:
         return cls._get("ai_base_url", "https://llmapi.paratera.com")
 
@@ -62,7 +72,7 @@ class Config:
     def AI_BASE_URL(cls, value: str) -> None:
         cls._set("ai_base_url", value)
 
-    @property
+    @classproperty
     def SEARCH_QUERIES(cls) -> list[str]:
         db = get_db()
         return db.get_search_queries()
@@ -72,7 +82,7 @@ class Config:
         db = get_db()
         db.set_search_queries(value)
 
-    @property
+    @classproperty
     def ARXIV_MAX_RESULTS(cls) -> int:
         return cls._get_int("arxiv_max_results", 10000)
 
@@ -80,7 +90,7 @@ class Config:
     def ARXIV_MAX_RESULTS(cls, value: int) -> None:
         cls._set("arxiv_max_results", str(value))
 
-    @property
+    @classproperty
     def YEARS_BACK(cls) -> int:
         return cls._get_int("years_back", 5)
 
@@ -88,7 +98,7 @@ class Config:
     def YEARS_BACK(cls, value: int) -> None:
         cls._set("years_back", str(value))
 
-    @property
+    @classproperty
     def REPORT_MAX_PAPERS(cls) -> int:
         return cls._get_int("report_max_papers", 64)
 
@@ -96,28 +106,28 @@ class Config:
     def REPORT_MAX_PAPERS(cls, value: int) -> None:
         cls._set("report_max_papers", str(value))
 
-    @property
+    @classproperty
     def SUMMARY_MAX_TOKENS(cls) -> int:
         return int(os.getenv("SUMMARY_MAX_TOKENS", "10000"))
 
-    @property
+    @classproperty
     def REPORT_DIR(cls) -> str:
         return os.getenv("REPORT_DIR", "reports")
 
-    @property
+    @classproperty
     def DATA_DIR(cls) -> str:
         db_url = cls.DATABASE_URL
         return os.path.dirname(db_url.replace("sqlite:///", ""))
 
-    @property
+    @classproperty
     def ARXIV_SORT_BY(cls) -> str:
         return os.getenv("ARXIV_SORT_BY", "submittedDate")
 
-    @property
+    @classproperty
     def ARXIV_SORT_ORDER(cls) -> str:
         return os.getenv("ARXIV_SORT_ORDER", "descending")
 
-    @property
+    @classproperty
     def IMPORTANT_PAPERS_FILE(cls) -> str:
         return os.getenv("IMPORTANT_PAPERS_FILE", "data/important_papers.txt")
 
