@@ -4,6 +4,9 @@ arXiv Pulse - Web 界面启动器
 仅提供 serve 命令启动 Web 服务
 """
 
+import atexit
+import os
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -11,6 +14,7 @@ from pathlib import Path
 import click
 
 from arxiv_pulse.__version__ import __version__
+from arxiv_pulse.lock import ServiceLock, check_and_acquire_lock
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -23,12 +27,32 @@ def cli():
     pass
 
 
+# Global lock instance for cleanup
+_lock_instance: ServiceLock | None = None
+
+
+def _cleanup_lock():
+    """Cleanup lock on exit"""
+    global _lock_instance
+    if _lock_instance:
+        _lock_instance.release()
+        _lock_instance = None
+
+
+def _signal_handler(signum, frame):
+    """Handle interrupt signals"""
+    _cleanup_lock()
+    click.echo("\n服务已停止")
+    sys.exit(0)
+
+
 @cli.command()
 @click.argument("directory", type=click.Path(exists=False, file_okay=False), default=".")
 @click.option("--host", default="127.0.0.1", help="服务监听地址")
-@click.option("--port", default=8000, help="服务监听端口")
+@click.option("--port", default=8000, type=int, help="服务监听端口")
 @click.option("--detach", is_flag=True, help="后台运行模式")
-def serve(directory, host, port, detach):
+@click.option("--force", is_flag=True, help="强制启动（忽略已有的锁）")
+def serve(directory, host, port, detach, force):
     """启动 Web 服务
 
     DIRECTORY: 数据存储目录（默认为当前目录）
@@ -38,9 +62,11 @@ def serve(directory, host, port, detach):
         pulse serve /path/to/data      # 在指定目录启动服务
         pulse serve --port 3000        # 使用 3000 端口
         pulse serve --detach           # 后台运行
+        pulse serve --force            # 强制启动（忽略已有实例）
     """
-    directory = Path(directory).resolve()
+    global _lock_instance
 
+    directory = Path(directory).resolve()
     (directory / "data").mkdir(parents=True, exist_ok=True)
 
     env_file = directory / ".env"
@@ -48,6 +74,35 @@ def serve(directory, host, port, detach):
         env_file.write_text(f"DATABASE_URL=sqlite:///{directory}/data/arxiv_papers.db\n")
 
     os.environ["DATABASE_URL"] = f"sqlite:///{directory}/data/arxiv_papers.db"
+
+    lock = ServiceLock(directory / "data")
+    is_locked, lock_info = lock.is_locked()
+
+    if is_locked and not force:
+        click.echo(f"\n{'=' * 50}")
+        click.secho("  ⚠️  服务已在运行中", fg="yellow", bold=True)
+        click.echo(f"{'=' * 50}\n")
+        click.echo(lock.get_status_message(lock_info))
+        click.echo(f"\n如需强制启动新实例，请使用 --force 参数")
+        click.echo(f"或先停止当前服务: kill {lock_info.get('pid', '')}")
+        sys.exit(1)
+
+    if force and is_locked:
+        click.secho("\n⚠️  警告: 强制模式，将覆盖已有锁文件", fg="yellow")
+        lock.release()
+
+    # Acquire lock
+    acquired = lock.acquire(host, port)
+    if not acquired:
+        click.secho("❌ 无法获取服务锁", fg="red")
+        sys.exit(1)
+
+    _lock_instance = lock
+
+    # Setup cleanup handlers
+    atexit.register(_cleanup_lock)
+    signal.signal(signal.SIGINT, _signal_handler)
+    signal.signal(signal.SIGTERM, _signal_handler)
 
     click.echo(f"\n{'=' * 50}")
     click.echo("  arXiv Pulse - 智能文献追踪系统")
@@ -83,6 +138,11 @@ def serve(directory, host, port, detach):
                 env={**os.environ, "DATABASE_URL": f"sqlite:///{directory}/data/arxiv_papers.db"},
             )
 
+        # Update lock with actual PID
+        lock.release()
+        lock.acquire(host, port, pid=process.pid)
+        _lock_instance = lock
+
         click.echo(f"\n✅ 服务已在后台启动 (PID: {process.pid})")
         click.echo(f"📝 日志文件: {log_file}")
         click.echo(f"\n停止服务: kill {process.pid}")
@@ -90,15 +150,72 @@ def serve(directory, host, port, detach):
         import uvicorn
 
         click.echo("\n按 Ctrl+C 停止服务\n")
-        uvicorn.run(
-            "arxiv_pulse.web.app:app",
-            host=host,
-            port=port,
-            log_level="info",
-        )
+        try:
+            uvicorn.run(
+                "arxiv_pulse.web.app:app",
+                host=host,
+                port=port,
+                log_level="info",
+            )
+        finally:
+            _cleanup_lock()
 
 
-import os
+@cli.command()
+@click.argument("directory", type=click.Path(exists=False, file_okay=False), default=".")
+def status(directory):
+    """查看服务状态
+
+    DIRECTORY: 数据存储目录（默认为当前目录）
+    """
+    directory = Path(directory).resolve()
+    lock = ServiceLock(directory / "data")
+
+    is_locked, info = lock.is_locked()
+
+    click.echo(f"\n{'=' * 50}")
+    click.echo("  arXiv Pulse - 服务状态")
+    click.echo(f"{'=' * 50}\n")
+    click.echo(f"📂 数据目录: {directory}\n")
+
+    if is_locked:
+        click.secho("✅ 服务运行中", fg="green", bold=True)
+        click.echo(lock.get_status_message(info))
+    else:
+        click.secho("⏹️  服务未运行", fg="yellow")
+
+
+@cli.command()
+@click.argument("directory", type=click.Path(exists=False, file_okay=False), default=".")
+def stop(directory):
+    """停止后台服务
+
+    DIRECTORY: 数据存储目录（默认为当前目录）
+    """
+    directory = Path(directory).resolve()
+    lock = ServiceLock(directory / "data")
+
+    is_locked, info = lock.is_locked()
+
+    if not is_locked:
+        click.secho("⏹️  没有运行中的服务", fg="yellow")
+        return
+
+    pid = info.get("pid")
+    if pid:
+        try:
+            os.kill(pid, signal.SIGTERM)
+            click.secho(f"✅ 已发送停止信号 (PID: {pid})", fg="green")
+            lock.release()
+        except ProcessLookupError:
+            click.secho("⚠️  进程已不存在，清理锁文件", fg="yellow")
+            lock.release()
+        except PermissionError:
+            click.secho("❌ 没有权限停止该进程", fg="red")
+    else:
+        lock.release()
+        click.secho("✅ 已清理锁文件", fg="green")
+
 
 if __name__ == "__main__":
     cli()
