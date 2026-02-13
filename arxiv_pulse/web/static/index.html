@@ -1452,6 +1452,12 @@
                     <div class="paper-category" v-if="paper.category_explanation">{{ paper.category_explanation }}</div>
                     <div class="paper-abstract-preview">{{ paper.abstract?.slice(0, 200) }}...</div>
                     <div class="paper-actions">
+                        <el-button size="small" text type="primary" @click="openArxiv(paper.arxiv_id)">
+                            <el-icon><Link /></el-icon> arXiv
+                        </el-button>
+                        <el-button size="small" text type="primary" @click="downloadPDF(paper.arxiv_id)">
+                            <el-icon><Download /></el-icon> PDF
+                        </el-button>
                         <el-button size="small" text type="primary" @click="expanded = !expanded">
                             {{ expanded ? '收起' : '展开详情' }}
                         </el-button>
@@ -1492,10 +1498,13 @@
                 const openArxiv = (arxivId) => {
                     window.open(`https://arxiv.org/abs/${arxivId}`, '_blank');
                 };
+                const downloadPDF = (arxivId) => {
+                    window.open(`https://arxiv.org/pdf/${arxivId}.pdf`, '_blank');
+                };
                 const openImage = (url) => {
                     window.open(url, '_blank');
                 };
-                return { expanded, formatDate, openArxiv, openImage };
+                return { expanded, formatDate, openArxiv, downloadPDF, openImage };
             }
         });
 
