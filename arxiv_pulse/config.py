@@ -52,59 +52,30 @@ class Config:
         key = cls._get("ai_api_key", "")
         return key if key else None
 
-    @AI_API_KEY.setter
-    def AI_API_KEY(cls, value: str) -> None:
-        cls._set("ai_api_key", value)
-
     @classproperty
     def AI_MODEL(cls) -> str:
         return cls._get("ai_model", "DeepSeek-V3.2-Thinking")
 
-    @AI_MODEL.setter
-    def AI_MODEL(cls, value: str) -> None:
-        cls._set("ai_model", value)
-
     @classproperty
     def AI_BASE_URL(cls) -> str:
         return cls._get("ai_base_url", "https://llmapi.paratera.com")
-
-    @AI_BASE_URL.setter
-    def AI_BASE_URL(cls, value: str) -> None:
-        cls._set("ai_base_url", value)
 
     @classproperty
     def SEARCH_QUERIES(cls) -> list[str]:
         db = get_db()
         return db.get_search_queries()
 
-    @SEARCH_QUERIES.setter
-    def SEARCH_QUERIES(cls, value: list[str]) -> None:
-        db = get_db()
-        db.set_search_queries(value)
-
     @classproperty
     def ARXIV_MAX_RESULTS(cls) -> int:
         return cls._get_int("arxiv_max_results", 10000)
-
-    @ARXIV_MAX_RESULTS.setter
-    def ARXIV_MAX_RESULTS(cls, value: int) -> None:
-        cls._set("arxiv_max_results", str(value))
 
     @classproperty
     def YEARS_BACK(cls) -> int:
         return cls._get_int("years_back", 5)
 
-    @YEARS_BACK.setter
-    def YEARS_BACK(cls, value: int) -> None:
-        cls._set("years_back", str(value))
-
     @classproperty
     def REPORT_MAX_PAPERS(cls) -> int:
         return cls._get_int("report_max_papers", 64)
-
-    @REPORT_MAX_PAPERS.setter
-    def REPORT_MAX_PAPERS(cls, value: int) -> None:
-        cls._set("report_max_papers", str(value))
 
     @classproperty
     def SUMMARY_MAX_TOKENS(cls) -> int:
