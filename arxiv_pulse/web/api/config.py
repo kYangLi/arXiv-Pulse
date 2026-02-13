@@ -228,15 +228,19 @@ async def initial_sync():
 
             try:
                 result = crawler.sync_query(query=query, years_back=years_back, force=False)
+                print(f"[DEBUG] sync_query result: {result.get('error', 'no error')}")
                 if "error" in result:
-                    error_msg = result["error"][:80]
+                    error_msg = result["error"][:200] if len(result["error"]) > 200 else result["error"]
                     yield f"data: {json.dumps({'type': 'log', 'message': f'  错误: {error_msg}'}, ensure_ascii=False)}\n\n"
                 else:
                     added = result.get("new_papers", 0)
                     total_added += added
                     yield f"data: {json.dumps({'type': 'progress', 'current': i, 'total': len(search_queries), 'added': added}, ensure_ascii=False)}\n\n"
             except Exception as e:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'  错误: {str(e)[:80]}'}, ensure_ascii=False)}\n\n"
+                import traceback
+
+                traceback.print_exc()
+                yield f"data: {json.dumps({'type': 'log', 'message': f'  异常: {str(e)[:200]}'}, ensure_ascii=False)}\n\n"
 
         db.set_initialized(True)
 
