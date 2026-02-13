@@ -731,14 +731,31 @@
 
                 <!-- Recent Papers Tab -->
                 <div v-if="activeTab === 'recent'">
-                    <div class="recent-header">
-                        <div class="status-info">
-                            <span class="label">缓存状态:</span>
-                            <span class="value">{{ recentCacheStatus }}</span>
+                    <div class="search-options" style="margin-bottom: 20px;">
+                        <div class="search-options-row">
+                            <el-select v-model="recentDays" placeholder="时间范围" style="width: 120px;">
+                                <el-option v-for="item in daysOptions" :key="item.value" :label="item.label" :value="item.value" />
+                            </el-select>
+                            <el-select v-model="recentLimit" placeholder="数量限制" style="width: 120px;">
+                                <el-option v-for="item in limitOptions" :key="item.value" :label="item.label" :value="item.value" />
+                            </el-select>
+                            <el-select v-model="recentCategories" multiple collapse-tags placeholder="领域过滤" style="width: 200px;">
+                                <el-option v-for="item in categoryOptions" :key="item.value" :label="item.label" :value="item.value" />
+                            </el-select>
+                            <el-checkbox v-model="recentNeedSync" style="margin: 0 10px;">同步新论文</el-checkbox>
+                            <el-select v-if="recentNeedSync" v-model="recentSyncYears" placeholder="回溯年数" style="width: 100px;">
+                                <el-option v-for="item in syncYearOptions" :key="item.value" :label="item.label" :value="item.value" />
+                            </el-select>
+                            <el-button type="primary" @click="updateRecentPapers" :loading="updatingRecent">
+                                <el-icon><Refresh /></el-icon> 更新
+                            </el-button>
                         </div>
-                        <el-button type="primary" @click="updateRecentPapers" :loading="updatingRecent">
-                            <el-icon><Refresh /></el-icon> 更新论文
-                        </el-button>
+                    </div>
+
+                    <div v-if="recentLogs.length > 0" class="logs-container" style="margin-bottom: 20px;">
+                        <div v-for="(log, index) in recentLogs" :key="index" class="log-line">
+                            > {{ log }}
+                        </div>
                     </div>
 
                     <div v-if="recentPapers.length > 0">
@@ -753,7 +770,7 @@
                     <div v-else class="empty-state">
                         <div class="icon"><el-icon><Document /></el-icon></div>
                         <h3>暂无论文</h3>
-                        <p>点击"更新论文"获取最新文献</p>
+                        <p>点击"更新"获取最新文献</p>
                     </div>
                 </div>
 
@@ -1434,6 +1451,7 @@
                 async function updateRecentPapers() {
                     updatingRecent.value = true;
                     recentLogs.value = [];
+                    recentPapers.value = [];
                     try {
                         const params = new URLSearchParams({
                             days: recentDays.value,
@@ -1464,8 +1482,10 @@
                                         const data = JSON.parse(line.slice(6));
                                         if (data.type === 'log') {
                                             recentLogs.value.push(data.message);
+                                        } else if (data.type === 'result') {
+                                            recentPapers.value.push(data.paper);
                                         } else if (data.type === 'done') {
-                                            recentPapers.value = data.papers || [];
+                                            recentLogs.value.push(`更新完成，共 ${data.total} 篇论文`);
                                             recentPapers.value._cacheInfo = { cached: true, updated_at: new Date().toISOString() };
                                         }
                                     } catch (e) {}
@@ -1489,7 +1509,7 @@
                     searchLogs.value = [];
 
                     try {
-                        const params = new URLSearchParams({ query: searchQuery.value });
+                        const params = new URLSearchParams({ q: searchQuery.value });
                         if (searchDays.value) params.append('days', searchDays.value);
 
                         const response = await fetch(`${API_BASE}/papers/search/stream?${params}`);
@@ -1511,8 +1531,10 @@
                                         const data = JSON.parse(line.slice(6));
                                         if (data.type === 'log') {
                                             searchLogs.value.push({ type: 'info', message: data.message });
+                                        } else if (data.type === 'result') {
+                                            searchResults.value.push(data.paper);
                                         } else if (data.type === 'done') {
-                                            searchResults.value = data.papers || [];
+                                            searchLogs.value.push({ type: 'success', message: `搜索完成，共 ${data.total} 篇论文` });
                                         }
                                     } catch (e) {}
                                 }
