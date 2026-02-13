@@ -1351,10 +1351,19 @@
                 async function testAIConnection() {
                     testingAI.value = true;
                     try {
+                        const payload = {
+                            ai_base_url: settingsConfig.value.ai_base_url,
+                            ai_model: settingsConfig.value.ai_model
+                        };
+                        // Only send API key if it's not masked
+                        if (settingsConfig.value.ai_api_key && settingsConfig.value.ai_api_key !== '***') {
+                            payload.ai_api_key = settingsConfig.value.ai_api_key;
+                        }
+                        
                         const res = await fetch(`${API_BASE}/config/test-ai`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(settingsConfig.value)
+                            body: JSON.stringify(payload)
                         });
                         const data = await res.json();
                         if (res.ok) {
