@@ -560,6 +560,8 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
             yield f"data: {json.dumps({'type': 'log', 'message': '数据库中无此论文，正在从 arXiv 获取...'}, ensure_ascii=False)}\n\n"
             await asyncio.sleep(0.1)
 
+            import arxiv as arxiv_lib
+
             try:
                 crawler = ArXivCrawler()
                 paper = crawler.fetch_paper_by_id(arxiv_id)
@@ -584,9 +586,12 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                     yield f"data: {json.dumps({'type': 'done', 'total': 1}, ensure_ascii=False)}\n\n"
                     return
                 else:
-                    yield f"data: {json.dumps({'type': 'error', 'message': f'未找到论文: {arxiv_id}'}, ensure_ascii=False)}\n\n"
+                    yield f"data: {json.dumps({'type': 'error', 'message': f'未找到论文: {arxiv_id}（可能是 arXiv API 暂时不可用，请稍后重试）'}, ensure_ascii=False)}\n\n"
                     return
 
+            except arxiv_lib.HTTPError as e:
+                yield f"data: {json.dumps({'type': 'error', 'message': f'arXiv API 请求失败 (HTTP {e.status}): 请稍后重试'}, ensure_ascii=False)}\n\n"
+                return
             except Exception as e:
                 yield f"data: {json.dumps({'type': 'error', 'message': f'获取失败: {str(e)[:100]}'}, ensure_ascii=False)}\n\n"
                 return

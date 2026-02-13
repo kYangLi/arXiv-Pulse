@@ -447,12 +447,13 @@ class ArXivCrawler:
         try:
             search = arxiv.Search(id_list=[clean_id])
             results = list(self.client.results(search))
+            output.debug(f"arXiv API 返回 {len(results)} 条结果")
 
             if results:
                 paper = results[0]
                 paper_obj = Paper.from_arxiv_entry(paper, "quick_fetch")
-                self.db.add_paper(paper_obj)
-                output.done(f"已获取论文: {clean_id}")
+                paper_id = self.db.add_paper(paper_obj)
+                output.done(f"已获取论文: {clean_id} (ID: {paper_id})")
                 return paper_obj
             else:
                 output.warn(f"未找到论文: {clean_id}")
@@ -460,6 +461,9 @@ class ArXivCrawler:
 
         except Exception as e:
             output.error(f"获取论文失败: {clean_id}", details={"exception": str(e)})
+            import traceback
+
+            traceback.print_exc()
             return None
 
     def get_crawler_stats(self) -> dict[str, Any]:
