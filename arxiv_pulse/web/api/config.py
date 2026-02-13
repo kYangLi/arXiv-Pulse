@@ -215,6 +215,7 @@ async def initial_sync():
             yield f"data: {json.dumps({'type': 'error', 'message': '未设置搜索查询'}, ensure_ascii=False)}\n\n"
             return
 
+        yield f"data: {json.dumps({'type': 'total', 'total': len(search_queries)}, ensure_ascii=False)}\n\n"
         yield f"data: {json.dumps({'type': 'log', 'message': f'回溯 {years_back} 年，{len(search_queries)} 个研究领域'}, ensure_ascii=False)}\n\n"
         await asyncio.sleep(0.1)
 
