@@ -2,11 +2,13 @@
 Stats API Router
 """
 
+import json
 from collections import Counter
 
 from fastapi import APIRouter
 
 from arxiv_pulse.models import Collection, CollectionPaper, Database, Paper
+from arxiv_pulse.research_fields import RESEARCH_FIELDS
 
 router = APIRouter()
 
@@ -77,3 +79,43 @@ async def get_stats():
                 "total_papers": total_collection_papers,
             },
         }
+
+
+@router.get("/fields")
+async def get_field_stats():
+    """Get research field statistics with paper counts"""
+    db = get_db()
+
+    selected_fields = db.get_selected_fields()
+
+    with db.get_session() as session:
+        query_counts = {}
+        papers = session.query(Paper).all()
+
+        for field_key, field_info in RESEARCH_FIELDS.items():
+            count = 0
+            query = field_info.get("query", "")
+            for paper in papers:
+                if paper.search_query and query in paper.search_query:
+                    count += 1
+                elif not paper.search_query:
+                    pass
+            if count > 0:
+                query_counts[field_key] = count
+
+    fields_data = []
+    for field_key, field_info in RESEARCH_FIELDS.items():
+        fields_data.append(
+            {
+                "key": field_key,
+                "name": field_info["name"],
+                "description": field_info["description"],
+                "paper_count": query_counts.get(field_key, 0),
+                "is_selected": field_key in selected_fields,
+            }
+        )
+
+    return {
+        "fields": fields_data,
+        "selected_fields": selected_fields,
+    }
