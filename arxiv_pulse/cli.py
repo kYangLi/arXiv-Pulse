@@ -57,9 +57,11 @@ def serve(directory, host, port, detach, force):
 
     DIRECTORY: 数据存储目录（默认为当前目录）
 
+    数据库位置: <DIRECTORY>/data/arxiv_papers.db
+
     示例:
         pulse serve                    # 在当前目录启动服务
-        pulse serve /path/to/data      # 在指定目录启动服务
+        pulse serve /path/to/data      # 使用指定目录
         pulse serve --port 3000        # 使用 3000 端口
         pulse serve --detach           # 后台运行
         pulse serve --force            # 强制启动（忽略已有实例）
@@ -67,15 +69,13 @@ def serve(directory, host, port, detach, force):
     global _lock_instance
 
     directory = Path(directory).resolve()
-    (directory / "data").mkdir(parents=True, exist_ok=True)
+    data_dir = directory / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
 
-    env_file = directory / ".env"
-    if not env_file.exists():
-        env_file.write_text(f"DATABASE_URL=sqlite:///{directory}/data/arxiv_papers.db\n")
+    db_path = data_dir / "arxiv_papers.db"
+    os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
 
-    os.environ["DATABASE_URL"] = f"sqlite:///{directory}/data/arxiv_papers.db"
-
-    lock = ServiceLock(directory / "data")
+    lock = ServiceLock(data_dir)
     is_locked, lock_info = lock.is_locked()
 
     if is_locked and not force:
@@ -84,7 +84,8 @@ def serve(directory, host, port, detach, force):
         click.echo(f"{'=' * 50}\n")
         click.echo(lock.get_status_message(lock_info))
         click.echo(f"\n如需强制启动新实例，请使用 --force 参数")
-        click.echo(f"或先停止当前服务: kill {lock_info.get('pid', '')}")
+        if lock_info:
+            click.echo(f"或先停止当前服务: kill {lock_info.get('pid', '')}")
         sys.exit(1)
 
     if force and is_locked:
@@ -167,6 +168,8 @@ def status(directory):
     """查看服务状态
 
     DIRECTORY: 数据存储目录（默认为当前目录）
+
+    数据库位置: <DIRECTORY>/data/arxiv_papers.db
     """
     directory = Path(directory).resolve()
     lock = ServiceLock(directory / "data")
@@ -176,7 +179,8 @@ def status(directory):
     click.echo(f"\n{'=' * 50}")
     click.echo("  arXiv Pulse - 服务状态")
     click.echo(f"{'=' * 50}\n")
-    click.echo(f"📂 数据目录: {directory}\n")
+    click.echo(f"📂 数据目录: {directory}")
+    click.echo(f"🗄️  数据库: {directory}/data/arxiv_papers.db\n")
 
     if is_locked:
         click.secho("✅ 服务运行中", fg="green", bold=True)
@@ -201,20 +205,21 @@ def stop(directory):
         click.secho("⏹️  没有运行中的服务", fg="yellow")
         return
 
-    pid = info.get("pid")
-    if pid:
-        try:
-            os.kill(pid, signal.SIGTERM)
-            click.secho(f"✅ 已发送停止信号 (PID: {pid})", fg="green")
+    if info:
+        pid = info.get("pid")
+        if pid:
+            try:
+                os.kill(pid, signal.SIGTERM)
+                click.secho(f"✅ 已发送停止信号 (PID: {pid})", fg="green")
+                lock.release()
+            except ProcessLookupError:
+                click.secho("⚠️  进程已不存在，清理锁文件", fg="yellow")
+                lock.release()
+            except PermissionError:
+                click.secho("❌ 没有权限停止该进程", fg="red")
+        else:
             lock.release()
-        except ProcessLookupError:
-            click.secho("⚠️  进程已不存在，清理锁文件", fg="yellow")
-            lock.release()
-        except PermissionError:
-            click.secho("❌ 没有权限停止该进程", fg="red")
-    else:
-        lock.release()
-        click.secho("✅ 已清理锁文件", fg="green")
+            click.secho("✅ 已清理锁文件", fg="green")
 
 
 if __name__ == "__main__":
