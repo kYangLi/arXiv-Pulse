@@ -1745,9 +1745,20 @@
                 }
 
                 function renderYearChart(data) {
-                    if (!yearChart || !data) return;
-                    const years = Object.keys(data);
-                    const counts = Object.values(data);
+                    if (!yearChart) return;
+                    const years = data ? Object.keys(data) : [];
+                    const counts = data ? Object.values(data) : [];
+                    
+                    if (years.length === 0) {
+                        yearChart.setOption({
+                            title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#909399', fontSize: 14 } },
+                            xAxis: { show: false },
+                            yAxis: { show: false },
+                            series: []
+                        });
+                        return;
+                    }
+                    
                     yearChart.setOption({
                         tooltip: { trigger: 'axis' },
                         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
@@ -1758,13 +1769,25 @@
                 }
 
                 function renderCategoryChart(data) {
-                    if (!categoryChart || !data) return;
+                    if (!categoryChart) return;
+                    const categories = data || [];
+                    
+                    if (categories.length === 0) {
+                        categoryChart.setOption({
+                            title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#909399', fontSize: 14 } },
+                            xAxis: { show: false },
+                            yAxis: { show: false },
+                            series: []
+                        });
+                        return;
+                    }
+                    
                     categoryChart.setOption({
                         tooltip: { trigger: 'item' },
                         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-                        xAxis: { type: 'category', data: data.map(d => d.name), axisLine: { lineStyle: { color: '#d4d0c8' } }, axisLabel: { color: '#5a6c7d', rotate: 30 } },
+                        xAxis: { type: 'category', data: categories.map(d => d.name), axisLine: { lineStyle: { color: '#d4d0c8' } }, axisLabel: { color: '#5a6c7d', rotate: 30 } },
                         yAxis: { type: 'value', axisLine: { lineStyle: { color: '#d4d0c8' } }, axisLabel: { color: '#5a6c7d' }, splitLine: { lineStyle: { color: '#e8e6e1' } } },
-                        series: [{ data: data.map(d => d.count), type: 'bar', itemStyle: { color: '#c9a227', borderRadius: [4, 4, 0, 0] } }]
+                        series: [{ data: categories.map(d => d.count), type: 'bar', itemStyle: { color: '#c9a227', borderRadius: [4, 4, 0, 0] } }]
                     });
                 }
 
@@ -1772,10 +1795,8 @@
                     if (!val) {
                         nextTick(() => {
                             if (!yearChart) initCharts();
-                            if (stats.value) {
-                                renderYearChart(stats.value.years);
-                                renderCategoryChart(stats.value.categories?.top);
-                            }
+                            renderYearChart(stats.value?.years);
+                            renderCategoryChart(stats.value?.categories?.top);
                         });
                     }
                 });

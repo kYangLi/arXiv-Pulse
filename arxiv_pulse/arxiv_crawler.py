@@ -267,70 +267,55 @@ class ArXivCrawler:
         Args:
             query: arXiv search query
             years_back: Number of years to look back
-            force: If True, continue querying even after encountering existing papers,
-                  skip existing papers only (no download)
-            arxiv_max_results: Maximum papers to fetch from arXiv API (default: Config.ARXIV_MAX_RESULTS)
+            force: If True, continue fetching all papers within time range,
+                   skip existing papers only (don't stop early)
             arxiv_max_results: Maximum papers to fetch from arXiv API (default: Config.ARXIV_MAX_RESULTS)
         """
         output.do(f"同步查询: {query}" + (" (强制模式)" if force else ""))
 
-        # Set max_results
-        if arxiv_max_results is None:
-            arxiv_max_results = Config.ARXIV_MAX_RESULTS
+        max_results = int(arxiv_max_results) if arxiv_max_results is not None else int(Config.ARXIV_MAX_RESULTS)
+
+        cutoff_date = datetime.now(UTC) - timedelta(days=365 * years_back)
 
         if force:
-            # Force mode: always start from years_back years ago, continue querying
-            start_date = datetime.now(UTC) - timedelta(days=365 * years_back)
-            output.debug(f"强制同步: 获取最近 {years_back} 年的所有论文 ({start_date.strftime('%Y-%m-%d')} 到现在)")
-            output.debug(f"最大返回论文数: {arxiv_max_results}")
+            output.debug(f"强制同步: 获取最近 {years_back} 年的所有论文 ({cutoff_date.strftime('%Y-%m-%d')} 到现在)")
+            output.debug(f"跳过已有论文，继续获取直到达到时间范围")
         else:
-            # Normal mode: get latest paper date in database for this query
             latest_date = self.get_latest_paper_date_for_query(query)
-
             if latest_date:
-                # If we have papers, fetch from latest date onward
-                start_date = latest_date.replace(tzinfo=UTC)
-                # 减去一天以确保获取所有可能的新论文，避免因时间精度问题错过论文
-                start_date = start_date - timedelta(days=1)
-                output.debug(f"获取论文从 {start_date.strftime('%Y-%m-%d')} 到现在")
-                output.debug(f"最大返回论文数: {arxiv_max_results}")
+                cutoff_date = latest_date.replace(tzinfo=UTC) - timedelta(days=1)
+                output.debug(f"增量同步: 从 {cutoff_date.strftime('%Y-%m-%d')} 到现在 (遇到已有论文则停止)")
             else:
-                # If no papers, fetch from years_back years ago
-                start_date = datetime.now(UTC) - timedelta(days=365 * years_back)
-                output.debug(f"获取最近 {years_back} 年的论文 ({start_date.strftime('%Y-%m-%d')} 到现在)")
-                output.debug(f"最大返回论文数: {arxiv_max_results}")
+                output.debug(f"首次同步: 获取最近 {years_back} 年的论文 ({cutoff_date.strftime('%Y-%m-%d')} 到现在)")
 
-        # Search arXiv with cutoff_date for early stopping
+        output.debug(f"最大返回论文数: {max_results}")
+
         try:
             papers = self.search_arxiv(
                 query,
-                max_results=arxiv_max_results,
-                cutoff_date=start_date,
+                max_results=max_results,
+                cutoff_date=cutoff_date,
             )
 
-            # Always filter out existing papers (even in force mode)
             new_papers = self.filter_new_papers(papers)
             saved = self.save_papers(new_papers, query)
 
-            output.done(f"同步完成: {len(saved)} 篇新论文")
+            output.done(f"同步完成: 查询 {len(papers)} 篇，新增 {len(saved)} 篇")
 
             if force:
-                # Force mode: check if we hit the limit
-                if len(papers) >= arxiv_max_results:
-                    output.info(f"达到最大返回论文数限制 ({arxiv_max_results})，可能还有更多论文未获取")
-                else:
-                    output.info(f"查询完成，共找到 {len(papers)} 篇论文")
-            # Normal mode: check if we stopped early due to existing papers
-            elif len(papers) < arxiv_max_results and len(new_papers) < len(papers):
-                output.info(
-                    f"遇到已存在的论文，提前停止同步。共查询 {len(papers)} 篇，其中 {len(papers) - len(new_papers)} 篇已存在"
-                )
+                existing_count = len(papers) - len(new_papers)
+                if existing_count > 0:
+                    output.info(f"跳过 {existing_count} 篇已存在的论文")
+                if len(papers) >= max_results:
+                    output.info(f"达到最大返回限制 ({max_results})，可能还有更多论文")
+            elif len(new_papers) < len(papers) and len(papers) < max_results:
+                output.info(f"遇到已有论文，提前停止。已查询 {len(papers)} 篇")
 
-            time.sleep(1)  # Rate limiting
+            time.sleep(1)
 
             return {
                 "query": query,
-                "start_date": start_date,
+                "start_date": cutoff_date,
                 "total_found": len(papers),
                 "new_papers": len(saved),
                 "saved_papers": saved,
