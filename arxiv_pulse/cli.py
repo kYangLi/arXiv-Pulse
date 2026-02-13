@@ -847,5 +847,73 @@ def stat(directory):
     click.echo("统计完成 ✅")
 
 
+@cli.command()
+@click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
+@click.option("--host", default="127.0.0.1", help="服务监听地址")
+@click.option("--port", default=8000, help="服务监听端口")
+@click.option("--detach", is_flag=True, help="后台运行模式")
+def serve(directory, host, port, detach):
+    """启动Web服务
+
+    默认前台运行，使用 --detach 选项可在后台运行。
+    访问 http://host:port 查看Web界面。
+    API文档: http://host:port/docs
+    """
+    import subprocess
+    import sys
+
+    directory = Path(directory).resolve()
+
+    if not setup_environment(directory):
+        sys.exit(1)
+
+    print_banner()
+
+    click.echo(f"\n🌐 启动 arXiv Pulse Web 服务")
+    click.echo(f"   目录: {directory}")
+    click.echo(f"   地址: http://{host}:{port}")
+    click.echo(f"   API文档: http://{host}:{port}/docs")
+    click.echo(f"   模式: {'后台运行' if detach else '前台运行'}")
+
+    if detach:
+        log_file = directory / "data" / "web.log"
+        log_file.parent.mkdir(exist_ok=True)
+
+        cmd = [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "arxiv_pulse.web.app:app",
+            "--host",
+            host,
+            "--port",
+            str(port),
+            "--log-level",
+            "info",
+        ]
+
+        with open(log_file, "w") as log:
+            process = subprocess.Popen(
+                cmd,
+                stdout=log,
+                stderr=log,
+                start_new_session=True,
+            )
+
+        click.echo(f"\n✅ 服务已在后台启动 (PID: {process.pid})")
+        click.echo(f"   日志文件: {log_file}")
+        click.echo(f"\n停止服务: kill {process.pid}")
+    else:
+        import uvicorn
+
+        click.echo("\n按 Ctrl+C 停止服务\n")
+        uvicorn.run(
+            "arxiv_pulse.web.app:app",
+            host=host,
+            port=port,
+            log_level="info",
+        )
+
+
 if __name__ == "__main__":
     cli()

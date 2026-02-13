@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arxiv-pulse"
-version = "0.7.7"
+version = "0.8.0"
 authors = [
     {name = "Yang Li", email = "lyang.1915@gmail.com"},
 ]
@@ -41,7 +41,11 @@ dependencies = [
     "click>=8.1.0",
     "aiohttp>=3.9.5",
     "aiosqlite>=0.20.0",
-    "questionary>=2.0.0"
+    "questionary>=2.0.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "websockets>=12.0",
+    "python-multipart>=0.0.6",
 ]
 
 [project.optional-dependencies]
@@ -65,7 +69,7 @@ include-package-data = true
 packages = ["arxiv_pulse"]
 
 [tool.setuptools.package-data]
-arxiv_pulse = ["*.txt", "*.md", ".ENV.TEMPLATE"]
+arxiv_pulse = ["*.txt", "*.md", ".ENV.TEMPLATE", "web/static/**/*"]
 
 [tool.black]
 line-length = 120

@@ -6,6 +6,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Float,
+    ForeignKey,
     Integer,
     String,
     Text,
@@ -143,6 +144,132 @@ class FigureCache(Base):
 
     def __repr__(self):
         return f"<FigureCache(id={self.id}, arxiv_id={self.arxiv_id})>"
+
+
+class Collection(Base):
+    """论文集"""
+
+    __tablename__ = "collections"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    color = Column(String(7), default="#409EFF")
+    icon = Column(String(50))
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "color": self.color,
+            "icon": self.icon,
+            "sort_order": self.sort_order,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+    def __repr__(self):
+        return f"<Collection(id={self.id}, name={self.name})>"
+
+
+class CollectionPaper(Base):
+    """论文集-论文关联表"""
+
+    __tablename__ = "collection_papers"
+
+    id = Column(Integer, primary_key=True)
+    collection_id = Column(Integer, ForeignKey("collections.id"), nullable=False, index=True)
+    paper_id = Column(Integer, ForeignKey("papers.id"), nullable=False, index=True)
+    notes = Column(Text)
+    tags = Column(String(500))
+    read_status = Column(String(20), default="unread")
+    starred = Column(Boolean, default=False)
+    added_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "collection_id": self.collection_id,
+            "paper_id": self.paper_id,
+            "notes": self.notes,
+            "tags": json.loads(self.tags) if self.tags else [],
+            "read_status": self.read_status,
+            "starred": self.starred,
+            "added_at": self.added_at.isoformat() if self.added_at else None,
+        }
+
+    def __repr__(self):
+        return f"<CollectionPaper(collection_id={self.collection_id}, paper_id={self.paper_id})>"
+
+
+class SyncTask(Base):
+    """同步任务状态"""
+
+    __tablename__ = "sync_tasks"
+
+    id = Column(String(36), primary_key=True)
+    task_type = Column(String(20), nullable=False)
+    status = Column(String(20), default="pending")
+    progress = Column(Integer, default=0)
+    total = Column(Integer, default=0)
+    message = Column(Text)
+    result = Column(Text)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+    completed_at = Column(DateTime)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "task_type": self.task_type,
+            "status": self.status,
+            "progress": self.progress,
+            "total": self.total,
+            "message": self.message,
+            "result": json.loads(self.result) if self.result else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+        }
+
+    def __repr__(self):
+        return f"<SyncTask(id={self.id}, type={self.task_type}, status={self.status})>"
+
+
+class RecentResult(Base):
+    """最近论文查询结果缓存"""
+
+    __tablename__ = "recent_results"
+
+    id = Column(Integer, primary_key=True)
+    days_back = Column(Integer, default=7)
+    paper_ids = Column(Text)
+    total_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "days_back": self.days_back,
+            "paper_ids": json.loads(self.paper_ids) if self.paper_ids else [],
+            "total_count": self.total_count,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+    def __repr__(self):
+        return f"<RecentResult(id={self.id}, days_back={self.days_back}, count={self.total_count})>"
 
 
 class Database:
@@ -313,3 +440,35 @@ class Database:
             deleted_count = session.query(FigureCache).filter(FigureCache.updated_at < cutoff_date).delete()
             session.commit()
             return deleted_count
+
+    def get_recent_cache(self) -> dict | None:
+        """获取最近论文缓存"""
+        with self.get_session() as session:
+            cache = session.query(RecentResult).order_by(RecentResult.updated_at.desc()).first()
+            if cache:
+                return cache.to_dict()
+            return None
+
+    def set_recent_cache(self, days_back: int, paper_ids: list[int]) -> None:
+        """保存最近论文缓存"""
+        with self.get_session() as session:
+            existing = session.query(RecentResult).first()
+            if existing:
+                existing.days_back = days_back
+                existing.paper_ids = json.dumps(paper_ids)
+                existing.total_count = len(paper_ids)
+                existing.updated_at = datetime.now(UTC).replace(tzinfo=None)
+            else:
+                cache = RecentResult(
+                    days_back=days_back,
+                    paper_ids=json.dumps(paper_ids),
+                    total_count=len(paper_ids),
+                )
+                session.add(cache)
+            session.commit()
+
+    def get_papers_by_ids(self, paper_ids: list[int]) -> list[Paper]:
+        """根据 ID 列表获取论文"""
+        with self.get_session() as session:
+            papers = session.query(Paper).filter(Paper.id.in_(paper_ids)).all()
+            return [p for p in papers]
