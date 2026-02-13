@@ -153,6 +153,91 @@
         /* App Container */
         .app-container { min-height: 100vh; }
         
+        /* Home Page */
+        .home-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            background: linear-gradient(180deg, #f8f7f4 0%, #e8e5df 100%);
+        }
+        .home-brand {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        .home-brand h1 {
+            font-size: 48px;
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+        .home-brand p {
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+        .home-search-box {
+            width: 100%;
+            max-width: 680px;
+            margin-bottom: 24px;
+        }
+        .home-search-input {
+            position: relative;
+        }
+        .home-search-input .el-input__wrapper {
+            padding: 16px 20px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .home-search-input .el-input__wrapper:hover,
+        .home-search-input .el-input__wrapper.is-focus {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-lg), 0 0 0 4px rgba(30, 58, 95, 0.1);
+        }
+        .home-search-input .el-input__inner {
+            font-size: 17px;
+            height: 32px;
+        }
+        .home-search-input .el-input__inner::placeholder {
+            font-size: 17px;
+        }
+        .home-search-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .home-stats {
+            display: flex;
+            gap: 40px;
+            margin-top: 32px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .home-stats span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .home-hints {
+            margin-top: 24px;
+            color: var(--text-muted);
+            font-size: 13px;
+            text-align: center;
+        }
+        .home-nav {
+            display: flex;
+            gap: 16px;
+            margin-top: 40px;
+        }
+        .home-nav .el-button {
+            padding: 12px 24px;
+        }
+        
         .header { 
             background: var(--primary); 
             color: white; 
@@ -279,6 +364,22 @@
         .paper-card:hover { 
             box-shadow: var(--shadow-md); 
             border-color: var(--border-medium);
+        }
+        .paper-card.paper-selected {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, #f8faff 0%, var(--bg-card) 100%);
+        }
+        .paper-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .paper-header .el-checkbox {
+            margin-top: 4px;
+        }
+        .paper-header .paper-title {
+            flex: 1;
         }
         .paper-title { 
             color: var(--primary); 
@@ -571,6 +672,17 @@
             padding: 0;
         }
         
+        /* Export Bar */
+        .export-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-subtle);
+            border-radius: var(--radius-md);
+            margin-bottom: 16px;
+        }
+        
         /* Responsive */
         @media (max-width: 1024px) {
             .stats-row { grid-template-columns: repeat(2, 1fr); }
@@ -684,51 +796,125 @@
         </div>
 
         <div v-else class="app-container">
-            <header class="header">
-                <div class="header-inner">
-                    <div class="header-brand">
-                        <h1>arXiv Pulse</h1>
-                        <p>智能学术文献追踪</p>
-                    </div>
-                    <div class="header-actions">
-                        <el-button @click="showSettings = true" circle>
-                            <el-icon><Setting /></el-icon>
+            <!-- Home Page -->
+            <div v-if="currentPage === 'home'" class="home-container">
+                <div class="home-brand">
+                    <h1>arXiv Pulse</h1>
+                    <p>智能学术文献追踪与分析系统</p>
+                </div>
+                
+                <div class="home-search-box">
+                    <div class="home-search-input">
+                        <el-input 
+                            v-model="homeQuery" 
+                            placeholder="输入 arXiv ID、网址或关键词搜索..."
+                            size="large"
+                            @keyup.enter="startHomeSearch"
+                            clearable
+                        >
+                            <template #prefix>
+                                <el-icon><Search /></el-icon>
+                            </template>
+                        </el-input>
+                        <el-button 
+                            class="home-search-btn" 
+                            type="primary" 
+                            @click="startHomeSearch" 
+                            :loading="homeSearching"
+                        >
+                            搜索
                         </el-button>
                     </div>
+                    
+                    <div v-if="homeLogs.length > 0" class="logs-container" style="margin-top: 20px; max-height: 200px;">
+                        <div v-for="(log, index) in homeLogs" :key="index" class="log-line" :class="log.type">
+                            > {{ log.message }}
+                        </div>
+                    </div>
+                    
+                    <div v-if="homeResults.length > 0" style="margin-top: 24px;">
+                        <div class="export-bar">
+                            <span style="color: var(--text-secondary);">{{ homeResults.length }} 篇论文</span>
+                            <el-dropdown @command="exportHome" :disabled="homeSelectedIds.length === 0">
+                                <el-button type="primary" plain size="small">
+                                    <el-icon><Download /></el-icon> 导出
+                                </el-button>
+                                <template #dropdown>
+                                    <el-dropdown-menu>
+                                        <el-dropdown-item command="markdown">Markdown</el-dropdown-item>
+                                        <el-dropdown-item command="pdf">PDF</el-dropdown-item>
+                                        <el-dropdown-item command="csv">CSV</el-dropdown-item>
+                                        <el-dropdown-item command="bibtex">BibTeX</el-dropdown-item>
+                                    </el-dropdown-menu>
+                                </template>
+                            </el-dropdown>
+                        </div>
+                        <paper-card 
+                            v-for="paper in homeResults" 
+                            :key="paper.id" 
+                            :paper="paper"
+                            :collections="collections"
+                            :selected="homeSelectedIds.includes(paper.id)"
+                            @toggle-select="toggleHomeSelect(paper.id)"
+                            @add-to-collection="addToCollection"
+                        />
+                    </div>
                 </div>
-            </header>
+                
+                <div class="home-stats">
+                    <span><el-icon><Document /></el-icon> {{ stats?.papers?.total || 0 }} 篇论文</span>
+                    <span><el-icon><Collection /></el-icon> {{ stats?.collections?.total || 0 }} 个论文集</span>
+                    <span><el-icon><TrendCharts /></el-icon> {{ stats?.papers?.summarized || 0 }} 篇已总结</span>
+                </div>
+                
+                <div class="home-hints">
+                    支持 arXiv ID (如 2602.09790)、URL (如 https://arxiv.org/abs/2602.09790) 或关键词搜索
+                </div>
+                
+                <div class="home-nav">
+                    <el-button @click="navigateTo('recent')">
+                        <el-icon><Clock /></el-icon> 最近论文
+                    </el-button>
+                    <el-button @click="navigateTo('sync')">
+                        <el-icon><Refresh /></el-icon> 同步管理
+                    </el-button>
+                    <el-button @click="navigateTo('collections')">
+                        <el-icon><Folder /></el-icon> 论文集
+                    </el-button>
+                    <el-button @click="showSettings = true" circle>
+                        <el-icon><Setting /></el-icon>
+                    </el-button>
+                </div>
+            </div>
+            
+            <!-- Other Pages with Header -->
+            <template v-else>
+                <header class="header">
+                    <div class="header-inner">
+                        <div class="header-brand" style="cursor: pointer;" @click="navigateTo('home')">
+                            <h1>arXiv Pulse</h1>
+                            <p>智能学术文献追踪</p>
+                        </div>
+                        <div class="header-actions">
+                            <el-button @click="showSettings = true" circle>
+                                <el-icon><Setting /></el-icon>
+                            </el-button>
+                        </div>
+                    </div>
+                </header>
 
-            <main class="main-content">
-                <div class="stats-row" v-if="stats">
-                    <div class="stat-card">
-                        <h3>文献总量</h3>
-                        <div class="value">{{ stats.papers.total }}</div>
+                <main class="main-content">
+                    <!-- Navigation Tabs -->
+                    <div class="tabs-container">
+                        <el-tabs v-model="currentPage" @tab-change="onTabChange">
+                            <el-tab-pane label="最近论文" name="recent"></el-tab-pane>
+                            <el-tab-pane label="同步管理" name="sync"></el-tab-pane>
+                            <el-tab-pane label="论文集" name="collections"></el-tab-pane>
+                        </el-tabs>
                     </div>
-                    <div class="stat-card">
-                        <h3>本周新增</h3>
-                        <div class="value">{{ stats.papers.this_week }}</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>已总结</h3>
-                        <div class="value">{{ stats.papers.summarized }}</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>论文集</h3>
-                        <div class="value">{{ stats.collections.total }}</div>
-                    </div>
-                </div>
-
-                <div class="tabs-container">
-                    <el-tabs v-model="activeTab">
-                        <el-tab-pane label="最近论文" name="recent"></el-tab-pane>
-                        <el-tab-pane label="智能搜索" name="search"></el-tab-pane>
-                        <el-tab-pane label="同步管理" name="sync"></el-tab-pane>
-                        <el-tab-pane label="论文集" name="collections"></el-tab-pane>
-                    </el-tabs>
-                </div>
 
                 <!-- Recent Papers Tab -->
-                <div v-if="activeTab === 'recent'">
+                <div v-if="currentPage === 'recent'">
                     <div class="search-options" style="margin-bottom: 20px;">
                         <div class="search-options-row">
                             <el-select v-model="recentDays" placeholder="时间范围" style="width: 120px;">
@@ -757,11 +943,32 @@
                     </div>
 
                     <div v-if="recentPapers.length > 0">
+                        <div class="export-bar">
+                            <el-checkbox v-model="recentSelectAll" @change="toggleRecentSelectAll">
+                                {{ recentSelectedIds.length }} / {{ recentPapers.length }} 已选择
+                            </el-checkbox>
+                            <el-dropdown @command="exportRecent" :disabled="recentSelectedIds.length === 0">
+                                <el-button type="primary" plain>
+                                    <el-icon><Download /></el-icon> 导出
+                                    <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                                </el-button>
+                                <template #dropdown>
+                                    <el-dropdown-menu>
+                                        <el-dropdown-item command="markdown">Markdown (.md)</el-dropdown-item>
+                                        <el-dropdown-item command="pdf">PDF 文档</el-dropdown-item>
+                                        <el-dropdown-item command="csv">CSV 表格</el-dropdown-item>
+                                        <el-dropdown-item command="bibtex">BibTeX (.bib)</el-dropdown-item>
+                                    </el-dropdown-menu>
+                                </template>
+                            </el-dropdown>
+                        </div>
                         <paper-card 
                             v-for="paper in recentPapers" 
                             :key="paper.id" 
                             :paper="paper"
                             :collections="collections"
+                            :selected="recentSelectedIds.includes(paper.id)"
+                            @toggle-select="toggleRecentSelect(paper.id)"
                             @add-to-collection="addToCollection"
                         />
                     </div>
@@ -772,46 +979,8 @@
                     </div>
                 </div>
 
-                <!-- Search Tab -->
-                <div v-if="activeTab === 'search'">
-                    <div class="search-options">
-                        <div class="search-options-row">
-                            <el-input v-model="searchQuery" placeholder="输入搜索关键词..." clearable style="flex: 2;">
-                                <template #prefix><el-icon><Search /></el-icon></template>
-                            </el-input>
-                            <el-select v-model="searchDays" placeholder="时间范围" clearable style="width: 150px;">
-                                <el-option v-for="item in searchDaysOptions" :key="item.value" :label="item.label" :value="item.value" />
-                            </el-select>
-                            <el-button type="primary" @click="startSearch" :loading="searching">
-                                <el-icon><Search /></el-icon> AI 搜索
-                            </el-button>
-                        </div>
-                    </div>
-
-                    <div v-if="searchLogs.length > 0" class="logs-container" style="margin-bottom: 20px;">
-                        <div v-for="(log, index) in searchLogs" :key="index" class="log-line" :class="log.type">
-                            > {{ log.message }}
-                        </div>
-                    </div>
-
-                    <div v-if="searchResults.length > 0">
-                        <paper-card 
-                            v-for="paper in searchResults" 
-                            :key="paper.id" 
-                            :paper="paper"
-                            :collections="collections"
-                            @add-to-collection="addToCollection"
-                        />
-                    </div>
-                    <div v-else-if="!searching && searchQuery" class="empty-state">
-                        <div class="icon"><el-icon><Search /></el-icon></div>
-                        <h3>开始搜索</h3>
-                        <p>输入关键词，AI 将智能匹配相关文献</p>
-                    </div>
-                </div>
-
                 <!-- Sync Tab -->
-                <div v-if="activeTab === 'sync'">
+                <div v-if="currentPage === 'sync'">
                     <div class="sync-status-grid">
                         <div class="sync-status-card">
                             <div class="label">同步状态</div>
@@ -871,7 +1040,7 @@
                 </div>
 
                 <!-- Collections Tab -->
-                <div v-if="activeTab === 'collections'">
+                <div v-if="currentPage === 'collections'">
                     <div style="margin-bottom: 20px;">
                         <el-button type="primary" @click="showCreateCollection = true">
                             <el-icon><Plus /></el-icon> 新建论文集
@@ -897,6 +1066,7 @@
                     </div>
                 </div>
             </main>
+            </template>
 
             <!-- Settings Drawer -->
             <el-drawer v-model="showSettings" title="系统设置" size="480px" class="settings-drawer">
@@ -996,6 +1166,23 @@
                     <el-icon class="is-loading" style="font-size: 32px;"><Loading /></el-icon>
                 </div>
                 <div v-else-if="collectionPapers.length > 0">
+                    <div class="export-bar">
+                        <span style="color: var(--text-secondary);">{{ collectionPapers.length }} 篇论文</span>
+                        <el-dropdown @command="exportCollection">
+                            <el-button type="primary" plain>
+                                <el-icon><Download /></el-icon> 导出论文集
+                                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                            </el-button>
+                            <template #dropdown>
+                                <el-dropdown-menu>
+                                    <el-dropdown-item command="markdown">Markdown (.md)</el-dropdown-item>
+                                    <el-dropdown-item command="pdf">PDF 文档</el-dropdown-item>
+                                    <el-dropdown-item command="csv">CSV 表格</el-dropdown-item>
+                                    <el-dropdown-item command="bibtex">BibTeX (.bib)</el-dropdown-item>
+                                </el-dropdown-menu>
+                            </template>
+                        </el-dropdown>
+                    </div>
                     <paper-card 
                         v-for="paper in collectionPapers" 
                         :key="paper.id" 
@@ -1091,7 +1278,7 @@
                     arxiv_max_results: 10000
                 });
 
-                const activeTab = ref('recent');
+                const currentPage = ref('home');
                 const stats = ref(null);
                 const fieldStats = ref([]);
                 const recentPapers = ref([]);
@@ -1104,11 +1291,22 @@
                 const recentSyncYears = ref('5');
                 const recentCategories = ref([]);
 
+                const homeQuery = ref('');
+                const homeSearching = ref(false);
+                const homeLogs = ref([]);
+                const homeResults = ref([]);
+                const homeSelectedIds = ref([]);
+
                 const searchQuery = ref('');
                 const searchDays = ref('');
                 const searching = ref(false);
                 const searchResults = ref([]);
                 const searchLogs = ref([]);
+
+                const recentSelectedIds = ref([]);
+                const recentSelectAll = ref(false);
+                const searchSelectedIds = ref([]);
+                const searchSelectAll = ref(false);
 
                 const syncStatus = ref(null);
                 const syncing = ref(false);
@@ -1739,6 +1937,216 @@
                     }
                 }
 
+                function toggleRecentSelect(paperId) {
+                    const idx = recentSelectedIds.value.indexOf(paperId);
+                    if (idx >= 0) {
+                        recentSelectedIds.value.splice(idx, 1);
+                    } else {
+                        recentSelectedIds.value.push(paperId);
+                    }
+                    recentSelectAll.value = recentSelectedIds.value.length === recentPapers.value.length;
+                }
+
+                function toggleRecentSelectAll(val) {
+                    if (val) {
+                        recentSelectedIds.value = recentPapers.value.map(p => p.id);
+                    } else {
+                        recentSelectedIds.value = [];
+                    }
+                }
+
+                function toggleSearchSelect(paperId) {
+                    const idx = searchSelectedIds.value.indexOf(paperId);
+                    if (idx >= 0) {
+                        searchSelectedIds.value.splice(idx, 1);
+                    } else {
+                        searchSelectedIds.value.push(paperId);
+                    }
+                    searchSelectAll.value = searchSelectedIds.value.length === searchResults.value.length;
+                }
+
+                function toggleSearchSelectAll(val) {
+                    if (val) {
+                        searchSelectedIds.value = searchResults.value.map(p => p.id);
+                    } else {
+                        searchSelectedIds.value = [];
+                    }
+                }
+
+                async function exportRecent(format) {
+                    if (recentSelectedIds.value.length === 0) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/export/papers`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                paper_ids: recentSelectedIds.value,
+                                format: format,
+                                include_summary: true
+                            })
+                        });
+                        if (!res.ok) throw new Error('Export failed');
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const ext = format === 'markdown' ? 'md' : format === 'bibtex' ? 'bib' : format;
+                        a.download = `recent_papers.${ext}`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        ElementPlus.ElMessage.success(`已导出 ${recentSelectedIds.value.length} 篇论文`);
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('导出失败');
+                    }
+                }
+
+                async function exportSearch(format) {
+                    if (searchSelectedIds.value.length === 0) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/export/papers`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                paper_ids: searchSelectedIds.value,
+                                format: format,
+                                include_summary: true
+                            })
+                        });
+                        if (!res.ok) throw new Error('Export failed');
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const ext = format === 'markdown' ? 'md' : format === 'bibtex' ? 'bib' : format;
+                        a.download = `search_results.${ext}`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        ElementPlus.ElMessage.success(`已导出 ${searchSelectedIds.value.length} 篇论文`);
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('导出失败');
+                    }
+                }
+
+                async function exportCollection(format) {
+                    if (!viewingCollection.value) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/export/collection`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                collection_id: viewingCollection.value.id,
+                                format: format,
+                                include_summary: true
+                            })
+                        });
+                        if (!res.ok) throw new Error('Export failed');
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const ext = format === 'markdown' ? 'md' : format === 'bibtex' ? 'bib' : format;
+                        a.download = `collection_${viewingCollection.value.name.replace(/\s+/g, '_')}.${ext}`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        ElementPlus.ElMessage.success('导出成功');
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('导出失败');
+                    }
+                }
+
+                function navigateTo(page) {
+                    currentPage.value = page;
+                }
+
+                function onTabChange(tab) {
+                    currentPage.value = tab;
+                }
+
+                function toggleHomeSelect(paperId) {
+                    const idx = homeSelectedIds.value.indexOf(paperId);
+                    if (idx >= 0) {
+                        homeSelectedIds.value.splice(idx, 1);
+                    } else {
+                        homeSelectedIds.value.push(paperId);
+                    }
+                }
+
+                async function startHomeSearch() {
+                    if (!homeQuery.value.trim()) return;
+                    
+                    homeSearching.value = true;
+                    homeLogs.value = [];
+                    homeResults.value = [];
+                    homeSelectedIds.value = [];
+                    
+                    try {
+                        const params = new URLSearchParams({ q: homeQuery.value });
+                        const response = await fetch(`${API_BASE}/papers/quick?${params}`);
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let buffer = '';
+                        
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop() || '';
+                            
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const data = JSON.parse(line.slice(6));
+                                        if (data.type === 'log') {
+                                            homeLogs.value.push({ type: 'info', message: data.message });
+                                        } else if (data.type === 'result') {
+                                            homeResults.value.push(data.paper);
+                                        } else if (data.type === 'done') {
+                                            if (data.total === 0) {
+                                                homeLogs.value.push({ type: 'info', message: '未找到匹配的论文' });
+                                            }
+                                        } else if (data.type === 'error') {
+                                            homeLogs.value.push({ type: 'error', message: data.message });
+                                        }
+                                    } catch (e) {}
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        homeLogs.value.push({ type: 'error', message: `搜索失败: ${e.message}` });
+                    } finally {
+                        homeSearching.value = false;
+                    }
+                }
+
+                async function exportHome(format) {
+                    if (homeSelectedIds.value.length === 0) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/export/papers`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                paper_ids: homeSelectedIds.value,
+                                format: format,
+                                include_summary: true
+                            })
+                        });
+                        if (!res.ok) throw new Error('Export failed');
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const ext = format === 'markdown' ? 'md' : format === 'bibtex' ? 'bib' : format;
+                        a.download = `search_results.${ext}`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        ElementPlus.ElMessage.success(`已导出 ${homeSelectedIds.value.length} 篇论文`);
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('导出失败');
+                    }
+                }
+
                 function initCharts() {
                     yearChart = echarts.init(document.getElementById('yearChart'));
                     categoryChart = echarts.init(document.getElementById('categoryChart'));
@@ -1815,7 +2223,7 @@
                     showSetup, setupStep, setupConfig, initializing, testingAI, initLogs, initProgress,
                     initCurrentQuery, initTotalQueries, waitingMessage,
                     showSettings, settingsConfig, savingSettings,
-                    activeTab, stats, fieldStats, recentPapers, searchResults, collections,
+                    currentPage, stats, fieldStats, recentPapers, searchResults, collections,
                     loadingRecent, updatingRecent, recentLogs,
                     recentDays, recentLimit, recentNeedSync, recentSyncYears, recentCategories,
                     categoryOptions, daysOptions, limitOptions, syncYearOptions, initYearOptions, syncYearsBackOptions, searchDaysOptions,
@@ -1828,6 +2236,8 @@
                     savingCollection, deletingCollectionInProgress,
                     selectedCollectionId, selectedPaper, addingToCollection,
                     viewingCollection, collectionPapers, loadingCollectionPapers,
+                    recentSelectedIds, recentSelectAll, searchSelectedIds, searchSelectAll,
+                    homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
                     checkInitStatus, testSetupAI, toggleSetupField, startInitialSync,
                     testAIConnection, saveSettings, toggleSettingsField,
                     fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers, startSearch, fetchCollections,
@@ -1835,17 +2245,23 @@
                     saveCollection, cancelCollectionDialog, openEditCollection,
                     confirmDeleteCollection, deleteCollection,
                     openCollectionDetail, removePaperFromCollection,
-                    addToCollection, confirmAddToCollection
+                    addToCollection, confirmAddToCollection,
+                    toggleRecentSelect, toggleRecentSelectAll, toggleSearchSelect, toggleSearchSelectAll,
+                    exportRecent, exportSearch, exportCollection,
+                    navigateTo, onTabChange, startHomeSearch, toggleHomeSelect, exportHome
                 };
             }
         });
 
         app.component('paper-card', {
-            props: ['paper', 'collections', 'inCollection'],
-            emits: ['add-to-collection', 'remove-from-collection'],
+            props: ['paper', 'collections', 'inCollection', 'selected'],
+            emits: ['add-to-collection', 'remove-from-collection', 'toggle-select'],
             template: `
-                <div class="paper-card">
-                    <div class="paper-title" @click="openArxiv(paper.arxiv_id)">{{ paper.title }}</div>
+                <div class="paper-card" :class="{ 'paper-selected': selected }">
+                    <div class="paper-header">
+                        <el-checkbox v-if="selected !== undefined" :model-value="selected" @change="$emit('toggle-select')" />
+                        <div class="paper-title" @click="openArxiv(paper.arxiv_id)">{{ paper.title }}</div>
+                    </div>
                     <div v-if="paper.title_translation" class="paper-title-cn">{{ paper.title_translation }}</div>
                     <div class="paper-meta">
                         <span class="paper-meta-item">

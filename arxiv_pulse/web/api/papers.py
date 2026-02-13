@@ -486,6 +486,168 @@ async def update_recent_papers(
     )
 
 
+import re
+
+
+def parse_arxiv_id(query: str) -> str | None:
+    """Parse arXiv ID from various formats
+
+    Supports:
+    - arXiv:2602.09790
+    - https://arxiv.org/abs/2602.09790v1
+    - https://arxiv.org/pdf/2602.09790v1.pdf
+    - 2602.09790
+    - 2602.09790v1
+
+    Returns cleaned arXiv ID without version, or None if not an arXiv ID
+    """
+    q = query.strip()
+
+    if q.startswith("arXiv:"):
+        q = q[6:]
+
+    arxiv_pattern = r"(\d{4}\.\d{4,5})"
+    match = re.search(arxiv_pattern, q)
+    if match:
+        return match.group(1)
+
+    return None
+
+
+@router.get("/quick")
+async def quick_fetch(q: str = Query(..., min_length=1)):
+    """SSE endpoint for quick paper fetch by arXiv ID or fuzzy search"""
+
+    async def event_generator():
+        import asyncio
+
+        from arxiv_pulse.arxiv_crawler import ArXivCrawler
+
+        db = get_db()
+        arxiv_id = parse_arxiv_id(q)
+
+        if arxiv_id:
+            yield f"data: {json.dumps({'type': 'log', 'message': f'识别为 arXiv ID: {arxiv_id}'}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.1)
+
+            with db.get_session() as session:
+                paper = session.query(Paper).filter_by(arxiv_id=arxiv_id).first()
+
+            if paper:
+                yield f"data: {json.dumps({'type': 'log', 'message': '在数据库中找到论文'}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.1)
+
+                if not paper.summarized:
+                    yield f"data: {json.dumps({'type': 'log', 'message': '正在生成 AI 总结...'}, ensure_ascii=False)}\n\n"
+                    await asyncio.sleep(0.1)
+                    if summarize_and_cache_paper(paper):
+                        with db.get_session() as s:
+                            s.query(Paper).filter_by(id=paper.id).update({"summarized": True})
+
+                with db.get_session() as s:
+                    figure_url = get_figure_url_cached(arxiv_id, s)
+                if not figure_url:
+                    yield f"data: {json.dumps({'type': 'log', 'message': '正在获取论文图片...'}, ensure_ascii=False)}\n\n"
+                    await asyncio.sleep(0.1)
+                    fetch_and_cache_figure(arxiv_id)
+
+                enhanced = enhance_paper_data(paper)
+                yield f"data: {json.dumps({'type': 'result', 'paper': enhanced, 'match_type': 'exact'}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.1)
+                yield f"data: {json.dumps({'type': 'done', 'total': 1}, ensure_ascii=False)}\n\n"
+                return
+
+            yield f"data: {json.dumps({'type': 'log', 'message': '数据库中无此论文，正在从 arXiv 获取...'}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.1)
+
+            try:
+                crawler = ArXivCrawler()
+                paper = crawler.fetch_paper_by_id(arxiv_id)
+
+                if paper:
+                    yield f"data: {json.dumps({'type': 'log', 'message': '成功获取论文'}, ensure_ascii=False)}\n\n"
+                    await asyncio.sleep(0.1)
+
+                    yield f"data: {json.dumps({'type': 'log', 'message': '正在生成 AI 总结...'}, ensure_ascii=False)}\n\n"
+                    await asyncio.sleep(0.1)
+                    summarize_and_cache_paper(paper)
+
+                    yield f"data: {json.dumps({'type': 'log', 'message': '正在获取论文图片...'}, ensure_ascii=False)}\n\n"
+                    await asyncio.sleep(0.1)
+                    fetch_and_cache_figure(arxiv_id)
+
+                    with db.get_session() as session:
+                        paper = session.query(Paper).filter_by(arxiv_id=arxiv_id).first()
+                    enhanced = enhance_paper_data(paper)
+                    yield f"data: {json.dumps({'type': 'result', 'paper': enhanced, 'match_type': 'exact'}, ensure_ascii=False)}\n\n"
+                    await asyncio.sleep(0.1)
+                    yield f"data: {json.dumps({'type': 'done', 'total': 1}, ensure_ascii=False)}\n\n"
+                    return
+                else:
+                    yield f"data: {json.dumps({'type': 'error', 'message': f'未找到论文: {arxiv_id}'}, ensure_ascii=False)}\n\n"
+                    return
+
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'error', 'message': f'获取失败: {str(e)[:100]}'}, ensure_ascii=False)}\n\n"
+                return
+
+        yield f"data: {json.dumps({'type': 'log', 'message': f'正在进行模糊搜索: {q}'}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.1)
+
+        from arxiv_pulse.search_engine import SearchEngine, SearchFilter
+
+        with db.get_session() as session:
+            search_engine = SearchEngine(session)
+            filter_config = SearchFilter(
+                query=q,
+                search_fields=["title", "abstract"],
+                days_back=0,
+                limit=20,
+                sort_by="published",
+                sort_order="desc",
+            )
+            papers = search_engine.search_papers(filter_config)
+
+        if not papers:
+            yield f"data: {json.dumps({'type': 'log', 'message': '数据库中未找到匹配论文'}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.1)
+            yield f"data: {json.dumps({'type': 'done', 'total': 0}, ensure_ascii=False)}\n\n"
+            return
+
+        yield f"data: {json.dumps({'type': 'log', 'message': f'找到 {len(papers)} 篇匹配论文'}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.1)
+
+        for i, paper in enumerate(papers):
+            if not paper.summarized:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'[{i + 1}/{len(papers)}] 正在总结...'}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.05)
+                if summarize_and_cache_paper(paper):
+                    paper.summarized = True
+
+            with db.get_session() as s:
+                figure_url = get_figure_url_cached(paper.arxiv_id, s)
+            if not figure_url:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'[{i + 1}/{len(papers)}] 获取图片...'}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.05)
+                fetch_and_cache_figure(paper.arxiv_id)
+
+            enhanced = enhance_paper_data(paper)
+            yield f"data: {json.dumps({'type': 'result', 'paper': enhanced, 'index': i + 1, 'total': len(papers), 'match_type': 'fuzzy'}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.03)
+
+        yield f"data: {json.dumps({'type': 'done', 'total': len(papers)}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @router.get("/search")
 async def search_papers(
     q: str = Query(..., min_length=1),

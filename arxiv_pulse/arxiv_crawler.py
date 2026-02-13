@@ -415,6 +415,53 @@ class ArXivCrawler:
             "errors": errors,
         }
 
+    def fetch_paper_by_id(self, arxiv_id: str) -> Paper | None:
+        """Fetch a single paper from arXiv by ID and save to database
+
+        Args:
+            arxiv_id: arXiv ID (e.g., 2602.09790 or 2602.09790v1)
+
+        Returns:
+            Paper object if found, None otherwise
+        """
+        clean_id = arxiv_id.strip()
+
+        if clean_id.startswith("arXiv:"):
+            clean_id = clean_id[6:]
+
+        if "arxiv.org" in clean_id:
+            import re
+
+            match = re.search(r"(\d{4}\.\d{4,5}(v\d+)?)", clean_id)
+            if match:
+                clean_id = match.group(1)
+
+        if "v" in clean_id:
+            clean_id = clean_id.split("v")[0]
+
+        if self.db.paper_exists(clean_id):
+            output.debug(f"论文已在数据库中: {clean_id}")
+            with self.db.get_session() as session:
+                return session.query(Paper).filter_by(arxiv_id=clean_id).first()
+
+        try:
+            search = arxiv.Search(id_list=[clean_id])
+            results = list(self.client.results(search))
+
+            if results:
+                paper = results[0]
+                paper_obj = Paper.from_arxiv_entry(paper, "quick_fetch")
+                self.db.add_paper(paper_obj)
+                output.done(f"已获取论文: {clean_id}")
+                return paper_obj
+            else:
+                output.warn(f"未找到论文: {clean_id}")
+                return None
+
+        except Exception as e:
+            output.error(f"获取论文失败: {clean_id}", details={"exception": str(e)})
+            return None
+
     def get_crawler_stats(self) -> dict[str, Any]:
         """Get crawler statistics"""
         with self.db.get_session() as session:
