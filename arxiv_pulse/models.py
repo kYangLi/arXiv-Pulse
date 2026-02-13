@@ -1,5 +1,6 @@
 import json
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import (
     Boolean,
@@ -15,9 +16,19 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from arxiv_pulse.config import Config
-
 Base = declarative_base()
+
+DEFAULT_CONFIG = {
+    "ai_api_key": "",
+    "ai_model": "DeepSeek-V3.2-Thinking",
+    "ai_base_url": "https://llmapi.paratera.com",
+    "search_queries": 'condensed matter physics AND cat:cond-mat.*; (ti:"density functional" OR abs:"density functional") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci OR cat:physics.chem-ph); (ti:"machine learning" OR abs:"machine learning") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci OR cat:physics.chem-ph)',
+    "arxiv_max_results": "10000",
+    "years_back": "5",
+    "report_max_papers": "64",
+    "is_initialized": "false",
+    "selected_fields": "[]",
+}
 
 
 class Paper(Base):
@@ -272,11 +283,49 @@ class RecentResult(Base):
         return f"<RecentResult(id={self.id}, days_back={self.days_back}, count={self.total_count})>"
 
 
+class SystemConfig(Base):
+    """系统配置表"""
+
+    __tablename__ = "system_config"
+
+    id = Column(Integer, primary_key=True)
+    key = Column(String(100), unique=True, nullable=False, index=True)
+    value = Column(Text)
+    description = Column(String(500))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "key": self.key,
+            "value": self.value,
+            "description": self.description,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+    def __repr__(self):
+        return f"<SystemConfig(key={self.key}, value={self.value[:20] if self.value else None}...)>"
+
+
 class Database:
-    def __init__(self):
-        self.engine = create_engine(Config.DATABASE_URL)
-        self.Session = sessionmaker(bind=self.engine)
-        Base.metadata.create_all(self.engine)
+    _instance = None
+    _engine = None
+
+    def __new__(cls, db_url: str | None = None):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._engine = create_engine(db_url or "sqlite:///data/arxiv_papers.db")
+            Base.metadata.create_all(cls._engine)
+        return cls._instance
+
+    def __init__(self, db_url: str | None = None):
+        self.Session = sessionmaker(bind=self._engine)
 
     def get_session(self):
         return self.Session()
@@ -472,3 +521,65 @@ class Database:
         with self.get_session() as session:
             papers = session.query(Paper).filter(Paper.id.in_(paper_ids)).all()
             return [p for p in papers]
+
+    def get_config(self, key: str, default: str | None = None) -> str | None:
+        """获取配置项"""
+        with self.get_session() as session:
+            config = session.query(SystemConfig).filter_by(key=key).first()
+            if config:
+                return config.value
+            return default
+
+    def set_config(self, key: str, value: str, description: str | None = None) -> None:
+        """设置配置项"""
+        with self.get_session() as session:
+            config = session.query(SystemConfig).filter_by(key=key).first()
+            if config:
+                config.value = value
+                if description:
+                    config.description = description
+            else:
+                config = SystemConfig(key=key, value=value, description=description)
+                session.add(config)
+            session.commit()
+
+    def get_all_config(self) -> dict[str, str]:
+        """获取所有配置"""
+        with self.get_session() as session:
+            configs = session.query(SystemConfig).all()
+            return {c.key: c.value for c in configs}
+
+    def init_default_config(self) -> None:
+        """初始化默认配置"""
+        for key, value in DEFAULT_CONFIG.items():
+            if self.get_config(key) is None:
+                self.set_config(key, value)
+
+    def is_initialized(self) -> bool:
+        """检查是否已初始化"""
+        return self.get_config("is_initialized") == "true"
+
+    def set_initialized(self, initialized: bool = True) -> None:
+        """设置初始化状态"""
+        self.set_config("is_initialized", "true" if initialized else "false")
+
+    def get_search_queries(self) -> list[str]:
+        """获取搜索查询列表"""
+        queries_str = self.get_config("search_queries", DEFAULT_CONFIG["search_queries"])
+        return [q.strip() for q in queries_str.split(";") if q.strip()]
+
+    def set_search_queries(self, queries: list[str]) -> None:
+        """设置搜索查询列表"""
+        self.set_config("search_queries", "; ".join(queries))
+
+    def get_selected_fields(self) -> list[str]:
+        """获取选中的研究领域"""
+        fields_str = self.get_config("selected_fields", "[]")
+        try:
+            return json.loads(fields_str)
+        except:
+            return []
+
+    def set_selected_fields(self, fields: list[str]) -> None:
+        """设置选中的研究领域"""
+        self.set_config("selected_fields", json.dumps(fields))

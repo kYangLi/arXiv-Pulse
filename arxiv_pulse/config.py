@@ -1,56 +1,153 @@
 import os
 
+_db_instance = None
+
+
+def get_db():
+    global _db_instance
+    if _db_instance is None:
+        from arxiv_pulse.models import Database
+
+        db_url = os.getenv("DATABASE_URL", "sqlite:///data/arxiv_papers.db")
+        _db_instance = Database(db_url)
+        _db_instance.init_default_config()
+    return _db_instance
+
 
 class Config:
-    # Database
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///data/arxiv_papers.db")
-
-    # Search queries - use semicolon as separator to allow commas in queries
-    SEARCH_QUERIES_RAW = os.getenv(
-        "SEARCH_QUERIES",
-        "condensed matter physics; density functional theory; machine learning; force fields; first principles calculation; molecular dynamics; quantum chemistry; computational materials science",
-    )
-    SEARCH_QUERIES = [q.strip() for q in SEARCH_QUERIES_RAW.split(";") if q.strip()]
-
-    # AI API (支持 OpenAI 格式，如 DeepSeek、Paratera AI 等)
-    # 使用 AI_* 环境变量配置
-
-    # AI API 配置变量
-    AI_API_KEY = os.getenv("AI_API_KEY")  # 可以为 None
-    AI_MODEL = os.getenv("AI_MODEL", "DeepSeek-V3.2-Thinking")
-    AI_BASE_URL = os.getenv("AI_BASE_URL", "https://llmapi.paratera.com")
-
-    # 模型配置：SUMMARY_MODEL 现在复用 AI_MODEL
-    SUMMARY_MAX_TOKENS = int(os.getenv("SUMMARY_MAX_TOKENS", 10000))
-
-    # Report generation settings
-
-    # Paths
-    REPORT_DIR = os.getenv("REPORT_DIR", "reports")
-    DATA_DIR = os.path.dirname(DATABASE_URL.replace("sqlite:///", ""))
-
-    # Report generation limits
-    REPORT_MAX_PAPERS = int(os.getenv("REPORT_MAX_PAPERS", "64"))
-
-    # ArXiv API
-    ARXIV_MAX_RESULTS = int(os.getenv("ARXIV_MAX_RESULTS", 10000))
-    ARXIV_SORT_BY = os.getenv("ARXIV_SORT_BY", "submittedDate")
-    ARXIV_SORT_ORDER = os.getenv("ARXIV_SORT_ORDER", "descending")
-
-    # Sync configuration
-    YEARS_BACK = int(os.getenv("YEARS_BACK", 5))  # Years to look back for initial sync
-    IMPORTANT_PAPERS_FILE = os.getenv("IMPORTANT_PAPERS_FILE", "data/important_papers.txt")
+    @classmethod
+    def _get(cls, key: str, default: str = "") -> str:
+        db = get_db()
+        value = db.get_config(key)
+        return value if value is not None else default
 
     @classmethod
-    def validate(cls):
-        """Validate configuration"""
+    def _get_int(cls, key: str, default: int = 0) -> int:
+        try:
+            return int(cls._get(key, str(default)))
+        except:
+            return default
+
+    @classmethod
+    def _set(cls, key: str, value: str) -> None:
+        db = get_db()
+        db.set_config(key, value)
+
+    @property
+    def DATABASE_URL(cls) -> str:
+        return os.getenv("DATABASE_URL", "sqlite:///data/arxiv_papers.db")
+
+    @property
+    def AI_API_KEY(cls) -> str | None:
+        key = cls._get("ai_api_key", "")
+        return key if key else None
+
+    @AI_API_KEY.setter
+    def AI_API_KEY(cls, value: str) -> None:
+        cls._set("ai_api_key", value)
+
+    @property
+    def AI_MODEL(cls) -> str:
+        return cls._get("ai_model", "DeepSeek-V3.2-Thinking")
+
+    @AI_MODEL.setter
+    def AI_MODEL(cls, value: str) -> None:
+        cls._set("ai_model", value)
+
+    @property
+    def AI_BASE_URL(cls) -> str:
+        return cls._get("ai_base_url", "https://llmapi.paratera.com")
+
+    @AI_BASE_URL.setter
+    def AI_BASE_URL(cls, value: str) -> None:
+        cls._set("ai_base_url", value)
+
+    @property
+    def SEARCH_QUERIES(cls) -> list[str]:
+        db = get_db()
+        return db.get_search_queries()
+
+    @SEARCH_QUERIES.setter
+    def SEARCH_QUERIES(cls, value: list[str]) -> None:
+        db = get_db()
+        db.set_search_queries(value)
+
+    @property
+    def ARXIV_MAX_RESULTS(cls) -> int:
+        return cls._get_int("arxiv_max_results", 10000)
+
+    @ARXIV_MAX_RESULTS.setter
+    def ARXIV_MAX_RESULTS(cls, value: int) -> None:
+        cls._set("arxiv_max_results", str(value))
+
+    @property
+    def YEARS_BACK(cls) -> int:
+        return cls._get_int("years_back", 5)
+
+    @YEARS_BACK.setter
+    def YEARS_BACK(cls, value: int) -> None:
+        cls._set("years_back", str(value))
+
+    @property
+    def REPORT_MAX_PAPERS(cls) -> int:
+        return cls._get_int("report_max_papers", 64)
+
+    @REPORT_MAX_PAPERS.setter
+    def REPORT_MAX_PAPERS(cls, value: int) -> None:
+        cls._set("report_max_papers", str(value))
+
+    @property
+    def SUMMARY_MAX_TOKENS(cls) -> int:
+        return int(os.getenv("SUMMARY_MAX_TOKENS", "10000"))
+
+    @property
+    def REPORT_DIR(cls) -> str:
+        return os.getenv("REPORT_DIR", "reports")
+
+    @property
+    def DATA_DIR(cls) -> str:
+        db_url = cls.DATABASE_URL
+        return os.path.dirname(db_url.replace("sqlite:///", ""))
+
+    @property
+    def ARXIV_SORT_BY(cls) -> str:
+        return os.getenv("ARXIV_SORT_BY", "submittedDate")
+
+    @property
+    def ARXIV_SORT_ORDER(cls) -> str:
+        return os.getenv("ARXIV_SORT_ORDER", "descending")
+
+    @property
+    def IMPORTANT_PAPERS_FILE(cls) -> str:
+        return os.getenv("IMPORTANT_PAPERS_FILE", "data/important_papers.txt")
+
+    @classmethod
+    def is_initialized(cls) -> bool:
+        db = get_db()
+        return db.is_initialized()
+
+    @classmethod
+    def set_initialized(cls, initialized: bool = True) -> None:
+        db = get_db()
+        db.set_initialized(initialized)
+
+    @classmethod
+    def get_all_config(cls) -> dict[str, str]:
+        db = get_db()
+        return db.get_all_config()
+
+    @classmethod
+    def update_config(cls, config_dict: dict[str, str]) -> None:
+        for key, value in config_dict.items():
+            cls._set(key, value)
+
+    @classmethod
+    def validate(cls) -> bool:
         if not cls.AI_API_KEY:
             print("警告: 未设置 AI_API_KEY。AI 总结和翻译功能将受限。")
-            print("      请设置 AI_API_KEY 环境变量以启用 AI 功能。")
         else:
-            print(f"信息: 找到 AI API 密钥 (AI_API_KEY)。AI 总结和翻译功能已启用 (模型: {cls.AI_MODEL})。")
+            print(f"信息: 找到 AI API 密钥。模型: {cls.AI_MODEL}")
 
-        # Ensure directories exist
         os.makedirs(cls.REPORT_DIR, exist_ok=True)
         os.makedirs(cls.DATA_DIR, exist_ok=True)
 

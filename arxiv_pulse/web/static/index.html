@@ -8,16 +8,39 @@
         [v-cloak] { display: none; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
+        
+        .setup-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .setup-card { background: white; border-radius: 16px; padding: 40px; width: 600px; max-width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .setup-card h1 { text-align: center; margin-bottom: 10px; color: #303133; }
+        .setup-card .subtitle { text-align: center; color: #909399; margin-bottom: 30px; }
+        .setup-steps { display: flex; justify-content: center; margin-bottom: 30px; gap: 10px; }
+        .setup-step { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .setup-step.active { background: #667eea; color: white; }
+        .setup-step.done { background: #67c23a; color: white; }
+        .setup-step.pending { background: #e4e7ed; color: #909399; }
+        .field-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ebeef5; border-radius: 8px; }
+        .field-item { padding: 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
+        .field-item:hover { background: #f5f7fa; }
+        .field-item.selected { background: #ecf5ff; border-color: #409EFF; }
+        .field-item .name { font-weight: 500; color: #303133; margin-bottom: 4px; }
+        .field-item .desc { font-size: 12px; color: #909399; }
+        
         .app-container { min-height: 100vh; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 40px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; }
         .header h1 { font-size: 24px; margin-bottom: 5px; }
         .header p { opacity: 0.8; font-size: 14px; }
+        .header-actions { display: flex; gap: 10px; }
         .main-content { padding: 20px 40px; max-width: 1400px; margin: 0 auto; }
         .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
         .stat-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
         .stat-card h3 { color: #909399; font-size: 14px; margin-bottom: 10px; }
         .stat-card .value { font-size: 28px; font-weight: bold; color: #303133; }
         .tabs-container { margin-bottom: 20px; }
+        
+        .settings-section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+        .settings-section h3 { margin-bottom: 15px; color: #303133; font-size: 16px; border-bottom: 1px solid #ebeef5; padding-bottom: 10px; }
+        .settings-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; }
+        .settings-row .el-input { flex: 1; min-width: 200px; }
         
         .paper-card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); transition: all 0.3s; }
         .paper-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
@@ -94,10 +117,109 @@
 </head>
 <body>
     <div id="app" v-cloak>
-        <div class="app-container">
-            <header class="header">
+        <div v-if="showSetup" class="setup-container">
+            <div class="setup-card">
                 <h1>arXiv Pulse</h1>
-                <p>智能文献追踪与分析系统</p>
+                <p class="subtitle">智能文献追踪与分析系统 - 初始化配置</p>
+                
+                <div class="setup-steps">
+                    <div class="setup-step" :class="setupStep >= 1 ? 'active' : 'pending'">1</div>
+                    <div class="setup-step" :class="setupStep >= 2 ? (setupStep > 2 ? 'done' : 'active') : 'pending'">2</div>
+                    <div class="setup-step" :class="setupStep >= 3 ? (setupStep > 3 ? 'done' : 'active') : 'pending'">3</div>
+                    <div class="setup-step" :class="setupStep >= 4 ? 'active' : 'pending'">4</div>
+                </div>
+
+                <div v-if="setupStep === 1">
+                    <h3 style="margin-bottom: 20px;">AI API 配置</h3>
+                    <el-form label-position="top">
+                        <el-form-item label="API Base URL">
+                            <el-input v-model="setupConfig.ai_base_url" placeholder="https://api.openai.com/v1" />
+                        </el-form-item>
+                        <el-form-item label="API Key">
+                            <el-input v-model="setupConfig.ai_api_key" type="password" show-password placeholder="输入你的 API Key" />
+                        </el-form-item>
+                        <el-form-item label="模型名称">
+                            <el-select v-model="setupConfig.ai_model" filterable allow-create style="width: 100%;">
+                                <el-option label="DeepSeek-V3.2-Thinking" value="DeepSeek-V3.2-Thinking" />
+                                <el-option label="gpt-4o" value="gpt-4o" />
+                                <el-option label="gpt-4-turbo" value="gpt-4-turbo" />
+                                <el-option label="gpt-3.5-turbo" value="gpt-3.5-turbo" />
+                            </el-select>
+                        </el-form-item>
+                    </el-form>
+                    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                        <el-button type="primary" @click="testSetupAI" :loading="testingAI">测试连接</el-button>
+                        <el-button type="primary" @click="setupStep = 2" style="margin-left: 10px;">下一步</el-button>
+                    </div>
+                </div>
+
+                <div v-if="setupStep === 2">
+                    <h3 style="margin-bottom: 20px;">选择研究领域</h3>
+                    <p style="color: #909399; margin-bottom: 15px;">选择你感兴趣的研究领域（可多选）</p>
+                    <div class="field-grid">
+                        <div v-for="(field, key) in researchFields" :key="key" 
+                             class="field-item" :class="{ selected: setupConfig.selected_fields.includes(key) }"
+                             @click="toggleSetupField(key)">
+                            <div class="name">{{ field.name }}</div>
+                            <div class="desc">{{ field.description }}</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                        <el-button @click="setupStep = 1">上一步</el-button>
+                        <el-button type="primary" @click="setupStep = 3" :disabled="setupConfig.selected_fields.length === 0">
+                            下一步
+                        </el-button>
+                    </div>
+                </div>
+
+                <div v-if="setupStep === 3">
+                    <h3 style="margin-bottom: 20px;">同步设置</h3>
+                    <el-form label-position="top">
+                        <el-form-item label="初始同步回溯年数">
+                            <el-select v-model="setupConfig.years_back" style="width: 100%;">
+                                <el-option label="1 年" :value="1" />
+                                <el-option label="2 年" :value="2" />
+                                <el-option label="3 年" :value="3" />
+                                <el-option label="5 年（推荐）" :value="5" />
+                                <el-option label="10 年" :value="10" />
+                            </el-select>
+                        </el-form-item>
+                    </el-form>
+                    <p style="color: #909399; font-size: 13px; margin-top: 10px;">
+                        选择的领域: {{ setupConfig.selected_fields.length }} 个
+                    </p>
+                    <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                        <el-button @click="setupStep = 2">上一步</el-button>
+                        <el-button type="primary" @click="startInitialSync" :loading="initializing">
+                            开始同步
+                        </el-button>
+                    </div>
+                </div>
+
+                <div v-if="setupStep === 4">
+                    <h3 style="margin-bottom: 20px; text-align: center;">初始化中...</h3>
+                    <div v-if="initLogs.length > 0" class="logs-container" style="max-height: 300px;">
+                        <div v-for="(log, index) in initLogs" :key="index" 
+                             class="log-line" :class="log.type">
+                            > {{ log.message }}
+                        </div>
+                    </div>
+                    <el-progress v-if="initProgress > 0" :percentage="initProgress" style="margin-top: 20px;" />
+                </div>
+            </div>
+        </div>
+
+        <div v-else class="app-container">
+            <header class="header">
+                <div>
+                    <h1>arXiv Pulse</h1>
+                    <p>智能文献追踪与分析系统</p>
+                </div>
+                <div class="header-actions">
+                    <el-button @click="showSettings = true" circle>
+                        <el-icon><Setting /></el-icon>
+                    </el-button>
+                </div>
             </header>
 
             <main class="main-content">
@@ -300,295 +422,264 @@
                                     强制同步（跳过已存在的论文）
                                 </el-checkbox>
                             </div>
-                            <el-button 
-                                type="primary" 
-                                size="large" 
-                                @click="startSync" 
-                                :loading="syncing"
-                                :disabled="syncing"
-                            >
+                            <el-button type="primary" @click="startSync" :loading="syncing">
                                 <el-icon><Refresh /></el-icon>
                                 {{ syncing ? '同步中...' : '开始同步' }}
                             </el-button>
                         </div>
                     </div>
 
-                    <div v-if="syncLogs.length > 0 || syncing" class="logs-container">
+                    <div v-if="syncLogs.length > 0" class="logs-container">
                         <div v-for="(log, index) in syncLogs" :key="index" 
-                             class="log-line" 
-                             :class="log.type">
+                             class="log-line" :class="log.type">
                             > {{ log.message }}
                         </div>
-                        <div v-if="syncing" class="log-line info">> 等待响应...</div>
                     </div>
                 </div>
 
                 <div v-show="activeTab === 'collections'">
-                    <div v-if="!viewingCollection">
-                        <el-button type="primary" @click="showCreateCollection = true" style="margin-bottom: 20px;">
+                    <div style="margin-bottom: 20px;">
+                        <el-button type="primary" @click="showCreateCollection = true">
                             <el-icon><Plus /></el-icon>
                             新建论文集
                         </el-button>
+                    </div>
 
-                        <div v-if="collections.length === 0" class="empty-state">
-                            <el-icon><Folder /></el-icon>
-                            <p>暂无论文集，点击上方按钮创建</p>
+                    <div v-if="viewingCollection" style="margin-bottom: 20px;">
+                        <el-page-header @back="viewingCollection = null" :title="viewingCollection.name">
+                            <template #content>
+                                <span style="font-size: 18px; font-weight: 600;">{{ viewingCollection.name }}</span>
+                            </template>
+                        </el-page-header>
+                        <p style="color: #909399; margin-top: 10px;">{{ viewingCollection.description || '暂无描述' }}</p>
+                        
+                        <div v-if="loadingCollectionPapers" class="loading">
+                            <el-icon class="is-loading" :size="32"><Loading /></el-icon>
                         </div>
-
-                        <div class="collection-item" v-for="col in collections" :key="col.id">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <div style="flex: 1; cursor: pointer;" @click="openCollectionDetail(col)">
-                                    <h4>
-                                        <span :style="{ color: col.color }">●</span>
-                                        {{ col.name }}
-                                    </h4>
-                                    <p>{{ col.description || '暂无描述' }}</p>
-                                    <p style="margin-top: 5px; color: #909399; font-size: 12px;">{{ col.paper_count || 0 }} 篇论文</p>
-                                </div>
-                                <div style="display: flex; gap: 5px;">
-                                    <el-button size="small" text @click.stop="openEditCollection(col)">
-                                        <el-icon><Edit /></el-icon>
-                                    </el-button>
-                                    <el-button size="small" text type="danger" @click.stop="confirmDeleteCollection(col)">
-                                        <el-icon><Delete /></el-icon>
-                                    </el-button>
-                                </div>
-                            </div>
+                        <div v-else-if="collectionPapers.length === 0" class="empty-state">
+                            <el-icon><Folder /></el-icon>
+                            <p>论文集中暂无论文</p>
+                        </div>
+                        <div v-else>
+                            <paper-card 
+                                v-for="paper in collectionPapers" 
+                                :key="paper.id" 
+                                :paper="paper"
+                                :collections="collections"
+                                :in-collection="viewingCollection.id"
+                                @remove-from-collection="removePaperFromCollection"
+                                @add-to-collection="addToCollection"
+                            />
                         </div>
                     </div>
 
                     <div v-else>
-                        <div style="margin-bottom: 20px;">
-                            <el-button @click="viewingCollection = null" text>
-                                <el-icon><ArrowLeft /></el-icon>
-                                返回列表
-                            </el-button>
-                        </div>
-                        <div class="paper-card" style="margin-bottom: 20px;">
-                            <h2 style="display: flex; align-items: center; gap: 10px;">
-                                <span :style="{ color: viewingCollection.color }">●</span>
-                                {{ viewingCollection.name }}
-                            </h2>
-                            <p style="color: #909399; margin-top: 5px;">{{ viewingCollection.description || '暂无描述' }}</p>
-                            <p style="color: #606266; margin-top: 10px;">共 {{ collectionPapers.length }} 篇论文</p>
-                        </div>
-
-                        <div v-if="loadingCollectionPapers" class="loading">
-                            <el-icon class="is-loading" :size="32"><Loading /></el-icon>
-                            <p style="margin-top: 15px;">加载中...</p>
-                        </div>
-                        <div v-else-if="collectionPapers.length === 0" class="empty-state">
-                            <el-icon><Document /></el-icon>
-                            <p>论文集中暂无论文</p>
+                        <div v-if="collections.length === 0" class="empty-state">
+                            <el-icon><Folder /></el-icon>
+                            <p>暂无论文集，点击"新建论文集"创建</p>
                         </div>
                         <div v-else>
-                            <div v-for="paper in collectionPapers" :key="paper.id" style="position: relative;">
-                                <paper-card 
-                                    :paper="paper"
-                                    :collections="collections"
-                                    @add-to-collection="addToCollection"
-                                />
-                                <el-button 
-                                    size="small" 
-                                    type="danger" 
-                                    text
-                                    style="position: absolute; top: 20px; right: 20px;"
-                                    @click="removePaperFromCollection(paper.id)"
-                                >
-                                    移除
-                                </el-button>
+                            <div v-for="col in collections" :key="col.id" 
+                                 class="collection-item" @click="openCollectionDetail(col)">
+                                <h4>
+                                    <span class="color-dot" :style="{ background: col.color || '#409EFF', width: '12px', height: '12px', borderRadius: '50%', display: 'inline-block' }"></span>
+                                    {{ col.name }}
+                                </h4>
+                                <p>{{ col.description || '暂无描述' }}</p>
+                                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                    <el-button size="small" text @click.stop="openEditCollection(col)">
+                                        <el-icon><Edit /></el-icon> 编辑
+                                    </el-button>
+                                    <el-button size="small" text type="danger" @click.stop="confirmDeleteCollection(col)">
+                                        <el-icon><Delete /></el-icon> 删除
+                                    </el-button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </main>
 
-                <el-dialog v-model="showCreateCollection" :title="editingCollection ? '编辑论文集' : '新建论文集'" width="400px">
-                    <el-form label-width="80px">
-                        <el-form-item label="名称" required>
-                            <el-input v-model="newCollection.name" placeholder="输入论文集名称"></el-input>
+            <el-dialog v-model="showCreateCollection" :title="editingCollection ? '编辑论文集' : '新建论文集'" width="500px">
+                <el-form label-position="top">
+                    <el-form-item label="名称">
+                        <el-input v-model="newCollection.name" placeholder="输入论文集名称" />
+                    </el-form-item>
+                    <el-form-item label="描述">
+                        <el-input v-model="newCollection.description" type="textarea" rows="3" placeholder="可选描述" />
+                    </el-form-item>
+                    <el-form-item label="颜色">
+                        <el-color-picker v-model="newCollection.color" />
+                    </el-form-item>
+                </el-form>
+                <template #footer>
+                    <el-button @click="cancelCollectionDialog">取消</el-button>
+                    <el-button type="primary" @click="saveCollection" :loading="savingCollection">保存</el-button>
+                </template>
+            </el-dialog>
+
+            <el-dialog v-model="showDeleteConfirm" title="确认删除" width="400px">
+                <p>确定要删除论文集 "{{ deletingCollection?.name }}" 吗？此操作不可恢复。</p>
+                <template #footer>
+                    <el-button @click="showDeleteConfirm = false">取消</el-button>
+                    <el-button type="danger" @click="deleteCollection" :loading="deletingCollectionInProgress">删除</el-button>
+                </template>
+            </el-dialog>
+
+            <el-dialog v-model="showAddToCollection" title="添加到论文集" width="400px">
+                <el-select v-model="selectedCollectionId" placeholder="选择论文集" style="width: 100%;">
+                    <el-option v-for="col in collections" :key="col.id" :label="col.name" :value="col.id" />
+                </el-select>
+                <template #footer>
+                    <el-button @click="showAddToCollection = false">取消</el-button>
+                    <el-button type="primary" @click="confirmAddToCollection" :loading="addingToCollection">添加</el-button>
+                </template>
+            </el-dialog>
+
+            <el-drawer v-model="showSettings" title="系统设置" size="500px">
+                <div class="settings-section">
+                    <h3>AI API 设置</h3>
+                    <el-form label-position="top">
+                        <el-form-item label="API Base URL">
+                            <el-input v-model="settingsConfig.ai_base_url" placeholder="https://api.openai.com/v1" />
                         </el-form-item>
-                        <el-form-item label="描述">
-                            <el-input v-model="newCollection.description" type="textarea" placeholder="输入描述（可选）"></el-input>
+                        <el-form-item label="API Key">
+                            <el-input v-model="settingsConfig.ai_api_key" type="password" show-password placeholder="输入 API Key" />
                         </el-form-item>
-                        <el-form-item label="颜色">
-                            <el-color-picker v-model="newCollection.color"></el-color-picker>
+                        <el-form-item label="模型">
+                            <el-select v-model="settingsConfig.ai_model" filterable allow-create style="width: 100%;">
+                                <el-option label="DeepSeek-V3.2-Thinking" value="DeepSeek-V3.2-Thinking" />
+                                <el-option label="gpt-4o" value="gpt-4o" />
+                                <el-option label="gpt-4-turbo" value="gpt-4-turbo" />
+                                <el-option label="gpt-3.5-turbo" value="gpt-3.5-turbo" />
+                            </el-select>
+                        </el-form-item>
+                        <el-button @click="testAIConnection" :loading="testingAI">测试连接</el-button>
+                    </el-form>
+                </div>
+
+                <div class="settings-section">
+                    <h3>研究领域</h3>
+                    <div class="field-grid" style="max-height: 300px;">
+                        <div v-for="(field, key) in researchFields" :key="key" 
+                             class="field-item" :class="{ selected: settingsConfig.selected_fields?.includes(key) }"
+                             @click="toggleSettingsField(key)">
+                            <div class="name">{{ field.name }}</div>
+                            <div class="desc">{{ field.description }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>同步设置</h3>
+                    <el-form label-position="top">
+                        <el-form-item label="回溯年数">
+                            <el-select v-model="settingsConfig.years_back" style="width: 100%;">
+                                <el-option label="1 年" :value="1" />
+                                <el-option label="2 年" :value="2" />
+                                <el-option label="3 年" :value="3" />
+                                <el-option label="5 年" :value="5" />
+                                <el-option label="10 年" :value="10" />
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="arXiv 最大结果数">
+                            <el-input-number v-model="settingsConfig.arxiv_max_results" :min="1000" :max="50000" :step="1000" style="width: 100%;" />
                         </el-form-item>
                     </el-form>
-                    <template #footer>
-                        <el-button @click="cancelCollectionDialog">取消</el-button>
-                        <el-button type="primary" @click="saveCollection" :loading="savingCollection">
-                            {{ editingCollection ? '保存' : '创建' }}
-                        </el-button>
-                    </template>
-                </el-dialog>
+                </div>
 
-                <el-dialog v-model="showDeleteConfirm" title="确认删除" width="400px">
-                    <p>确定要删除论文集 "{{ deletingCollection?.name }}" 吗？</p>
-                    <p style="color: #909399; margin-top: 10px;">删除后无法恢复，论文集中的论文不会被删除。</p>
-                    <template #footer>
-                        <el-button @click="showDeleteConfirm = false">取消</el-button>
-                        <el-button type="danger" @click="deleteCollection" :loading="deletingCollectionInProgress">删除</el-button>
-                    </template>
-                </el-dialog>
-
-                <el-dialog v-model="showAddToCollection" title="添加到论文集" width="400px">
-                    <el-select v-model="selectedCollectionId" placeholder="选择论文集" style="width: 100%;">
-                        <el-option v-for="col in collections" :key="col.id" :label="col.name" :value="col.id">
-                            <span :style="{ color: col.color }">●</span>
-                            <span style="margin-left: 8px;">{{ col.name }}</span>
-                        </el-option>
-                    </el-select>
-                    <template #footer>
-                        <el-button @click="showAddToCollection = false">取消</el-button>
-                        <el-button type="primary" @click="confirmAddToCollection" :loading="addingToCollection">确定</el-button>
-                    </template>
-                </el-dialog>
-            </main>
+                <template #footer>
+                    <el-button @click="showSettings = false">取消</el-button>
+                    <el-button type="primary" @click="saveSettings" :loading="savingSettings">保存设置</el-button>
+                </template>
+            </el-drawer>
         </div>
     </div>
 
-    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/element-plus"></script>
     <script src="https://unpkg.com/@element-plus/icons-vue"></script>
     <script src="https://unpkg.com/echarts@5/dist/echarts.min.js"></script>
     <script>
-        const { createApp, ref, onMounted, watch, computed, nextTick } = Vue;
+        const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+        const API_BASE = '/api';
 
-        const PaperCard = {
-            props: ['paper', 'collections'],
-            emits: ['add-to-collection'],
-            template: `
-                <div class="paper-card">
-                    <div class="paper-title" @click="openArxiv(paper.arxiv_id)">
-                        {{ paper.title }}
-                    </div>
-                    <div v-if="paper.title_translation" class="paper-title-cn">
-                        {{ paper.title_translation }}
-                    </div>
-                    <div class="paper-meta">
-                        <span class="paper-meta-item">
-                            <el-icon><User /></el-icon>
-                            {{ formatAuthors(paper.authors) }}
-                        </span>
-                        <span class="paper-meta-item">
-                            <el-icon><Calendar /></el-icon>
-                            {{ formatDate(paper.published) }}
-                        </span>
-                        <span class="paper-meta-item">
-                            <el-icon><Document /></el-icon>
-                            {{ paper.arxiv_id }}
-                        </span>
-                        <span class="paper-relevance">
-                            <span class="star" v-for="n in paper.relevance_score" :key="n">★</span>
-                            <span v-for="n in (5 - paper.relevance_score)" :key="'empty'+n">☆</span>
-                        </span>
-                    </div>
-                    <div v-if="paper.category_explanation" class="paper-category">
-                        {{ paper.category_explanation }}
-                    </div>
-                    <div v-if="!expanded" class="paper-abstract-preview">
-                        {{ paper.abstract?.slice(0, 200) }}...
-                    </div>
-                    <div class="expand-btn" @click="expanded = !expanded">
-                        <el-icon><component :is="expanded ? 'ArrowUp' : 'ArrowDown'" /></el-icon>
-                        {{ expanded ? '收起详情' : '展开详情' }}
-                    </div>
-                    <div v-if="expanded" class="paper-detail">
-                        <div v-if="paper.figure_url" class="paper-figure">
-                            <img :src="paper.figure_url" alt="Paper Figure" @click="openImage(paper.figure_url)" />
-                        </div>
-                        <div v-if="paper.key_findings && paper.key_findings.length > 0" class="key-findings">
-                            <h4>🔍 关键发现</h4>
-                            <ul>
-                                <li v-for="(finding, index) in paper.key_findings" :key="index">{{ finding }}</li>
-                            </ul>
-                        </div>
-                        <div class="abstract-section">
-                            <h4>📄 完整摘要</h4>
-                            <p>{{ paper.abstract }}</p>
-                        </div>
-                        <div v-if="paper.abstract_translation" class="abstract-section">
-                            <h4>🇨🇳 中文翻译</h4>
-                            <div class="translation">
-                                <p>{{ paper.abstract_translation }}</p>
-                            </div>
-                        </div>
-                        <div class="paper-actions" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ebeef5;">
-                            <el-button size="small" @click="openPdf(paper.pdf_url)">
-                                <el-icon><Document /></el-icon> PDF
-                            </el-button>
-                            <el-button size="small" @click="openArxiv(paper.arxiv_id)">
-                                <el-icon><Link /></el-icon> arXiv
-                            </el-button>
-                            <el-button size="small" type="primary" @click="$emit('add-to-collection', paper)">
-                                <el-icon><FolderAdd /></el-icon> 加入论文集
-                            </el-button>
-                        </div>
-                    </div>
-                    <div v-else class="paper-actions">
-                        <el-button size="small" @click="openPdf(paper.pdf_url)">
-                            <el-icon><Document /></el-icon> PDF
-                        </el-button>
-                        <el-button size="small" @click="openArxiv(paper.arxiv_id)">
-                            <el-icon><Link /></el-icon> arXiv
-                        </el-button>
-                        <el-button size="small" type="primary" @click="$emit('add-to-collection', paper)">
-                            <el-icon><FolderAdd /></el-icon> 加入论文集
-                        </el-button>
-                    </div>
-                </div>
-            `,
-            setup() {
-                const expanded = ref(false);
-                
-                const formatAuthors = (authors) => {
-                    if (!authors || !Array.isArray(authors)) return '';
-                    const names = authors.slice(0, 3).map(a => a.name);
-                    if (authors.length > 3) names.push('等');
-                    return names.join(', ');
-                };
-                
-                const formatDate = (dateStr) => {
-                    if (!dateStr) return '';
-                    return dateStr.split('T')[0];
-                };
-                
-                const openPdf = (url) => window.open(url, '_blank');
-                const openArxiv = (arxivId) => window.open(`https://arxiv.org/abs/${arxivId}`, '_blank');
-                const openImage = (url) => window.open(url, '_blank');
-                
-                return { expanded, formatAuthors, formatDate, openPdf, openArxiv, openImage };
-            }
+        const researchFields = {
+            "condensed_matter": { "name": "凝聚态物理", "description": "超导、强关联电子、介观系统等" },
+            "dft": { "name": "密度泛函理论 (DFT)", "description": "第一性原理计算、材料设计" },
+            "machine_learning": { "name": "机器学习", "description": "ML在物理和材料科学中的应用" },
+            "force_fields": { "name": "力场与分子动力学", "description": "力场开发、MD模拟" },
+            "first_principles": { "name": "第一性原理计算", "description": "ab initio 方法" },
+            "quantum_physics": { "name": "量子物理", "description": "量子信息、量子计算" },
+            "computational_physics": { "name": "计算物理", "description": "数值计算方法" },
+            "chemical_physics": { "name": "化学物理", "description": "化学过程的物理基础" },
+            "molecular_dynamics": { "name": "分子动力学", "description": "MD模拟技术" },
+            "computational_materials": { "name": "计算材料科学", "description": "材料计算与模拟" },
+            "quantum_chemistry": { "name": "量子化学", "description": "量子化学方法" },
+            "astro_physics": { "name": "天体物理", "description": "宇宙学、天体观测" },
+            "high_energy_physics": { "name": "高能物理", "description": "粒子物理理论与实验" },
+            "nuclear_physics": { "name": "核物理", "description": "核物理理论与实验" },
+            "artificial_intelligence": { "name": "人工智能", "description": "AI、神经网络" },
+            "numerical_analysis": { "name": "数值分析", "description": "数值方法与算法" },
+            "statistics": { "name": "统计学", "description": "统计理论与应用" },
+            "quantitative_biology": { "name": "定量生物学", "description": "生物信息学、系统生物学" },
+            "electrical_engineering": { "name": "电子工程", "description": "信号处理、控制系统" },
+            "mathematical_physics": { "name": "数学物理", "description": "物理问题的数学方法" }
         };
 
         const app = createApp({
-            components: { PaperCard },
             setup() {
-                const activeTab = ref('sync');
+                const showSetup = ref(false);
+                const setupStep = ref(1);
+                const initializing = ref(false);
+                const testingAI = ref(false);
+                const initLogs = ref([]);
+                const initProgress = ref(0);
+                
+                const setupConfig = ref({
+                    ai_api_key: '',
+                    ai_model: 'DeepSeek-V3.2-Thinking',
+                    ai_base_url: 'https://llmapi.paratera.com',
+                    selected_fields: ['condensed_matter', 'dft', 'machine_learning'],
+                    years_back: 5
+                });
+
+                const showSettings = ref(false);
+                const savingSettings = ref(false);
+                const settingsConfig = ref({
+                    ai_api_key: '',
+                    ai_model: 'DeepSeek-V3.2-Thinking',
+                    ai_base_url: 'https://llmapi.paratera.com',
+                    selected_fields: [],
+                    years_back: 5,
+                    arxiv_max_results: 10000
+                });
+
+                const activeTab = ref('recent');
                 const stats = ref(null);
                 const recentPapers = ref([]);
-                const searchResults = ref([]);
-                const collections = ref([]);
                 const loadingRecent = ref(false);
                 const updatingRecent = ref(false);
                 const recentLogs = ref([]);
                 const recentDays = ref('7');
                 const recentLimit = ref('64');
-                const recentNeedSync = ref(false);
-                const recentSyncYears = ref('3');
+                const recentNeedSync = ref(true);
+                const recentSyncYears = ref('5');
                 const recentCategories = ref([]);
-                const searching = ref(false);
+
                 const searchQuery = ref('');
-                const searchDays = ref('0');
+                const searchDays = ref('');
+                const searching = ref(false);
+                const searchResults = ref([]);
                 const searchLogs = ref([]);
-                
+
                 const syncStatus = ref(null);
                 const syncing = ref(false);
                 const syncLogs = ref([]);
                 const syncYearsBack = ref('5');
                 const syncForce = ref(false);
-                
+
+                const collections = ref([]);
                 const showCreateCollection = ref(false);
                 const showAddToCollection = ref(false);
                 const showDeleteConfirm = ref(false);
@@ -604,32 +695,15 @@
                 const collectionPapers = ref([]);
                 const loadingCollectionPapers = ref(false);
 
-                const API_BASE = '/api';
-
-                const categoryOptions = [
-                    { value: 'cond-mat', label: 'cond-mat (凝聚态物理)' },
-                    { value: 'cond-mat.mtrl-sci', label: 'cond-mat.mtrl-sci (材料科学)' },
-                    { value: 'cond-mat.str-el', label: 'cond-mat.str-el (强关联电子)' },
-                    { value: 'cond-mat.supr-con', label: 'cond-mat.supr-con (超导)' },
-                    { value: 'cond-mat.mes-hall', label: 'cond-mat.mes-hall (介观系统)' },
-                    { value: 'physics.comp-ph', label: 'physics.comp-ph (计算物理)' },
-                    { value: 'physics.chem-ph', label: 'physics.chem-ph (化学物理)' },
-                    { value: 'quant-ph', label: 'quant-ph (量子物理)' },
-                    { value: 'cs.LG', label: 'cs.LG (机器学习)' },
-                    { value: 'cs.AI', label: 'cs.AI (人工智能)' },
-                    { value: 'cs.CV', label: 'cs.CV (计算机视觉)' },
-                    { value: 'cs.CL', label: 'cs.CL (计算语言学)' },
-                    { value: 'cs.NE', label: 'cs.NE (神经网络)' },
-                    { value: 'stat.ML', label: 'stat.ML (统计机器学习)' },
-                    { value: 'math.NA', label: 'math.NA (数值分析)' },
-                    { value: 'math.OC', label: 'math.OC (优化与控制)' },
-                ];
+                let yearChart = null;
+                let categoryChart = null;
 
                 const daysOptions = [
-                    { value: '3', label: '最近3天' },
-                    { value: '7', label: '最近7天' },
-                    { value: '14', label: '最近14天' },
-                    { value: '30', label: '最近30天' },
+                    { value: '1', label: '1 天' },
+                    { value: '3', label: '3 天' },
+                    { value: '7', label: '7 天' },
+                    { value: '14', label: '14 天' },
+                    { value: '30', label: '30 天' }
                 ];
 
                 const limitOptions = [
@@ -637,64 +711,59 @@
                     { value: '50', label: '50' },
                     { value: '64', label: '64' },
                     { value: '100', label: '100' },
-                    { value: '200', label: '200' },
+                    { value: '200', label: '200' }
                 ];
 
                 const syncYearOptions = [
-                    { value: '1', label: '1年' },
-                    { value: '2', label: '2年' },
-                    { value: '3', label: '3年' },
-                    { value: '5', label: '5年' },
+                    { value: '1', label: '1 年' },
+                    { value: '2', label: '2 年' },
+                    { value: '3', label: '3 年' },
+                    { value: '5', label: '5 年' },
+                    { value: '10', label: '10 年' }
                 ];
 
                 const syncYearsBackOptions = [
                     { value: '1', label: '1 年' },
                     { value: '2', label: '2 年' },
-                    { value: '3', label: '3 年' },
                     { value: '5', label: '5 年' },
                     { value: '10', label: '10 年' },
-                    { value: '15', label: '15 年' },
-                    { value: '20', label: '20 年' },
+                    { value: '20', label: '20 年' }
                 ];
 
                 const searchDaysOptions = [
-                    { value: '0', label: '全部' },
-                    { value: '7', label: '最近7天' },
-                    { value: '30', label: '最近30天' },
-                    { value: '90', label: '最近90天' },
-                    { value: '365', label: '最近1年' },
+                    { value: '', label: '不限' },
+                    { value: '30', label: '最近 30 天' },
+                    { value: '90', label: '最近 90 天' },
+                    { value: '180', label: '最近 180 天' },
+                    { value: '365', label: '最近 1 年' }
                 ];
 
-                let yearChart = null;
-                let categoryChart = null;
+                const categoryOptions = [
+                    { value: 'cond-mat', label: '凝聚态物理' },
+                    { value: 'physics.comp-ph', label: '计算物理' },
+                    { value: 'physics.chem-ph', label: '化学物理' },
+                    { value: 'cs.LG', label: '机器学习' },
+                    { value: 'quant-ph', label: '量子物理' }
+                ];
 
                 const recentCacheStatus = computed(() => {
-                    const cache = recentPapers.value._cacheInfo;
-                    if (!cache || !cache.updated_at) return '未缓存';
-                    const date = new Date(cache.updated_at);
-                    const now = new Date();
-                    const diffMins = Math.floor((now - date) / 60000);
-                    const diffHours = Math.floor(diffMins / 60);
-                    const diffDays = Math.floor(diffHours / 24);
-                    
-                    if (diffMins < 1) return '刚刚更新';
-                    if (diffMins < 60) return `${diffMins} 分钟前更新`;
-                    if (diffHours < 24) return `${diffHours} 小时前更新`;
-                    return `${diffDays} 天前更新`;
+                    const info = recentPapers.value._cacheInfo;
+                    if (!info) return '无缓存';
+                    if (info.cached && info.updated_at) {
+                        const date = new Date(info.updated_at);
+                        return `缓存于 ${date.toLocaleString('zh-CN')}`;
+                    }
+                    return '无缓存';
                 });
 
                 const syncStatusText = computed(() => {
-                    if (syncing.value) return '同步中';
-                    if (syncStatus.value?.current_task) return '处理中';
-                    if (syncStatus.value?.last_sync?.status === 'completed') return '正常';
-                    if (syncStatus.value?.last_sync?.status === 'failed') return '失败';
-                    return '未同步';
+                    if (!syncStatus.value?.last_sync) return '从未同步';
+                    return syncStatus.value.last_sync.status === 'completed' ? '已完成' : '进行中';
                 });
 
                 const syncStatusClass = computed(() => {
-                    if (syncing.value || syncStatus.value?.current_task) return 'warning';
-                    if (syncStatus.value?.last_sync?.status === 'completed') return 'success';
-                    return '';
+                    if (!syncStatus.value?.last_sync) return '';
+                    return syncStatus.value.last_sync.status === 'completed' ? 'success' : 'warning';
                 });
 
                 const syncTimeClass = computed(() => {
@@ -724,58 +793,206 @@
 
                 function initCharts() {
                     if (!window.echarts) return;
-                    
                     yearChart = echarts.init(document.getElementById('yearChart'));
                     categoryChart = echarts.init(document.getElementById('categoryChart'));
                 }
 
                 function renderYearChart(yearData) {
                     if (!yearChart || !yearData) return;
-                    
                     const years = Object.keys(yearData).sort();
                     const values = years.map(y => yearData[y]);
-                    
                     yearChart.setOption({
                         tooltip: { trigger: 'axis' },
                         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
                         xAxis: { type: 'category', data: years },
                         yAxis: { type: 'value' },
-                        series: [{
-                            name: '论文数',
-                            type: 'bar',
-                            data: values,
-                            itemStyle: { color: '#667eea' }
-                        }]
+                        series: [{ name: '论文数', type: 'bar', data: values, itemStyle: { color: '#667eea' } }]
                     });
                 }
 
                 function renderCategoryChart(categoryData) {
                     if (!categoryChart || !categoryData) return;
-                    
                     const names = categoryData.map(c => c.name.length > 20 ? c.name.slice(0, 20) + '...' : c.name);
                     const values = categoryData.map(c => c.count);
-                    
                     categoryChart.setOption({
                         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
                         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
                         xAxis: { type: 'value' },
                         yAxis: { type: 'category', data: names.reverse(), axisLabel: { fontSize: 11 } },
-                        series: [{
-                            name: '论文数',
-                            type: 'bar',
-                            data: values.reverse(),
-                            itemStyle: { color: '#764ba2' }
-                        }]
+                        series: [{ name: '论文数', type: 'bar', data: values.reverse(), itemStyle: { color: '#764ba2' } }]
                     });
+                }
+
+                async function checkInitStatus() {
+                    try {
+                        const res = await fetch(`${API_BASE}/config/status`);
+                        const data = await res.json();
+                        if (!data.is_initialized) {
+                            showSetup.value = true;
+                        }
+                    } catch (e) {
+                        console.error('Failed to check init status:', e);
+                    }
+                }
+
+                async function testSetupAI() {
+                    testingAI.value = true;
+                    try {
+                        const res = await fetch(`${API_BASE}/config/test-ai`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                ai_api_key: setupConfig.value.ai_api_key,
+                                ai_base_url: setupConfig.value.ai_base_url,
+                                ai_model: setupConfig.value.ai_model
+                            })
+                        });
+                        if (res.ok) {
+                            ElementPlus.ElMessage.success('连接成功！');
+                        } else {
+                            const data = await res.json();
+                            ElementPlus.ElMessage.error(data.detail || '连接失败');
+                        }
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('连接失败');
+                    } finally {
+                        testingAI.value = false;
+                    }
+                }
+
+                function toggleSetupField(key) {
+                    const idx = setupConfig.value.selected_fields.indexOf(key);
+                    if (idx >= 0) {
+                        setupConfig.value.selected_fields.splice(idx, 1);
+                    } else {
+                        setupConfig.value.selected_fields.push(key);
+                    }
+                }
+
+                function toggleSettingsField(key) {
+                    if (!settingsConfig.value.selected_fields) {
+                        settingsConfig.value.selected_fields = [];
+                    }
+                    const idx = settingsConfig.value.selected_fields.indexOf(key);
+                    if (idx >= 0) {
+                        settingsConfig.value.selected_fields.splice(idx, 1);
+                    } else {
+                        settingsConfig.value.selected_fields.push(key);
+                    }
+                }
+
+                async function startInitialSync() {
+                    setupStep.value = 4;
+                    initializing.value = true;
+                    initLogs.value = [];
+
+                    try {
+                        await fetch(`${API_BASE}/config/init`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(setupConfig.value)
+                        });
+
+                        const response = await fetch(`${API_BASE}/config/init/sync`, { method: 'POST' });
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let buffer = '';
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop() || '';
+
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const data = JSON.parse(line.slice(6));
+                                        if (data.type === 'log') {
+                                            initLogs.value.push({ type: 'info', message: data.message });
+                                        } else if (data.type === 'progress') {
+                                            initProgress.value = Math.round((data.current / data.total) * 100);
+                                        } else if (data.type === 'done') {
+                                            initLogs.value.push({ type: 'success', message: `同步完成，共 ${data.total_papers} 篇论文` });
+                                            setTimeout(() => {
+                                                showSetup.value = false;
+                                                fetchStats();
+                                                fetchRecentCache();
+                                            }, 1000);
+                                        }
+                                    } catch (e) {}
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        initLogs.value.push({ type: 'error', message: `初始化失败: ${e.message}` });
+                    } finally {
+                        initializing.value = false;
+                    }
+                }
+
+                async function fetchConfig() {
+                    try {
+                        const res = await fetch(`${API_BASE}/config`);
+                        const data = await res.json();
+                        settingsConfig.value = {
+                            ai_api_key: data.ai_api_key || '',
+                            ai_model: data.ai_model || 'DeepSeek-V3.2-Thinking',
+                            ai_base_url: data.ai_base_url || 'https://llmapi.paratera.com',
+                            selected_fields: data.selected_fields || [],
+                            years_back: data.years_back || 5,
+                            arxiv_max_results: data.arxiv_max_results || 10000
+                        };
+                    } catch (e) {
+                        console.error('Failed to fetch config:', e);
+                    }
+                }
+
+                async function testAIConnection() {
+                    testingAI.value = true;
+                    try {
+                        const res = await fetch(`${API_BASE}/config/test-ai`, { method: 'POST' });
+                        if (res.ok) {
+                            ElementPlus.ElMessage.success('连接成功！');
+                        } else {
+                            const data = await res.json();
+                            ElementPlus.ElMessage.error(data.detail || '连接失败');
+                        }
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('连接失败');
+                    } finally {
+                        testingAI.value = false;
+                    }
+                }
+
+                async function saveSettings() {
+                    savingSettings.value = true;
+                    try {
+                        const res = await fetch(`${API_BASE}/config`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(settingsConfig.value)
+                        });
+                        if (res.ok) {
+                            ElementPlus.ElMessage.success('设置已保存');
+                            showSettings.value = false;
+                        } else {
+                            ElementPlus.ElMessage.error('保存失败');
+                        }
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('保存失败');
+                    } finally {
+                        savingSettings.value = false;
+                    }
                 }
 
                 async function fetchStats() {
                     try {
                         const res = await fetch(`${API_BASE}/stats`);
                         stats.value = await res.json();
-                        
                         await nextTick();
-                        
                         if (!yearChart) initCharts();
                         if (stats.value) {
                             renderYearChart(stats.value.years);
@@ -807,7 +1024,6 @@
                 async function updateRecentPapers() {
                     updatingRecent.value = true;
                     recentLogs.value = [];
-                    
                     try {
                         const params = new URLSearchParams({
                             days: parseInt(recentDays.value),
@@ -815,29 +1031,23 @@
                             need_sync: recentNeedSync.value,
                             sync_years: parseInt(recentSyncYears.value)
                         });
-                        
                         if (recentCategories.value.length > 0) {
                             params.append('categories', recentCategories.value.join(','));
                         }
-                        
                         const response = await fetch(`${API_BASE}/papers/recent/update?${params}`, { method: 'POST' });
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         let buffer = '';
-                        
                         while (true) {
                             const { done, value } = await reader.read();
                             if (done) break;
-                            
                             buffer += decoder.decode(value, { stream: true });
                             const lines = buffer.split('\n');
                             buffer = lines.pop() || '';
-                            
                             for (const line of lines) {
                                 if (line.startsWith('data: ')) {
                                     try {
                                         const data = JSON.parse(line.slice(6));
-                                        
                                         if (data.type === 'log') {
                                             recentLogs.value.push({ type: 'info', message: data.message });
                                         } else if (data.type === 'result') {
@@ -846,14 +1056,11 @@
                                             recentLogs.value.push({ type: 'success', message: `更新完成，共 ${data.total} 篇论文` });
                                             fetchRecentCache();
                                         }
-                                    } catch (e) {
-                                        console.error('Parse error:', e);
-                                    }
+                                    } catch (e) {}
                                 }
                             }
                         }
                     } catch (e) {
-                        console.error('Update error:', e);
                         recentLogs.value.push({ type: 'error', message: `更新出错: ${e.message}` });
                     } finally {
                         updatingRecent.value = false;
@@ -871,57 +1078,42 @@
 
                 async function startSearch() {
                     if (!searchQuery.value.trim()) return;
-                    
                     searching.value = true;
                     searchResults.value = [];
                     searchLogs.value = [];
-                    
                     try {
-                        const params = new URLSearchParams({
-                            q: searchQuery.value,
-                            limit: 20
-                        });
+                        const params = new URLSearchParams({ q: searchQuery.value, limit: 20 });
                         const daysValue = parseInt(searchDays.value);
-                        if (daysValue > 0) {
-                            params.append('days', daysValue);
-                        }
-                        
+                        if (daysValue > 0) params.append('days', daysValue);
                         const response = await fetch(`${API_BASE}/papers/search/stream?${params}`);
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         let buffer = '';
-                        
                         while (true) {
                             const { done, value } = await reader.read();
                             if (done) break;
-                            
                             buffer += decoder.decode(value, { stream: true });
                             const lines = buffer.split('\n');
                             buffer = lines.pop() || '';
-                            
                             for (const line of lines) {
                                 if (line.startsWith('data: ')) {
                                     try {
                                         const data = JSON.parse(line.slice(6));
-                                        
                                         if (data.type === 'log') {
                                             searchLogs.value.push({ type: 'info', message: data.message });
                                         } else if (data.type === 'ai_parsed') {
-                                            searchLogs.value.push({ type: 'ai', message: `AI 解析搜索词: ${data.terms.join(', ')}` });
+                                            searchLogs.value.push({ type: 'ai', message: `AI 解析: ${data.terms.join(', ')}` });
                                         } else if (data.type === 'result') {
-                                            searchLogs.value.push({ type: 'success', message: `[${data.index}/${data.total}] 加载论文: ${data.paper.title.slice(0, 50)}...` });
+                                            searchLogs.value.push({ type: 'success', message: `[${data.index}/${data.total}] ${data.paper.title.slice(0, 40)}...` });
                                             searchResults.value.push(data.paper);
                                         } else if (data.type === 'done') {
-                                            searchLogs.value.push({ type: 'success', message: `搜索完成，共找到 ${data.total} 篇论文` });
+                                            searchLogs.value.push({ type: 'success', message: `搜索完成，共 ${data.total} 篇论文` });
                                         }
-                                    } catch (e) {
-                                        console.error('Parse error:', e);
-                                    }
+                                    } catch (e) {}
                                 }
                             }
                         }
                     } catch (e) {
-                        console.error('Search error:', e);
                         searchLogs.value.push({ type: 'error', message: `搜索出错: ${e.message}` });
                     } finally {
                         searching.value = false;
@@ -931,51 +1123,39 @@
                 async function startSync() {
                     syncing.value = true;
                     syncLogs.value = [];
-                    
                     try {
                         const params = new URLSearchParams({
                             years_back: parseInt(syncYearsBack.value),
                             force: syncForce.value
                         });
-                        
                         const response = await fetch(`${API_BASE}/tasks/sync?${params}`, { method: 'POST' });
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         let buffer = '';
-                        
                         while (true) {
                             const { done, value } = await reader.read();
                             if (done) break;
-                            
                             buffer += decoder.decode(value, { stream: true });
                             const lines = buffer.split('\n');
                             buffer = lines.pop() || '';
-                            
                             for (const line of lines) {
                                 if (line.startsWith('data: ')) {
                                     try {
                                         const data = JSON.parse(line.slice(6));
-                                        
                                         if (data.type === 'log') {
                                             syncLogs.value.push({ type: 'info', message: data.message });
                                         } else if (data.type === 'progress') {
                                             syncLogs.value.push({ type: 'progress', message: `进度: ${data.current}/${data.total}` });
                                         } else if (data.type === 'done') {
-                                            syncLogs.value.push({ type: 'success', message: `同步完成，共添加 ${data.papers_added} 篇论文` });
+                                            syncLogs.value.push({ type: 'success', message: `同步完成，新增 ${data.added} 篇论文` });
                                             fetchStats();
                                             fetchSyncStatus();
-                                            fetchRecentCache();
-                                        } else if (data.type === 'error') {
-                                            syncLogs.value.push({ type: 'error', message: data.message });
                                         }
-                                    } catch (e) {
-                                        console.error('Parse error:', e);
-                                    }
+                                    } catch (e) {}
                                 }
                             }
                         }
                     } catch (e) {
-                        console.error('Sync error:', e);
                         syncLogs.value.push({ type: 'error', message: `同步出错: ${e.message}` });
                     } finally {
                         syncing.value = false;
@@ -985,7 +1165,7 @@
                 async function fetchCollections() {
                     try {
                         const res = await fetch(`${API_BASE}/collections`);
-                        collections.value = await res.json() || [];
+                        collections.value = await res.json();
                     } catch (e) {
                         console.error('Failed to fetch collections:', e);
                     }
@@ -1040,11 +1220,7 @@
 
                 function openEditCollection(col) {
                     editingCollection.value = col;
-                    newCollection.value = { 
-                        name: col.name, 
-                        description: col.description || '', 
-                        color: col.color || '#409EFF' 
-                    };
+                    newCollection.value = { name: col.name, description: col.description || '', color: col.color || '#409EFF' };
                     showCreateCollection.value = true;
                 }
 
@@ -1057,9 +1233,7 @@
                     if (!deletingCollection.value) return;
                     deletingCollectionInProgress.value = true;
                     try {
-                        const res = await fetch(`${API_BASE}/collections/${deletingCollection.value.id}`, {
-                            method: 'DELETE'
-                        });
+                        const res = await fetch(`${API_BASE}/collections/${deletingCollection.value.id}`, { method: 'DELETE' });
                         if (res.ok) {
                             showDeleteConfirm.value = false;
                             ElementPlus.ElMessage.success('论文集已删除');
@@ -1073,7 +1247,6 @@
                             ElementPlus.ElMessage.error(data.detail || '删除失败');
                         }
                     } catch (e) {
-                        console.error('Failed to delete collection:', e);
                         ElementPlus.ElMessage.error('删除失败');
                     } finally {
                         deletingCollectionInProgress.value = false;
@@ -1089,7 +1262,6 @@
                         const data = await res.json();
                         collectionPapers.value = data.papers || [];
                     } catch (e) {
-                        console.error('Failed to fetch collection papers:', e);
                         ElementPlus.ElMessage.error('加载论文列表失败');
                     } finally {
                         loadingCollectionPapers.value = false;
@@ -1112,7 +1284,6 @@
                             ElementPlus.ElMessage.error(data.detail || '移除失败');
                         }
                     } catch (e) {
-                        console.error('Failed to remove paper:', e);
                         ElementPlus.ElMessage.error('移除失败');
                     }
                 }
@@ -1141,7 +1312,6 @@
                             ElementPlus.ElMessage.error(data.detail || '添加失败');
                         }
                     } catch (e) {
-                        console.error('Failed to add to collection:', e);
                         ElementPlus.ElMessage.error('添加失败');
                     } finally {
                         addingToCollection.value = false;
@@ -1161,26 +1331,32 @@
                 });
 
                 onMounted(() => {
+                    checkInitStatus();
                     fetchStats();
                     fetchRecentCache();
                     fetchCollections();
                     fetchSyncStatus();
+                    fetchConfig();
                 });
 
                 return {
-                    activeTab, stats, recentPapers, searchResults, collections, 
+                    showSetup, setupStep, setupConfig, initializing, testingAI, initLogs, initProgress,
+                    showSettings, settingsConfig, savingSettings,
+                    activeTab, stats, recentPapers, searchResults, collections,
                     loadingRecent, updatingRecent, recentLogs,
                     recentDays, recentLimit, recentNeedSync, recentSyncYears, recentCategories,
                     categoryOptions, daysOptions, limitOptions, syncYearOptions, syncYearsBackOptions, searchDaysOptions,
                     searching, searchQuery, searchDays, searchLogs,
                     syncStatus, syncing, syncLogs, syncYearsBack, syncForce,
                     syncStatusText, syncStatusClass, syncTimeClass, formatSyncTime,
-                    recentCacheStatus,
+                    recentCacheStatus, researchFields,
                     showCreateCollection, showAddToCollection, showDeleteConfirm,
                     newCollection, editingCollection, deletingCollection,
                     savingCollection, deletingCollectionInProgress,
                     selectedCollectionId, selectedPaper, addingToCollection,
                     viewingCollection, collectionPapers, loadingCollectionPapers,
+                    checkInitStatus, testSetupAI, toggleSetupField, startInitialSync,
+                    testAIConnection, saveSettings, toggleSettingsField,
                     fetchStats, fetchRecentCache, updateRecentPapers, startSearch, fetchCollections,
                     fetchSyncStatus, startSync,
                     saveCollection, cancelCollectionDialog, openEditCollection,
@@ -1188,6 +1364,76 @@
                     openCollectionDetail, removePaperFromCollection,
                     addToCollection, confirmAddToCollection
                 };
+            }
+        });
+
+        app.component('paper-card', {
+            props: ['paper', 'collections', 'inCollection'],
+            emits: ['add-to-collection', 'remove-from-collection'],
+            template: `
+                <div class="paper-card">
+                    <div class="paper-title" @click="openArxiv(paper.arxiv_id)">{{ paper.title }}</div>
+                    <div v-if="paper.title_translation" class="paper-title-cn">{{ paper.title_translation }}</div>
+                    <div class="paper-meta">
+                        <span class="paper-meta-item">
+                            <el-icon><Calendar /></el-icon>
+                            {{ formatDate(paper.published) }}
+                        </span>
+                        <span class="paper-meta-item">
+                            <el-icon><User /></el-icon>
+                            {{ paper.authors?.slice(0, 2).map(a => a.name).join(', ') }}{{ paper.authors?.length > 2 ? ' 等' : '' }}
+                        </span>
+                        <span class="paper-relevance">
+                            <span v-for="i in 5" :key="i" class="star">{{ i <= paper.relevance_score ? '★' : '☆' }}</span>
+                        </span>
+                    </div>
+                    <div class="paper-category" v-if="paper.category_explanation">{{ paper.category_explanation }}</div>
+                    <div class="paper-abstract-preview">{{ paper.abstract?.slice(0, 200) }}...</div>
+                    <div class="paper-actions">
+                        <el-button size="small" text type="primary" @click="expanded = !expanded">
+                            {{ expanded ? '收起' : '展开详情' }}
+                        </el-button>
+                        <el-button size="small" text @click="$emit('add-to-collection', paper)">
+                            <el-icon><FolderAdd /></el-icon> 加入论文集
+                        </el-button>
+                        <el-button v-if="inCollection" size="small" text type="danger" @click="$emit('remove-from-collection', paper.id)">
+                            <el-icon><Delete /></el-icon> 移除
+                        </el-button>
+                    </div>
+                    <div v-if="expanded" class="paper-detail">
+                        <div v-if="paper.key_findings?.length" class="key-findings">
+                            <h4>🔍 关键发现</h4>
+                            <ul>
+                                <li v-for="(finding, i) in paper.key_findings" :key="i">{{ finding }}</li>
+                            </ul>
+                        </div>
+                        <div v-if="paper.figure_url" class="paper-figure">
+                            <img :src="paper.figure_url" @click="openImage(paper.figure_url)" />
+                        </div>
+                        <div class="abstract-section">
+                            <h4>📄 摘要 (Abstract)</h4>
+                            <p>{{ paper.abstract }}</p>
+                            <div v-if="paper.abstract_translation" class="translation">
+                                <h4>📝 中文翻译</h4>
+                                <p>{{ paper.abstract_translation }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `,
+            setup(props) {
+                const expanded = ref(false);
+                const formatDate = (dateStr) => {
+                    if (!dateStr) return '';
+                    return new Date(dateStr).toLocaleDateString('zh-CN');
+                };
+                const openArxiv = (arxivId) => {
+                    window.open(`https://arxiv.org/abs/${arxivId}`, '_blank');
+                };
+                const openImage = (url) => {
+                    window.open(url, '_blank');
+                };
+                return { expanded, formatDate, openArxiv, openImage };
             }
         });
 
