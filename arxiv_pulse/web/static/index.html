@@ -2255,7 +2255,7 @@
 
         app.component('paper-card', {
             props: ['paper', 'collections', 'inCollection', 'selected'],
-            emits: ['add-to-collection', 'remove-from-collection', 'toggle-select'],
+            emits: ['add-to-collection', 'remove-from-collection', 'toggle-select', 'download-card'],
             template: `
                 <div class="paper-card" :class="{ 'paper-selected': selected }">
                     <div class="paper-header">
@@ -2284,6 +2284,9 @@
                         </el-button>
                         <el-button size="small" text type="primary" @click="downloadPDF(paper.arxiv_id)">
                             <el-icon><Download /></el-icon> PDF
+                        </el-button>
+                        <el-button size="small" text type="primary" @click="downloadCard">
+                            <el-icon><Picture /></el-icon> 卡片
                         </el-button>
                         <el-button size="small" text type="primary" @click="expanded = !expanded">
                             {{ expanded ? '收起' : '展开详情' }}
@@ -2331,7 +2334,105 @@
                 const openImage = (url) => {
                     window.open(url, '_blank');
                 };
-                return { expanded, formatDate, openArxiv, downloadPDF, openImage };
+                const downloadCard = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const width = 600;
+                    const padding = 24;
+                    
+                    ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
+                    
+                    let y = padding;
+                    const lines = [];
+                    
+                    const wrapText = (text, maxWidth, fontSize) => {
+                        if (!text) return [];
+                        ctx.font = `${fontSize}px sans-serif`;
+                        const chars = text.split('');
+                        const result = [];
+                        let current = '';
+                        for (const char of chars) {
+                            const test = current + char;
+                            if (ctx.measureText(test).width > maxWidth && current) {
+                                result.push(current);
+                                current = char;
+                            } else {
+                                current = test;
+                            }
+                        }
+                        if (current) result.push(current);
+                        return result;
+                    };
+                    
+                    const titleLines = wrapText(props.paper.title, width - padding * 2, 18);
+                    titleLines.forEach(line => {
+                        lines.push({ text: line, font: 'bold 18px Georgia, serif', color: '#1e3a5f', y: y });
+                        y += 28;
+                    });
+                    
+                    if (props.paper.title_translation) {
+                        lines.push({ text: props.paper.title_translation, font: 'italic 14px sans-serif', color: '#5a6c7d', y: y });
+                        y += 24;
+                    }
+                    
+                    const pubDate = props.paper.published ? new Date(props.paper.published).toLocaleDateString('zh-CN') : 'N/A';
+                    const authors = props.paper.authors?.slice(0, 3).map(a => a.name).join(', ') || '';
+                    lines.push({ text: `${pubDate}  |  ${authors}${props.paper.authors?.length > 3 ? ' 等' : ''}`, font: '12px sans-serif', color: '#909399', y: y });
+                    y += 28;
+                    
+                    if (props.paper.key_findings?.length) {
+                        lines.push({ text: '关键发现', font: 'bold 13px sans-serif', color: '#1e3a5f', y: y });
+                        y += 20;
+                        props.paper.key_findings.slice(0, 3).forEach(finding => {
+                            const findingLines = wrapText(`• ${finding}`, width - padding * 2 - 10, 12);
+                            findingLines.forEach(line => {
+                                lines.push({ text: line, font: '12px sans-serif', color: '#5a6c7d', y: y });
+                                y += 18;
+                            });
+                        });
+                        y += 8;
+                    }
+                    
+                    const abstractLines = wrapText(props.paper.abstract || '', width - padding * 2, 12);
+                    abstractLines.slice(0, 6).forEach(line => {
+                        lines.push({ text: line, font: '12px sans-serif', color: '#444', y: y });
+                        y += 18;
+                    });
+                    if (abstractLines.length > 6) {
+                        lines.push({ text: '...', font: '12px sans-serif', color: '#444', y: y });
+                        y += 18;
+                    }
+                    
+                    y += 16;
+                    lines.push({ text: `arXiv: ${props.paper.arxiv_id}`, font: '11px sans-serif', color: '#909399', y: y });
+                    y += 20;
+                    lines.push({ text: 'arXiv Pulse', font: 'bold 11px Georgia, serif', color: '#c9a227', y: y });
+                    
+                    const height = y + padding;
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, width, height);
+                    ctx.fillStyle = '#1e3a5f';
+                    ctx.fillRect(0, 0, 4, height);
+                    ctx.fillStyle = '#c9a227';
+                    ctx.fillRect(0, height - 3, width, 3);
+                    
+                    lines.forEach(line => {
+                        ctx.font = line.font;
+                        ctx.fillStyle = line.color;
+                        ctx.fillText(line.text, padding, line.y);
+                    });
+                    
+                    const link = document.createElement('a');
+                    link.download = `paper_${props.paper.arxiv_id}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    ElementPlus.ElMessage.success('已导出卡片图片');
+                };
+                return { expanded, formatDate, openArxiv, downloadPDF, openImage, downloadCard };
             }
         });
 

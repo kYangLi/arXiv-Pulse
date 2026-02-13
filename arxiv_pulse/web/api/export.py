@@ -287,13 +287,14 @@ def generate_pdf(papers: list[Paper], include_summary: bool, session, collection
             }
         }
         body {
-            font-family: "Noto Serif CJK SC", "Source Han Serif CN", "SimSun", serif;
+            font-family: "Noto Sans CJK SC", "Noto Serif CJK SC", "Source Han Sans CN", 
+                         "Source Han Serif CN", "WenQuanYi Micro Hei", "WenQuanYi Zen Hei",
+                         "Microsoft YaHei", "SimHei", "SimSun", sans-serif;
             font-size: 11pt;
             line-height: 1.6;
             color: #333;
         }
         h1 {
-            font-family: Georgia, serif;
             color: #1e3a5f;
             font-size: 24pt;
             text-align: center;
@@ -317,7 +318,6 @@ def generate_pdf(papers: list[Paper], include_summary: bool, session, collection
             border-bottom: none;
         }
         .paper-title {
-            font-family: Georgia, serif;
             font-size: 14pt;
             color: #1e3a5f;
             font-weight: bold;
