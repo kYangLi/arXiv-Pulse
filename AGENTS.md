@@ -165,7 +165,7 @@ arxiv_pulse/
 
 Environment variables (`.env` from `.ENV.TEMPLATE`):
 - `AI_API_KEY`: OpenAI/DeepSeek API key
-- `AI_MODEL`: Model name (default: DeepSeek-V3.2-Thinking)
+- `AI_MODEL`: Model name (default: DeepSeek-V3.2)
 - `AI_BASE_URL`: API base URL
 - `SEARCH_QUERIES`: Semicolon-separated search queries
 - `DATABASE_URL`: Database URL (default: SQLite)

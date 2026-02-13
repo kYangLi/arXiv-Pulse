@@ -35,7 +35,7 @@ class TestAIRequest(BaseModel):
 
 class InitConfig(BaseModel):
     ai_api_key: str = ""
-    ai_model: str = "DeepSeek-V3.2-Thinking"
+    ai_model: str = "DeepSeek-V3.2"
     ai_base_url: str = "https://llmapi.paratera.com"
     selected_fields: list[str] = []
     years_back: int = 5
@@ -53,7 +53,7 @@ async def get_config():
 
     return {
         "ai_api_key": "***" if config.get("ai_api_key") else "",
-        "ai_model": config.get("ai_model", "DeepSeek-V3.2-Thinking"),
+        "ai_model": config.get("ai_model", "DeepSeek-V3.2"),
         "ai_base_url": config.get("ai_base_url", "https://llmapi.paratera.com"),
         "search_queries": db.get_search_queries(),
         "arxiv_max_results": int(config.get("arxiv_max_results", 10000)),
@@ -124,11 +124,11 @@ async def test_ai_connection(request: TestAIRequest | None = None):
     if request and request.ai_api_key:
         api_key = request.ai_api_key
         base_url = request.ai_base_url or db.get_config("ai_base_url", "https://llmapi.paratera.com")
-        model = request.ai_model or db.get_config("ai_model", "DeepSeek-V3.2-Thinking")
+        model = request.ai_model or db.get_config("ai_model", "DeepSeek-V3.2")
     else:
         api_key = db.get_config("ai_api_key", "")
         base_url = db.get_config("ai_base_url", "https://llmapi.paratera.com")
-        model = db.get_config("ai_model", "DeepSeek-V3.2-Thinking")
+        model = db.get_config("ai_model", "DeepSeek-V3.2")
 
     if not api_key:
         raise HTTPException(status_code=400, detail="未设置 API 密钥")

@@ -146,7 +146,7 @@ def translate_text(text: str, target_lang: str = "zh") -> str:
         system_prompt = "你是一个专业的翻译助手。将以下英文文本翻译成中文，保持专业术语准确，语言流畅。"
 
         response = client.chat.completions.create(
-            model=Config.AI_MODEL or "DeepSeek-V3.2-Thinking",
+            model=Config.AI_MODEL or "DeepSeek-V3.2",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": text_to_translate},
@@ -562,7 +562,7 @@ async def search_papers_stream(
 """
 
                 response = client.chat.completions.create(
-                    model=Config.AI_MODEL or "DeepSeek-V3.2-Thinking",
+                    model=Config.AI_MODEL or "DeepSeek-V3.2",
                     messages=[
                         {
                             "role": "system",

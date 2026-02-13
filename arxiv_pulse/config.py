@@ -54,7 +54,7 @@ class Config:
 
     @classproperty
     def AI_MODEL(cls) -> str:
-        return cls._get("ai_model", "DeepSeek-V3.2-Thinking")
+        return cls._get("ai_model", "DeepSeek-V3.2")
 
     @classproperty
     def AI_BASE_URL(cls) -> str:

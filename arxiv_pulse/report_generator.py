@@ -454,7 +454,7 @@ class ReportGenerator:
 
         try:
             response = client.chat.completions.create(
-                model=Config.AI_MODEL or "DeepSeek-V3.2-Thinking",
+                model=Config.AI_MODEL or "DeepSeek-V3.2",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": text_to_translate},

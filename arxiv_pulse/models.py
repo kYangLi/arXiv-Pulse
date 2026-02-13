@@ -20,7 +20,7 @@ Base = declarative_base()
 
 DEFAULT_CONFIG = {
     "ai_api_key": "",
-    "ai_model": "DeepSeek-V3.2-Thinking",
+    "ai_model": "DeepSeek-V3.2",
     "ai_base_url": "https://llmapi.paratera.com",
     "search_queries": 'condensed matter physics AND cat:cond-mat.*; (ti:"density functional" OR abs:"density functional") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci OR cat:physics.chem-ph); (ti:"machine learning" OR abs:"machine learning") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci OR cat:physics.chem-ph)',
     "arxiv_max_results": "10000",

@@ -156,6 +156,32 @@ async def delete_collection(collection_id: int):
         return {"message": "Collection deleted"}
 
 
+@router.get("/{collection_id}/papers")
+async def get_collection_papers(collection_id: int):
+    """Get papers in a collection"""
+    with get_db().get_session() as session:
+        collection = session.query(Collection).filter_by(id=collection_id).first()
+        if not collection:
+            raise HTTPException(status_code=404, detail="Collection not found")
+
+        collection_papers = (
+            session.query(CollectionPaper)
+            .filter_by(collection_id=collection_id)
+            .order_by(CollectionPaper.added_at.desc())
+            .all()
+        )
+
+        papers = []
+        for cp in collection_papers:
+            paper = session.query(Paper).filter_by(id=cp.paper_id).first()
+            if paper:
+                paper_data = enhance_paper_data(paper)
+                paper_data["collection_info"] = cp.to_dict()
+                papers.append(paper_data)
+
+        return papers
+
+
 @router.post("/{collection_id}/papers")
 async def add_paper_to_collection(collection_id: int, data: AddPaperToCollection):
     """Add paper to collection"""

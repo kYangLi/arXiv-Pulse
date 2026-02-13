@@ -612,7 +612,7 @@
                         </el-form-item>
                         <el-form-item label="模型名称">
                             <el-select v-model="setupConfig.ai_model" filterable allow-create style="width: 100%;">
-                                <el-option label="DeepSeek-V3.2-Thinking" value="DeepSeek-V3.2-Thinking" />
+                                <el-option label="DeepSeek-V3.2" value="DeepSeek-V3.2" />
                                 <el-option label="gpt-4o" value="gpt-4o" />
                                 <el-option label="gpt-4-turbo" value="gpt-4-turbo" />
                                 <el-option label="gpt-3.5-turbo" value="gpt-3.5-turbo" />
@@ -1074,7 +1074,7 @@
                 
                 const setupConfig = ref({
                     ai_api_key: '',
-                    ai_model: 'DeepSeek-V3.2-Thinking',
+                    ai_model: 'DeepSeek-V3.2',
                     ai_base_url: 'https://llmapi.paratera.com',
                     selected_fields: ['condensed_matter', 'dft', 'machine_learning'],
                     years_back: 5
@@ -1084,7 +1084,7 @@
                 const savingSettings = ref(false);
                 const settingsConfig = ref({
                     ai_api_key: '',
-                    ai_model: 'DeepSeek-V3.2-Thinking',
+                    ai_model: 'DeepSeek-V3.2',
                     ai_base_url: 'https://llmapi.paratera.com',
                     selected_fields: [],
                     years_back: 5,
@@ -1337,7 +1337,7 @@
                         const data = await res.json();
                         settingsConfig.value = {
                             ai_api_key: data.ai_api_key || '',
-                            ai_model: data.ai_model || 'DeepSeek-V3.2-Thinking',
+                            ai_model: data.ai_model || 'DeepSeek-V3.2',
                             ai_base_url: data.ai_base_url || 'https://llmapi.paratera.com',
                             selected_fields: data.selected_fields || [],
                             years_back: data.years_back || 5,
