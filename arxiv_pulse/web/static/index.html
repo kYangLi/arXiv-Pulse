@@ -178,11 +178,7 @@
                     <el-form label-position="top">
                         <el-form-item label="初始同步回溯年数">
                             <el-select v-model="setupConfig.years_back" style="width: 100%;">
-                                <el-option label="1 年" :value="1" />
-                                <el-option label="2 年" :value="2" />
-                                <el-option label="3 年" :value="3" />
-                                <el-option label="5 年（推荐）" :value="5" />
-                                <el-option label="10 年" :value="10" />
+                                <el-option v-for="item in initYearOptions" :key="item.value" :label="item.label" :value="item.value" />
                             </el-select>
                         </el-form-item>
                     </el-form>
@@ -576,11 +572,7 @@
                     <el-form label-position="top">
                         <el-form-item label="回溯年数">
                             <el-select v-model="settingsConfig.years_back" style="width: 100%;">
-                                <el-option label="1 年" :value="1" />
-                                <el-option label="2 年" :value="2" />
-                                <el-option label="3 年" :value="3" />
-                                <el-option label="5 年" :value="5" />
-                                <el-option label="10 年" :value="10" />
+                                <el-option v-for="item in initYearOptions" :key="item.value" :label="item.label" :value="item.value" />
                             </el-select>
                         </el-form-item>
                         <el-form-item label="arXiv 最大结果数">
@@ -721,6 +713,14 @@
                     { value: '3', label: '3 年' },
                     { value: '5', label: '5 年' },
                     { value: '10', label: '10 年' }
+                ];
+
+                const initYearOptions = [
+                    { value: 1, label: '1 年' },
+                    { value: 2, label: '2 年' },
+                    { value: 3, label: '3 年' },
+                    { value: 5, label: '5 年（推荐）' },
+                    { value: 10, label: '10 年' }
                 ];
 
                 const syncYearsBackOptions = [
@@ -1346,7 +1346,7 @@
                     activeTab, stats, recentPapers, searchResults, collections,
                     loadingRecent, updatingRecent, recentLogs,
                     recentDays, recentLimit, recentNeedSync, recentSyncYears, recentCategories,
-                    categoryOptions, daysOptions, limitOptions, syncYearOptions, syncYearsBackOptions, searchDaysOptions,
+                    categoryOptions, daysOptions, limitOptions, syncYearOptions, initYearOptions, syncYearsBackOptions, searchDaysOptions,
                     searching, searchQuery, searchDays, searchLogs,
                     syncStatus, syncing, syncLogs, syncYearsBack, syncForce,
                     syncStatusText, syncStatusClass, syncTimeClass, formatSyncTime,
