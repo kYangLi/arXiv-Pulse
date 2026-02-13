@@ -67,6 +67,8 @@ async def get_config():
 @router.put("")
 async def update_config(config_update: ConfigUpdate):
     """更新配置"""
+    from arxiv_pulse.research_fields import RESEARCH_FIELDS
+
     db = get_db()
 
     if config_update.ai_api_key is not None and config_update.ai_api_key != "***":
@@ -85,6 +87,12 @@ async def update_config(config_update: ConfigUpdate):
         db.set_config("report_max_papers", str(config_update.report_max_papers))
     if config_update.selected_fields is not None:
         db.set_selected_fields(config_update.selected_fields)
+        search_queries = []
+        for field_key in config_update.selected_fields:
+            if field_key in RESEARCH_FIELDS:
+                search_queries.append(RESEARCH_FIELDS[field_key]["query"])
+        if search_queries:
+            db.set_search_queries(search_queries)
 
     return {"success": True, "message": "配置已更新"}
 
@@ -159,6 +167,8 @@ async def get_available_models():
 @router.post("/init")
 async def initialize_system(init_config: InitConfig):
     """初始化系统"""
+    from arxiv_pulse.research_fields import RESEARCH_FIELDS
+
     db = get_db()
 
     if db.is_initialized():
@@ -169,6 +179,14 @@ async def initialize_system(init_config: InitConfig):
     db.set_config("ai_base_url", init_config.ai_base_url)
     db.set_config("years_back", str(init_config.years_back))
     db.set_selected_fields(init_config.selected_fields)
+
+    search_queries = []
+    for field_key in init_config.selected_fields:
+        if field_key in RESEARCH_FIELDS:
+            search_queries.append(RESEARCH_FIELDS[field_key]["query"])
+
+    if search_queries:
+        db.set_search_queries(search_queries)
 
     return {"success": True, "message": "配置已保存"}
 
