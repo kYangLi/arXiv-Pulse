@@ -228,9 +228,13 @@ async def initial_sync():
 
             try:
                 result = crawler.sync_query(query=query, years_back=years_back, force=False)
-                added = result.get("new_papers", 0)
-                total_added += added
-                yield f"data: {json.dumps({'type': 'progress', 'current': i, 'total': len(search_queries), 'added': added}, ensure_ascii=False)}\n\n"
+                if "error" in result:
+                    error_msg = result["error"][:80]
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'  错误: {error_msg}'}, ensure_ascii=False)}\n\n"
+                else:
+                    added = result.get("new_papers", 0)
+                    total_added += added
+                    yield f"data: {json.dumps({'type': 'progress', 'current': i, 'total': len(search_queries), 'added': added}, ensure_ascii=False)}\n\n"
             except Exception as e:
                 yield f"data: {json.dumps({'type': 'log', 'message': f'  错误: {str(e)[:80]}'}, ensure_ascii=False)}\n\n"
 
