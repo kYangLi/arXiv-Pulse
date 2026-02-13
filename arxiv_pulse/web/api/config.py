@@ -27,6 +27,12 @@ class ConfigUpdate(BaseModel):
     selected_fields: list[str] | None = None
 
 
+class TestAIRequest(BaseModel):
+    ai_api_key: str | None = None
+    ai_base_url: str | None = None
+    ai_model: str | None = None
+
+
 class InitConfig(BaseModel):
     ai_api_key: str = ""
     ai_model: str = "DeepSeek-V3.2-Thinking"
@@ -103,12 +109,18 @@ async def get_status():
 
 
 @router.post("/test-ai")
-async def test_ai_connection():
+async def test_ai_connection(request: TestAIRequest | None = None):
     """测试 AI API 连接"""
     db = get_db()
-    api_key = db.get_config("ai_api_key", "")
-    base_url = db.get_config("ai_base_url", "https://llmapi.paratera.com")
-    model = db.get_config("ai_model", "DeepSeek-V3.2-Thinking")
+
+    if request and request.ai_api_key:
+        api_key = request.ai_api_key
+        base_url = request.ai_base_url or db.get_config("ai_base_url", "https://llmapi.paratera.com")
+        model = request.ai_model or db.get_config("ai_model", "DeepSeek-V3.2-Thinking")
+    else:
+        api_key = db.get_config("ai_api_key", "")
+        base_url = db.get_config("ai_base_url", "https://llmapi.paratera.com")
+        model = db.get_config("ai_model", "DeepSeek-V3.2-Thinking")
 
     if not api_key:
         raise HTTPException(status_code=400, detail="未设置 API 密钥")
