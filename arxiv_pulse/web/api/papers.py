@@ -594,19 +594,87 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
         yield f"data: {json.dumps({'type': 'log', 'message': f'正在进行模糊搜索: {q}'}, ensure_ascii=False)}\n\n"
         await asyncio.sleep(0.1)
 
+        search_terms = [q]
+
+        if Config.AI_API_KEY:
+            try:
+                import openai
+
+                yield f"data: {json.dumps({'type': 'log', 'message': '正在使用 AI 解析搜索词...'}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.1)
+
+                client = openai.OpenAI(api_key=Config.AI_API_KEY, base_url=Config.AI_BASE_URL)
+
+                ai_prompt = f"""
+用户正在搜索arXiv物理/计算材料科学论文，查询是: "{q}"
+
+请将自然语言查询转换为适合arXiv搜索的关键词或短语。
+
+重要规则：
+1. 如果查询已经是明确的搜索词（如"DeepH"、"deep learning Hamiltonian"、"DFT计算"），直接使用它，不要添加同义词
+2. 如果查询包含专业术语、缩写或专有名词，保持原样作为主要搜索词
+3. 仅当查询非常模糊或一般性时，才生成1-2个相关关键词
+4. 优先保持查询的原始意图，不要添加不相关的关键词
+5. 对于英文查询，保持原样；对于中文查询，翻译为英文关键词
+
+返回格式：JSON数组，包含1-2个搜索关键词/短语。
+只返回JSON数组，不要其他文本。
+"""
+
+                response = client.chat.completions.create(
+                    model=Config.AI_MODEL or "DeepSeek-V3.2",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "你是arXiv论文搜索助手，擅长识别专业术语并将自然语言查询转换为学术搜索关键词。",
+                        },
+                        {"role": "user", "content": ai_prompt},
+                    ],
+                    max_tokens=200,
+                    temperature=0.3,
+                )
+
+                ai_response = response.choices[0].message.content
+                if ai_response:
+                    try:
+                        parsed = json.loads(ai_response)
+                        if isinstance(parsed, list) and len(parsed) > 0:
+                            search_terms = parsed
+                            yield f"data: {json.dumps({'type': 'log', 'message': f'AI 解析结果: {", ".join(search_terms)}'}, ensure_ascii=False)}\n\n"
+                            await asyncio.sleep(0.1)
+                    except:
+                        pass
+
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'AI 解析失败，使用原始搜索词'}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.1)
+
         from arxiv_pulse.search_engine import SearchEngine, SearchFilter
 
+        all_papers = []
         with db.get_session() as session:
             search_engine = SearchEngine(session)
-            filter_config = SearchFilter(
-                query=q,
-                search_fields=["title", "abstract"],
-                days_back=0,
-                limit=20,
-                sort_by="published",
-                sort_order="desc",
-            )
-            papers = search_engine.search_papers(filter_config)
+            for term in search_terms:
+                filter_config = SearchFilter(
+                    query=term,
+                    search_fields=["title", "abstract"],
+                    days_back=0,
+                    limit=30,
+                    sort_by="published",
+                    sort_order="desc",
+                )
+                papers = search_engine.search_papers(filter_config)
+                all_papers.extend(papers)
+
+        seen_ids = set()
+        unique_papers = []
+        for p in all_papers:
+            if p.arxiv_id not in seen_ids:
+                seen_ids.add(p.arxiv_id)
+                unique_papers.append(p)
+
+        unique_papers.sort(key=lambda p: p.published if p.published else datetime.min, reverse=True)
+        papers = unique_papers[:20]
 
         if not papers:
             yield f"data: {json.dumps({'type': 'log', 'message': '数据库中未找到匹配论文'}, ensure_ascii=False)}\n\n"
