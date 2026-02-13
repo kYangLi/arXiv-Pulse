@@ -2334,20 +2334,18 @@
                 const openImage = (url) => {
                     window.open(url, '_blank');
                 };
-                const downloadCard = () => {
+                const downloadCard = async () => {
+                    const scale = 2;
+                    const width = 700 * scale;
+                    const padding = 32 * scale;
+                    const lineHeight = 24 * scale;
+                    
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    const width = 600;
-                    const padding = 24;
-                    
-                    ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
-                    
-                    let y = padding;
-                    const lines = [];
                     
                     const wrapText = (text, maxWidth, fontSize) => {
                         if (!text) return [];
-                        ctx.font = `${fontSize}px sans-serif`;
+                        ctx.font = `${fontSize * scale}px sans-serif`;
                         const chars = text.split('');
                         const result = [];
                         let current = '';
@@ -2364,49 +2362,90 @@
                         return result;
                     };
                     
-                    const titleLines = wrapText(props.paper.title, width - padding * 2, 18);
+                    let y = padding;
+                    const elements = [];
+                    
+                    const titleLines = wrapText(props.paper.title, width - padding * 2, 20);
                     titleLines.forEach(line => {
-                        lines.push({ text: line, font: 'bold 18px Georgia, serif', color: '#1e3a5f', y: y });
-                        y += 28;
+                        elements.push({ type: 'text', text: line, font: `bold ${20 * scale}px Georgia, "Noto Serif SC", serif`, color: '#1e3a5f', y: y });
+                        y += 32 * scale;
                     });
                     
                     if (props.paper.title_translation) {
-                        lines.push({ text: props.paper.title_translation, font: 'italic 14px sans-serif', color: '#5a6c7d', y: y });
-                        y += 24;
+                        const transLines = wrapText(props.paper.title_translation, width - padding * 2, 16);
+                        transLines.forEach(line => {
+                            elements.push({ type: 'text', text: line, font: `italic ${16 * scale}px sans-serif`, color: '#5a6c7d', y: y });
+                            y += 26 * scale;
+                        });
+                        y += 8 * scale;
                     }
                     
                     const pubDate = props.paper.published ? new Date(props.paper.published).toLocaleDateString('zh-CN') : 'N/A';
-                    const authors = props.paper.authors?.slice(0, 3).map(a => a.name).join(', ') || '';
-                    lines.push({ text: `${pubDate}  |  ${authors}${props.paper.authors?.length > 3 ? ' 等' : ''}`, font: '12px sans-serif', color: '#909399', y: y });
-                    y += 28;
+                    const authors = props.paper.authors?.slice(0, 4).map(a => a.name).join(', ') || '';
+                    elements.push({ type: 'text', text: `${pubDate}  |  ${authors}${props.paper.authors?.length > 4 ? ' 等' : ''}`, font: `${13 * scale}px sans-serif`, color: '#909399', y: y });
+                    y += 36 * scale;
+                    
+                    elements.push({ type: 'divider', y: y });
+                    y += 20 * scale;
                     
                     if (props.paper.key_findings?.length) {
-                        lines.push({ text: '关键发现', font: 'bold 13px sans-serif', color: '#1e3a5f', y: y });
-                        y += 20;
-                        props.paper.key_findings.slice(0, 3).forEach(finding => {
-                            const findingLines = wrapText(`• ${finding}`, width - padding * 2 - 10, 12);
+                        elements.push({ type: 'section-title', text: '关键发现', y: y });
+                        y += 28 * scale;
+                        props.paper.key_findings.forEach(finding => {
+                            const findingLines = wrapText(`• ${finding}`, width - padding * 2 - 20 * scale, 14);
                             findingLines.forEach(line => {
-                                lines.push({ text: line, font: '12px sans-serif', color: '#5a6c7d', y: y });
-                                y += 18;
+                                elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#5a6c7d', y: y });
+                                y += 22 * scale;
                             });
                         });
-                        y += 8;
+                        y += 12 * scale;
                     }
                     
-                    const abstractLines = wrapText(props.paper.abstract || '', width - padding * 2, 12);
-                    abstractLines.slice(0, 6).forEach(line => {
-                        lines.push({ text: line, font: '12px sans-serif', color: '#444', y: y });
-                        y += 18;
+                    if (props.paper.figure_url) {
+                        try {
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            await new Promise((resolve, reject) => {
+                                img.onload = resolve;
+                                img.onerror = reject;
+                                img.src = props.paper.figure_url;
+                            });
+                            const maxImgWidth = width - padding * 2;
+                            const imgScale = Math.min(1, maxImgWidth / img.width);
+                            const imgHeight = img.height * imgScale * 0.6;
+                            elements.push({ type: 'image', img, y, width: maxImgWidth, height: imgHeight });
+                            y += imgHeight + 20 * scale;
+                        } catch (e) {}
+                    }
+                    
+                    elements.push({ type: 'section-title', text: '摘要 (Abstract)', y: y });
+                    y += 28 * scale;
+                    
+                    const abstractLines = wrapText(props.paper.abstract || '', width - padding * 2, 14);
+                    abstractLines.forEach(line => {
+                        elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#444', y: y });
+                        y += 22 * scale;
                     });
-                    if (abstractLines.length > 6) {
-                        lines.push({ text: '...', font: '12px sans-serif', color: '#444', y: y });
-                        y += 18;
+                    y += 12 * scale;
+                    
+                    if (props.paper.abstract_translation) {
+                        elements.push({ type: 'section-title', text: '中文翻译', y: y });
+                        y += 28 * scale;
+                        const transAbstractLines = wrapText(props.paper.abstract_translation, width - padding * 2, 14);
+                        transAbstractLines.forEach(line => {
+                            elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#555', y: y });
+                            y += 22 * scale;
+                        });
+                        y += 12 * scale;
                     }
                     
-                    y += 16;
-                    lines.push({ text: `arXiv: ${props.paper.arxiv_id}`, font: '11px sans-serif', color: '#909399', y: y });
-                    y += 20;
-                    lines.push({ text: 'arXiv Pulse', font: 'bold 11px Georgia, serif', color: '#c9a227', y: y });
+                    y += 16 * scale;
+                    elements.push({ type: 'divider', y: y });
+                    y += 20 * scale;
+                    
+                    elements.push({ type: 'text', text: `arXiv: ${props.paper.arxiv_id}`, font: `${12 * scale}px sans-serif`, color: '#909399', y: y });
+                    y += 24 * scale;
+                    elements.push({ type: 'text', text: 'arXiv Pulse', font: `bold ${13 * scale}px Georgia, serif`, color: '#c9a227', y: y });
                     
                     const height = y + padding;
                     canvas.width = width;
@@ -2414,20 +2453,39 @@
                     
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, width, height);
-                    ctx.fillStyle = '#1e3a5f';
-                    ctx.fillRect(0, 0, 4, height);
-                    ctx.fillStyle = '#c9a227';
-                    ctx.fillRect(0, height - 3, width, 3);
                     
-                    lines.forEach(line => {
-                        ctx.font = line.font;
-                        ctx.fillStyle = line.color;
-                        ctx.fillText(line.text, padding, line.y);
-                    });
+                    ctx.fillStyle = '#1e3a5f';
+                    ctx.fillRect(0, 0, 6 * scale, height);
+                    
+                    ctx.fillStyle = '#c9a227';
+                    ctx.fillRect(0, height - 4 * scale, width, 4 * scale);
+                    
+                    for (const el of elements) {
+                        if (el.type === 'text') {
+                            ctx.font = el.font;
+                            ctx.fillStyle = el.color;
+                            ctx.fillText(el.text, padding, el.y);
+                        } else if (el.type === 'section-title') {
+                            ctx.font = `bold ${15 * scale}px sans-serif`;
+                            ctx.fillStyle = '#1e3a5f';
+                            ctx.fillText(el.text, padding, el.y);
+                            ctx.fillStyle = '#c9a227';
+                            ctx.fillRect(padding, el.y + 6 * scale, 40 * scale, 2 * scale);
+                        } else if (el.type === 'divider') {
+                            ctx.strokeStyle = '#e8e6e1';
+                            ctx.lineWidth = 1 * scale;
+                            ctx.beginPath();
+                            ctx.moveTo(padding, el.y);
+                            ctx.lineTo(width - padding, el.y);
+                            ctx.stroke();
+                        } else if (el.type === 'image') {
+                            ctx.drawImage(el.img, padding, el.y, el.width, el.height);
+                        }
+                    }
                     
                     const link = document.createElement('a');
                     link.download = `paper_${props.paper.arxiv_id}.png`;
-                    link.href = canvas.toDataURL('image/png');
+                    link.href = canvas.toDataURL('image/png', 1.0);
                     link.click();
                     
                     ElementPlus.ElMessage.success('已导出卡片图片');
