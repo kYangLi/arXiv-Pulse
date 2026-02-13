@@ -7,10 +7,8 @@ from .__version__ import __version__
 __author__ = "arXiv Pulse Team"
 
 from .arxiv_crawler import ArXivCrawler
-from .banner import generate_banner_title, print_banner, print_banner_custom
 from .config import Config
-from .environment import setup_environment
-from .models import Database, Paper, TranslationCache
+from .models import Collection, Database, Paper, TranslationCache
 from .output_manager import OutputManager, output
 from .report_generator import ReportGenerator
 from .research_fields import DEFAULT_BANNER_FIELDS, RESEARCH_FIELDS
@@ -19,6 +17,7 @@ from .utils import get_workday_cutoff, parse_time_range
 
 __all__ = [
     "ArXivCrawler",
+    "Collection",
     "Config",
     "Database",
     "OutputManager",
@@ -28,8 +27,6 @@ __all__ = [
     "TranslationCache",
     "__version__",
     "output",
-    "banner",
-    "environment",
     "research_fields",
     "utils",
 ]
