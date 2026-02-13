@@ -2412,9 +2412,10 @@
                             });
                             const maxImgWidth = width - padding * 2;
                             const imgScale = Math.min(1, maxImgWidth / img.width);
-                            const imgHeight = img.height * imgScale * 0.6;
-                            elements.push({ type: 'image', img, y, width: maxImgWidth, height: imgHeight });
-                            y += imgHeight + 20 * scale;
+                            const imgDrawWidth = img.width * imgScale;
+                            const imgDrawHeight = img.height * imgScale;
+                            elements.push({ type: 'image', img, y, width: imgDrawWidth, height: imgDrawHeight });
+                            y += imgDrawHeight + 20 * scale;
                         } catch (e) {}
                     }
                     
