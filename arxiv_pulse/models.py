@@ -97,8 +97,12 @@ class Paper(Base):
         """Create Paper instance from arXiv entry"""
         authors = [{"name": author.name, "affiliation": getattr(author, "affiliation", "")} for author in entry.authors]
 
+        arxiv_id = entry.entry_id.split("/")[-1]
+        if "v" in arxiv_id:
+            arxiv_id = arxiv_id.split("v")[0]
+
         return cls(
-            arxiv_id=entry.entry_id.split("/")[-1],
+            arxiv_id=arxiv_id,
             title=entry.title,
             authors=json.dumps(authors),
             abstract=entry.summary,
@@ -106,11 +110,7 @@ class Paper(Base):
             primary_category=entry.primary_category if hasattr(entry, "primary_category") else "",
             published=entry.published,
             updated=entry.updated if hasattr(entry, "updated") else None,
-            pdf_url=(
-                entry.pdf_url
-                if hasattr(entry, "pdf_url")
-                else f"https://arxiv.org/pdf/{entry.entry_id.split('/')[-1]}.pdf"
-            ),
+            pdf_url=(entry.pdf_url if hasattr(entry, "pdf_url") else f"https://arxiv.org/pdf/{arxiv_id}.pdf"),
             doi=entry.doi if hasattr(entry, "doi") else None,
             journal_ref=entry.journal_ref if hasattr(entry, "journal_ref") else None,
             comment=entry.comment if hasattr(entry, "comment") else None,
