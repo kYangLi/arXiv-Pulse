@@ -102,6 +102,14 @@ class Config:
     def IMPORTANT_PAPERS_FILE(cls) -> str:
         return os.getenv("IMPORTANT_PAPERS_FILE", "data/important_papers.txt")
 
+    @classproperty
+    def UI_LANGUAGE(cls) -> str:
+        return cls._get("ui_language", "zh")
+
+    @classproperty
+    def TRANSLATE_LANGUAGE(cls) -> str:
+        return cls._get("translate_language", "zh")
+
     @classmethod
     def is_initialized(cls) -> bool:
         db = get_db()

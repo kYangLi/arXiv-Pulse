@@ -1813,6 +1813,24 @@
                         </el-form>
                     </div>
 
+                    <div class="settings-section">
+                        <h3>语言设置</h3>
+                        <el-form label-position="top">
+                            <el-form-item label="界面语言">
+                                <el-select v-model="settingsConfig.ui_language" style="width: 100%;">
+                                    <el-option label="中文" value="zh" />
+                                    <el-option label="English" value="en" />
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="翻译语言">
+                                <el-select v-model="settingsConfig.translate_language" style="width: 100%;">
+                                    <el-option label="中文" value="zh" />
+                                    <el-option label="English (不翻译)" value="en" />
+                                </el-select>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+
                     <div style="display: flex; justify-content: flex-end; gap: 12px;">
                         <el-button @click="showSettings = false">取消</el-button>
                         <el-button type="primary" @click="saveSettings" :loading="savingSettings">保存设置</el-button>
@@ -2128,6 +2146,353 @@
         const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
         const API_BASE = '/api';
 
+        // i18n translations
+        const i18n = {
+            zh: {
+                nav: {
+                    home: '首页',
+                    recent: '最近论文',
+                    sync: '同步管理',
+                    collections: '论文集',
+                    settings: '设置'
+                },
+                common: {
+                    search: '搜索',
+                    update: '更新',
+                    export: '导出',
+                    cancel: '取消',
+                    save: '保存',
+                    delete: '删除',
+                    edit: '编辑',
+                    confirm: '确认',
+                    loading: '加载中...',
+                    noData: '暂无数据',
+                    success: '成功',
+                    error: '错误'
+                },
+                home: {
+                    title: 'arXiv Pulse',
+                    subtitle: '智能学术文献追踪与分析系统',
+                    searchPlaceholder: '输入关键词或自然语言描述搜索论文...',
+                    searchBtn: '搜索',
+                    hints: '支持自然语言搜索，如"机器学习在材料设计中的应用"',
+                    recentPapers: '最近论文',
+                    syncManage: '同步管理',
+                    paperCollections: '论文集',
+                    totalPapers: '篇论文',
+                    totalCollections: '个论文集',
+                    summarizedPapers: '篇已总结'
+                },
+                papers: {
+                    recentPapers: '最近论文',
+                    update: '更新',
+                    startSync: '开始同步',
+                    never: '从未',
+                    noPapers: '暂无论文',
+                    syncNow: '立即同步',
+                    latestSync: '最近同步',
+                    daysAgo: '天前',
+                    justNow: '刚刚'
+                },
+                collections: {
+                    title: '论文集',
+                    create: '新建论文集',
+                    name: '名称',
+                    description: '描述',
+                    color: '颜色',
+                    papers: '篇论文',
+                    noCollections: '暂无论文集',
+                    exportCollection: '导出论文集'
+                },
+                settings: {
+                    title: '系统设置',
+                    apiConfig: 'API 配置',
+                    apiBaseUrl: 'API Base URL',
+                    apiKey: 'API Key',
+                    modelName: '模型名称',
+                    testConnection: '测试连接',
+                    researchFields: '研究领域',
+                    fieldsHint: '已有论文的领域取消后仅停止同步，不会删除已有论文',
+                    syncSettings: '同步设置',
+                    yearsBack: '回溯年数',
+                    arxivMaxResults: 'arXiv 最大结果数',
+                    languageSettings: '语言设置',
+                    uiLanguage: '界面语言',
+                    translateLanguage: '翻译语言',
+                    noTranslate: 'English (不翻译)',
+                    saveSettings: '保存设置'
+                },
+                setup: {
+                    welcome: '欢迎使用 arXiv Pulse',
+                    step: '步骤',
+                    apiConfig: '配置 AI API',
+                    selectFields: '选择研究领域',
+                    syncSettings: '同步设置',
+                    startSync: '开始同步',
+                    apiHint: '配置 AI API 以启用智能总结和翻译功能',
+                    fieldsHint: '选择您感兴趣的研究领域',
+                    syncHint: '设置同步参数',
+                    syncBtn: '开始同步',
+                    yearsBack: '回溯年数',
+                    syncing: '正在同步...',
+                    syncComplete: '同步完成'
+                },
+                basket: {
+                    title: '暂存篮',
+                    empty: '暂存篮是空的',
+                    emptyHint: '点击论文卡片的"暂存"按钮添加论文',
+                    export: '导出',
+                    addToCollection: '论文集',
+                    copyLinks: '复制链接',
+                    clear: '清空',
+                    added: '已添加到暂存篮',
+                    removed: '已从暂存篮移除'
+                },
+                chat: {
+                    title: 'AI 助手',
+                    newChat: '新建对话',
+                    inputPlaceholder: '输入消息...',
+                    send: '发送',
+                    thinking: '思考中...',
+                    history: '对话历史',
+                    noSession: '暂无对话',
+                    welcome: '你好！我是 AI 助手，可以帮你分析论文、回答问题。有什么可以帮你的吗？',
+                    analyzePaper: '分析'
+                },
+                paper: {
+                    aiSummary: 'AI 总结',
+                    keyFindings: '关键发现',
+                    keywords: '关键词',
+                    abstract: '摘要',
+                    chineseTranslation: '中文翻译',
+                    expandDetail: '展开详情',
+                    collapse: '收起',
+                    arxiv: 'arXiv',
+                    pdf: 'PDF',
+                    card: '卡片',
+                    bookmark: '暂存',
+                    bookmarked: '已暂存',
+                    analyze: '分析',
+                    addToCollection: '论文集',
+                    removeFromCollection: '移除'
+                },
+                time: {
+                    justNow: '刚刚',
+                    minutesAgo: '分钟前',
+                    hoursAgo: '小时前',
+                    daysAgo: '天前',
+                    yesterday: '昨天',
+                    never: '从未'
+                },
+                status: {
+                    running: '运行中',
+                    completed: '已完成',
+                    failed: '失败',
+                    pending: '等待中'
+                },
+                fields: {
+                    condensed_matter: { name: '凝聚态物理', desc: '超导、强关联电子、介观系统等' },
+                    dft: { name: '密度泛函理论 (DFT)', desc: '第一性原理计算、材料设计' },
+                    machine_learning: { name: '机器学习', desc: 'ML在物理和材料科学中的应用' },
+                    force_fields: { name: '力场与分子动力学', desc: '力场开发、MD模拟' },
+                    first_principles: { name: '第一性原理计算', desc: 'ab initio 方法' },
+                    quantum_physics: { name: '量子物理', desc: '量子信息、量子计算' },
+                    computational_physics: { name: '计算物理', desc: '数值计算方法' },
+                    chemical_physics: { name: '化学物理', desc: '化学过程的物理基础' },
+                    molecular_dynamics: { name: '分子动力学', desc: 'MD模拟技术' },
+                    computational_materials: { name: '计算材料科学', desc: '材料计算与模拟' },
+                    astro_physics: { name: '天体物理', desc: '天体物理学、宇宙学' },
+                    high_energy_physics: { name: '高能物理', desc: '粒子物理理论与实验' },
+                    nuclear_physics: { name: '核物理', desc: '核物理理论与实验' },
+                    general_relativity: { name: '广义相对论', desc: '引力理论、宇宙学' },
+                    mathematical_physics: { name: '数学物理', desc: '物理问题的数学方法' },
+                    statistics: { name: '统计学', desc: '统计学理论与应用' },
+                    quantitative_biology: { name: '定量生物学', desc: '生物信息学、系统生物学' },
+                    artificial_intelligence: { name: '人工智能', desc: 'AI、神经网络' }
+                }
+            },
+            en: {
+                nav: {
+                    home: 'Home',
+                    recent: 'Recent Papers',
+                    sync: 'Sync',
+                    collections: 'Collections',
+                    settings: 'Settings'
+                },
+                common: {
+                    search: 'Search',
+                    update: 'Update',
+                    export: 'Export',
+                    cancel: 'Cancel',
+                    save: 'Save',
+                    delete: 'Delete',
+                    edit: 'Edit',
+                    confirm: 'Confirm',
+                    loading: 'Loading...',
+                    noData: 'No data',
+                    success: 'Success',
+                    error: 'Error'
+                },
+                home: {
+                    title: 'arXiv Pulse',
+                    subtitle: 'Intelligent Academic Literature Tracking & Analysis System',
+                    searchPlaceholder: 'Enter keywords or natural language description...',
+                    searchBtn: 'Search',
+                    hints: 'Supports natural language search, e.g., "machine learning for materials design"',
+                    recentPapers: 'Recent Papers',
+                    syncManage: 'Sync Management',
+                    paperCollections: 'Collections',
+                    totalPapers: 'papers',
+                    totalCollections: 'collections',
+                    summarizedPapers: 'summarized'
+                },
+                papers: {
+                    recentPapers: 'Recent Papers',
+                    update: 'Update',
+                    startSync: 'Start Sync',
+                    never: 'Never',
+                    noPapers: 'No papers yet',
+                    syncNow: 'Sync Now',
+                    latestSync: 'Latest Sync',
+                    daysAgo: 'days ago',
+                    justNow: 'Just now'
+                },
+                collections: {
+                    title: 'Collections',
+                    create: 'New Collection',
+                    name: 'Name',
+                    description: 'Description',
+                    color: 'Color',
+                    papers: 'papers',
+                    noCollections: 'No collections yet',
+                    exportCollection: 'Export Collection'
+                },
+                settings: {
+                    title: 'Settings',
+                    apiConfig: 'API Configuration',
+                    apiBaseUrl: 'API Base URL',
+                    apiKey: 'API Key',
+                    modelName: 'Model Name',
+                    testConnection: 'Test Connection',
+                    researchFields: 'Research Fields',
+                    fieldsHint: 'Unchecking fields with papers only stops syncing, papers are preserved',
+                    syncSettings: 'Sync Settings',
+                    yearsBack: 'Years Back',
+                    arxivMaxResults: 'arXiv Max Results',
+                    languageSettings: 'Language Settings',
+                    uiLanguage: 'UI Language',
+                    translateLanguage: 'Translation Language',
+                    noTranslate: 'English (No translation)',
+                    saveSettings: 'Save Settings'
+                },
+                setup: {
+                    welcome: 'Welcome to arXiv Pulse',
+                    step: 'Step',
+                    apiConfig: 'Configure AI API',
+                    selectFields: 'Select Research Fields',
+                    syncSettings: 'Sync Settings',
+                    startSync: 'Start Sync',
+                    apiHint: 'Configure AI API for intelligent summarization and translation',
+                    fieldsHint: 'Select your research fields of interest',
+                    syncHint: 'Set sync parameters',
+                    syncBtn: 'Start Sync',
+                    yearsBack: 'Years Back',
+                    syncing: 'Syncing...',
+                    syncComplete: 'Sync Complete'
+                },
+                basket: {
+                    title: 'Basket',
+                    empty: 'Basket is empty',
+                    emptyHint: 'Click "Bookmark" on paper cards to add papers',
+                    export: 'Export',
+                    addToCollection: 'Collection',
+                    copyLinks: 'Copy Links',
+                    clear: 'Clear',
+                    added: 'Added to basket',
+                    removed: 'Removed from basket'
+                },
+                chat: {
+                    title: 'AI Assistant',
+                    newChat: 'New Chat',
+                    inputPlaceholder: 'Enter message...',
+                    send: 'Send',
+                    thinking: 'Thinking...',
+                    history: 'Chat History',
+                    noSession: 'No sessions yet',
+                    welcome: 'Hello! I\'m an AI assistant that can help you analyze papers and answer questions. How can I help you?',
+                    analyzePaper: 'Analyze'
+                },
+                paper: {
+                    aiSummary: 'AI Summary',
+                    keyFindings: 'Key Findings',
+                    keywords: 'Keywords',
+                    abstract: 'Abstract',
+                    chineseTranslation: 'Chinese Translation',
+                    expandDetail: 'Expand',
+                    collapse: 'Collapse',
+                    arxiv: 'arXiv',
+                    pdf: 'PDF',
+                    card: 'Card',
+                    bookmark: 'Bookmark',
+                    bookmarked: 'Bookmarked',
+                    analyze: 'Analyze',
+                    addToCollection: 'Collection',
+                    removeFromCollection: 'Remove'
+                },
+                time: {
+                    justNow: 'Just now',
+                    minutesAgo: 'minutes ago',
+                    hoursAgo: 'hours ago',
+                    daysAgo: 'days ago',
+                    yesterday: 'Yesterday',
+                    never: 'Never'
+                },
+                status: {
+                    running: 'Running',
+                    completed: 'Completed',
+                    failed: 'Failed',
+                    pending: 'Pending'
+                },
+                fields: {
+                    condensed_matter: { name: 'Condensed Matter', desc: 'Superconductivity, strongly correlated electrons' },
+                    dft: { name: 'DFT', desc: 'First-principles calculations, materials design' },
+                    machine_learning: { name: 'Machine Learning', desc: 'ML in physics and materials science' },
+                    force_fields: { name: 'Force Fields & MD', desc: 'Force field development, MD simulations' },
+                    first_principles: { name: 'First-Principles', desc: 'Ab initio methods' },
+                    quantum_physics: { name: 'Quantum Physics', desc: 'Quantum information, quantum computing' },
+                    computational_physics: { name: 'Computational Physics', desc: 'Numerical methods' },
+                    chemical_physics: { name: 'Chemical Physics', desc: 'Physical basis of chemical processes' },
+                    molecular_dynamics: { name: 'Molecular Dynamics', desc: 'MD simulation techniques' },
+                    computational_materials: { name: 'Computational Materials', desc: 'Materials computation and simulation' },
+                    astro_physics: { name: 'Astrophysics', desc: 'Astrophysics, cosmology' },
+                    high_energy_physics: { name: 'High Energy Physics', desc: 'Particle physics theory and experiments' },
+                    nuclear_physics: { name: 'Nuclear Physics', desc: 'Nuclear physics theory and experiments' },
+                    general_relativity: { name: 'General Relativity', desc: 'Gravity theory, cosmology' },
+                    mathematical_physics: { name: 'Mathematical Physics', desc: 'Mathematical methods for physics' },
+                    statistics: { name: 'Statistics', desc: 'Statistical theory and applications' },
+                    quantitative_biology: { name: 'Quantitative Biology', desc: 'Bioinformatics, systems biology' },
+                    artificial_intelligence: { name: 'Artificial Intelligence', desc: 'AI, neural networks' }
+                }
+            }
+        };
+
+        let currentLang = 'zh';
+        function t(key) {
+            const keys = key.split('.');
+            let value = i18n[currentLang];
+            for (const k of keys) {
+                if (value && typeof value === 'object') {
+                    value = value[k];
+                } else {
+                    return key;
+                }
+            }
+            return typeof value === 'string' ? value : key;
+        }
+        function setLanguage(lang) {
+            currentLang = lang;
+        }
+
         const researchFields = {
             "condensed_matter": { "name": "凝聚态物理", "description": "超导、强关联电子、介观系统等" },
             "dft": { "name": "密度泛函理论 (DFT)", "description": "第一性原理计算、材料设计" },
@@ -2187,7 +2552,9 @@
                     ai_base_url: 'https://llmapi.paratera.com',
                     selected_fields: [],
                     years_back: 5,
-                    arxiv_max_results: 10000
+                    arxiv_max_results: 10000,
+                    ui_language: 'zh',
+                    translate_language: 'zh'
                 });
 
                 const currentPage = ref('home');
@@ -2468,7 +2835,9 @@
                             ai_base_url: data.ai_base_url || 'https://llmapi.paratera.com',
                             selected_fields: data.selected_fields || [],
                             years_back: data.years_back || 5,
-                            arxiv_max_results: data.arxiv_max_results || 10000
+                            arxiv_max_results: data.arxiv_max_results || 10000,
+                            ui_language: data.ui_language || 'zh',
+                            translate_language: data.translate_language || 'zh'
                         };
                     } catch (e) {
                         console.error('Failed to fetch config:', e);

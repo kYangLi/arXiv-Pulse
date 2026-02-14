@@ -127,6 +127,9 @@ def translate_text(text: str, target_lang: str = "zh") -> str:
     if not text or not text.strip():
         return ""
 
+    if target_lang == "en":
+        return ""
+
     db = get_db()
 
     cached_translation = db.get_translation_cache(text, target_lang)
@@ -139,11 +142,13 @@ def translate_text(text: str, target_lang: str = "zh") -> str:
     try:
         import openai
 
+        from arxiv_pulse.i18n import get_translation_prompt
+
         client = openai.OpenAI(api_key=Config.AI_API_KEY, base_url=Config.AI_BASE_URL)
         max_chars = 3000
         text_to_translate = text[:max_chars] + "... [文本过长，已截断]" if len(text) > max_chars else text
 
-        system_prompt = "你是一个专业的翻译助手。将以下英文文本翻译成中文，保持专业术语准确，语言流畅。"
+        system_prompt = get_translation_prompt(target_lang)
 
         response = client.chat.completions.create(
             model=Config.AI_MODEL or "DeepSeek-V3.2",

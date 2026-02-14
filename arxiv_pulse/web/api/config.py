@@ -25,6 +25,8 @@ class ConfigUpdate(BaseModel):
     years_back: int | None = None
     report_max_papers: int | None = None
     selected_fields: list[str] | None = None
+    ui_language: str | None = None
+    translate_language: str | None = None
 
 
 class TestAIRequest(BaseModel):
@@ -61,6 +63,8 @@ async def get_config():
         "report_max_papers": int(config.get("report_max_papers", 64)),
         "selected_fields": db.get_selected_fields(),
         "is_initialized": db.is_initialized(),
+        "ui_language": config.get("ui_language", "zh"),
+        "translate_language": config.get("translate_language", "zh"),
     }
 
 
@@ -93,6 +97,10 @@ async def update_config(config_update: ConfigUpdate):
                 search_queries.append(RESEARCH_FIELDS[field_key]["query"])
         if search_queries:
             db.set_search_queries(search_queries)
+    if config_update.ui_language is not None:
+        db.set_config("ui_language", config_update.ui_language)
+    if config_update.translate_language is not None:
+        db.set_config("translate_language", config_update.translate_language)
 
     return {"success": True, "message": "配置已更新"}
 
