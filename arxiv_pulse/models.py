@@ -157,6 +157,72 @@ class FigureCache(Base):
         return f"<FigureCache(id={self.id}, arxiv_id={self.arxiv_id})>"
 
 
+class PaperContentCache(Base):
+    """论文 PDF 内容缓存"""
+
+    __tablename__ = "paper_content_cache"
+
+    id = Column(Integer, primary_key=True)
+    arxiv_id = Column(String(50), nullable=False, unique=True, index=True)
+    full_text = Column(Text)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+
+    def __repr__(self):
+        return f"<PaperContentCache(id={self.id}, arxiv_id={self.arxiv_id})>"
+
+
+class ChatSession(Base):
+    """对话会话"""
+
+    __tablename__ = "chat_sessions"
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(200))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+    def __repr__(self):
+        return f"<ChatSession(id={self.id}, title={self.title})>"
+
+
+class ChatMessage(Base):
+    """对话消息"""
+
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True)
+    session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=False, index=True)
+    role = Column(String(20), nullable=False)
+    content = Column(Text, nullable=False)
+    paper_ids = Column(Text)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "session_id": self.session_id,
+            "role": self.role,
+            "content": self.content,
+            "paper_ids": json.loads(self.paper_ids) if self.paper_ids else [],
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __repr__(self):
+        return f"<ChatMessage(id={self.id}, session_id={self.session_id}, role={self.role})>"
+
+
 class Collection(Base):
     """论文集"""
 

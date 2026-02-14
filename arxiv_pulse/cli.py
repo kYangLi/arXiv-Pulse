@@ -146,7 +146,8 @@ def serve(directory, host, port, detach, force):
 
         click.echo(f"\n✅ 服务已在后台启动 (PID: {process.pid})")
         click.echo(f"📝 日志文件: {log_file}")
-        click.echo(f"\n停止服务: kill {process.pid}")
+        click.echo(f"\n💡 停止服务: pulse stop")
+        click.echo(f"   查看状态: pulse status")
     else:
         import uvicorn
 
@@ -191,35 +192,73 @@ def status(directory):
 
 @cli.command()
 @click.argument("directory", type=click.Path(exists=False, file_okay=False), default=".")
-def stop(directory):
+@click.option("--force", is_flag=True, help="强制停止（使用 SIGKILL）")
+def stop(directory, force):
     """停止后台服务
 
     DIRECTORY: 数据存储目录（默认为当前目录）
+
+    示例:
+        pulse stop           # 停止当前目录的服务
+        pulse stop --force   # 强制停止（如果普通停止无效）
     """
+    import time
+
     directory = Path(directory).resolve()
     lock = ServiceLock(directory / "data")
 
     is_locked, info = lock.is_locked()
 
+    click.echo(f"\n{'=' * 50}")
+    click.echo("  arXiv Pulse - 停止服务")
+    click.echo(f"{'=' * 50}\n")
+    click.echo(f"📂 数据目录: {directory}")
+
     if not is_locked:
-        click.secho("⏹️  没有运行中的服务", fg="yellow")
+        click.secho("\n⏹️  没有运行中的服务", fg="yellow")
         return
 
     if info:
         pid = info.get("pid")
-        if pid:
+        host = info.get("host", "unknown")
+        port = info.get("port", "unknown")
+
+        click.echo(f"🔍 发现运行中的服务: http://{host}:{port} (PID: {pid})")
+
+        try:
+            sig = signal.SIGKILL if force else signal.SIGTERM
+            sig_name = "SIGKILL" if force else "SIGTERM"
+            os.kill(pid, sig)
+            click.echo(f"📤 已发送 {sig_name} 信号...")
+
+            for _ in range(10):
+                try:
+                    os.kill(pid, 0)
+                    time.sleep(0.5)
+                except ProcessLookupError:
+                    break
+
             try:
-                os.kill(pid, signal.SIGTERM)
-                click.secho(f"✅ 已发送停止信号 (PID: {pid})", fg="green")
-                lock.release()
+                os.kill(pid, 0)
+                if not force:
+                    click.secho("\n⚠️  进程未响应，尝试强制停止...", fg="yellow")
+                    os.kill(pid, signal.SIGKILL)
+                    time.sleep(1)
             except ProcessLookupError:
-                click.secho("⚠️  进程已不存在，清理锁文件", fg="yellow")
-                lock.release()
-            except PermissionError:
-                click.secho("❌ 没有权限停止该进程", fg="red")
-        else:
+                pass
+
             lock.release()
-            click.secho("✅ 已清理锁文件", fg="green")
+            click.secho("\n✅ 服务已停止", fg="green", bold=True)
+        except ProcessLookupError:
+            lock.release()
+            click.secho("\n✅ 进程已不存在，已清理锁文件", fg="green")
+        except PermissionError:
+            click.secho("\n❌ 没有权限停止该进程，请尝试使用 sudo", fg="red")
+        except Exception as e:
+            click.secho(f"\n❌ 停止失败: {e}", fg="red")
+    else:
+        lock.release()
+        click.secho("\n✅ 已清理锁文件", fg="green")
 
 
 if __name__ == "__main__":

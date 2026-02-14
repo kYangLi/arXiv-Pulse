@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine
 
 from arxiv_pulse.models import Base, Database
-from arxiv_pulse.web.api import collections, config, export, papers, stats, tasks
+from arxiv_pulse.web.api import chat, collections, config, export, papers, stats, tasks
 
 
 @asynccontextmanager
@@ -41,6 +41,7 @@ def create_app() -> FastAPI:
     api_router.include_router(stats.router, prefix="/stats", tags=["stats"])
     api_router.include_router(export.router, prefix="/export", tags=["export"])
     api_router.include_router(config.router, prefix="/config", tags=["config"])
+    api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 
     app.mount("/api", api_router)
 

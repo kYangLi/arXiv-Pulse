@@ -1001,3 +1001,25 @@ async def get_paper_by_arxiv_id(arxiv_id: str):
         if not paper:
             raise HTTPException(status_code=404, detail="Paper not found")
         return enhance_paper_data(paper)
+
+
+@router.get("/pdf/{arxiv_id}")
+async def download_pdf(arxiv_id: str):
+    """Download PDF from arXiv (proxy to avoid CORS)"""
+    import requests
+    from fastapi.responses import Response
+
+    pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
+
+    try:
+        response = requests.get(pdf_url, timeout=60, headers={"User-Agent": "Mozilla/5.0"})
+        if response.status_code == 200:
+            return Response(
+                content=response.content,
+                media_type="application/pdf",
+                headers={"Content-Disposition": f'attachment; filename="{arxiv_id}.pdf"'},
+            )
+        else:
+            raise HTTPException(status_code=response.status_code, detail="Failed to download PDF from arXiv")
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to download PDF: {str(e)}")

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arxiv-pulse"
-version = "0.9.0"
+version = "0.9.9"
 authors = [
     {name = "Yang Li", email = "lyang.1915@gmail.com"},
 ]
@@ -47,6 +47,7 @@ dependencies = [
     "websockets>=12.0",
     "python-multipart>=0.0.6",
     "weasyprint>=62.0",
+    "pymupdf>=1.24.0",
 ]
 
 [project.optional-dependencies]

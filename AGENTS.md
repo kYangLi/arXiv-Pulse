@@ -158,7 +158,8 @@ arxiv_pulse/
         ├── collections.py # Collection CRUD
         ├── tasks.py      # Sync task management + SSE
         ├── stats.py      # Database statistics
-        └── export.py     # Export functionality
+        ├── export.py     # Export functionality
+        └── chat.py       # AI chat assistant
 ```
 
 ## Configuration
@@ -182,6 +183,10 @@ Environment variables (`.env` from `.ENV.TEMPLATE`):
 | `/api/collections/{id}` | GET/PUT/DELETE | Collection CRUD |
 | `/api/tasks/sync` | POST (SSE) | Start sync with progress |
 | `/api/stats` | GET | Database statistics |
+| `/api/chat/sessions` | GET/POST | List/create chat sessions |
+| `/api/chat/sessions/{id}` | GET/DELETE | Get/delete chat session |
+| `/api/chat/sessions/{id}/send` | POST (SSE) | Send message to AI |
+| `/api/chat/papers/{arxiv_id}/content` | GET | Get paper PDF content |
 
 ## Notes for AI Agents
 

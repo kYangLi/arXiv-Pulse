@@ -745,6 +745,619 @@
             margin-bottom: 16px;
         }
         
+        /* Chat Widget */
+        .chat-widget {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+        }
+        
+        /* Back to Home Button */
+        .back-home-widget {
+            position: fixed;
+            bottom: 24px;
+            right: 176px;
+            z-index: 999;
+        }
+        .back-home-trigger {
+            cursor: pointer;
+        }
+        .back-home-trigger .el-button {
+            width: 50px;
+            height: 50px;
+            box-shadow: 0 4px 16px rgba(30, 58, 95, 0.3);
+            transition: all 0.3s ease;
+            animation: homeBtnFadeIn 0.5s ease forwards;
+            background: linear-gradient(135deg, #5a6c7d 0%, #7a8c9d 100%);
+            border: none;
+            color: white;
+        }
+        .back-home-trigger .el-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(30, 58, 95, 0.5);
+        }
+        .back-home-trigger .el-button .el-icon {
+            font-size: 20px;
+        }
+        @keyframes homeBtnFadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        /* Page transition animation */
+        .page-circle-exit {
+            animation: circleShrink 0.4s ease forwards;
+        }
+        @keyframes circleShrink {
+            0% {
+                clip-path: circle(150% at 50% 50%);
+            }
+            100% {
+                clip-path: circle(0% at 50% 50%);
+            }
+        }
+        
+        /* Add to collection animation */
+        .fly-to-collection {
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            animation: flyToCollection 0.6s ease-in-out forwards;
+            overflow: hidden;
+        }
+        @keyframes flyToCollection {
+            0% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(0.6) translateY(-80px);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.2) translateY(-200px);
+            }
+        }
+        
+        /* Paper Basket */
+        .cart-widget {
+            position: fixed;
+            bottom: 24px;
+            right: 100px;
+            z-index: 1000;
+        }
+        .cart-trigger {
+            cursor: pointer;
+        }
+        .cart-trigger .el-button {
+            width: 56px;
+            height: 56px;
+            box-shadow: 0 4px 16px rgba(201, 162, 39, 0.4);
+            background: linear-gradient(135deg, #c9a227 0%, #d4af37 100%);
+            border: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cart-trigger .el-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(201, 162, 39, 0.5);
+        }
+        .cart-trigger .el-button svg {
+            color: white;
+        }
+        .cart-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 22px;
+            height: 22px;
+            background: #f56c6c;
+            color: white;
+            border-radius: 11px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+        }
+        .cart-panel {
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            width: 400px;
+            max-height: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #c9a227 0%, #d4af37 100%);
+            color: white;
+        }
+        .cart-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .cart-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            max-height: 320px;
+        }
+        .cart-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-subtle);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .cart-item:last-child {
+            margin-bottom: 0;
+        }
+        .cart-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .cart-item-title {
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.4;
+            margin-bottom: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .cart-item-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .cart-item-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .cart-footer {
+            padding: 12px;
+            border-top: 1px solid var(--border-light);
+            background: var(--bg-white);
+        }
+        .cart-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .cart-actions > * {
+            flex: 1;
+        }
+        .cart-actions .el-button {
+            width: 100%;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .cart-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+        .cart-empty svg {
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+        .chat-trigger .el-button {
+            width: 60px;
+            height: 60px;
+            box-shadow: 0 4px 16px rgba(30, 58, 95, 0.4);
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            border: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chat-trigger .el-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(30, 58, 95, 0.5);
+        }
+        .chat-trigger .el-button svg {
+            color: white;
+        }
+        .chat-window {
+            width: 480px;
+            height: 620px;
+            min-width: 360px;
+            min-height: 400px;
+            max-width: 90vw;
+            max-height: 85vh;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            resize: both;
+        }
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
+            color: white;
+        }
+        .chat-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .chat-header-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .chat-header-actions .el-button {
+            color: white;
+        }
+        .chat-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        .chat-sidebar {
+            width: 200px;
+            background: var(--bg-subtle);
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-sidebar-header {
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .chat-session-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .chat-session-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-lighter);
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-session-item:hover {
+            background: rgba(30, 58, 95, 0.05);
+        }
+        .chat-session-item.active {
+            background: rgba(30, 58, 95, 0.1);
+        }
+        .session-info {
+            flex: 1;
+            overflow: hidden;
+        }
+        .session-title {
+            font-size: 13px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .session-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .session-delete {
+            opacity: 0;
+            transition: opacity 0.2s;
+            color: var(--text-muted);
+        }
+        .session-delete:hover {
+            color: #f56c6c;
+        }
+        .chat-session-item:hover .session-delete {
+            opacity: 1;
+        }
+        .no-sessions {
+            padding: 24px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        .chat-welcome {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+        }
+        .chat-welcome h3 {
+            margin: 16px 0 8px;
+            color: var(--primary);
+        }
+        .chat-welcome p {
+            font-size: 14px;
+        }
+        .chat-message {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .chat-message.user {
+            flex-direction: row-reverse;
+        }
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .message-avatar.user {
+            background: var(--accent);
+            color: white;
+        }
+        .message-avatar.assistant {
+            background: var(--primary);
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .message-avatar.assistant span {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .message-content {
+            max-width: 75%;
+            min-width: 50px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .chat-message.user .message-content {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-message.assistant .message-content {
+            background: var(--bg-subtle);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+            max-width: 85%;
+        }
+        .message-papers {
+            margin-bottom: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .message-text {
+            word-break: break-word;
+        }
+        .message-text h1, .message-text h2, .message-text h3, .message-text h4 {
+            margin: 8px 0 4px;
+            color: var(--primary);
+            font-family: Georgia, 'Times New Roman', serif;
+            font-weight: 600;
+        }
+        .message-text h1:first-child, .message-text h2:first-child, .message-text h3:first-child { margin-top: 0; }
+        .message-text h1 { font-size: 17px; }
+        .message-text h2 { font-size: 15px; }
+        .message-text h3 { font-size: 14px; }
+        .message-text h4 { font-size: 14px; }
+        .message-text p { margin: 4px 0; line-height: 1.65; }
+        .message-text p:first-child { margin-top: 0; }
+        .message-text p:last-child { margin-bottom: 0; }
+        .message-text ul, .message-text ol { margin: 4px 0; padding-left: 18px; }
+        .message-text li { margin: 2px 0; line-height: 1.55; }
+        .message-text code {
+            background: var(--bg-subtle);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+        }
+        .message-text pre {
+            background: var(--primary-dark);
+            color: #e2e8f0;
+            padding: 10px 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+        .message-text pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        .message-text blockquote {
+            border-left: 3px solid var(--accent);
+            margin: 6px 0;
+            padding: 4px 12px;
+            background: var(--bg-subtle);
+            border-radius: 0 6px 6px 0;
+            color: var(--text-secondary);
+        }
+        .message-text a {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+        .message-text table {
+            border-collapse: collapse;
+            margin: 8px 0;
+            width: 100%;
+            font-size: 13px;
+        }
+        .message-text th, .message-text td {
+            border: 1px solid var(--border-light);
+            padding: 6px 10px;
+            text-align: left;
+        }
+        .message-text th {
+            background: var(--bg-subtle);
+            font-weight: 600;
+        }
+ .chat-progress {
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e8f0f8 100%);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--primary);
+        }
+        .progress-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .progress-header .el-icon {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .progress-message {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .progress-bar-container {
+            height: 4px;
+            background: var(--border-light);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        .progress-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+        .progress-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .progress-header .el-icon {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .progress-message {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .progress-bar-container {
+            height: 4px;
+            background: var(--border-light);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        .progress-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 4px 0;
+        }
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+        .selected-papers-bar {
+            padding: 8px 16px;
+            background: var(--bg-subtle);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .chat-input-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-light);
+            background: white;
+        }
+        .chat-input-area .el-input {
+            flex: 1;
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .stats-row { grid-template-columns: repeat(2, 1fr); }
@@ -895,30 +1508,15 @@
                     </div>
                     
                     <div v-if="homeResults.length > 0" style="margin-top: 24px;">
-                        <div class="export-bar">
-                            <span style="color: var(--text-secondary);">{{ homeResults.length }} 篇论文</span>
-                            <el-dropdown @command="exportHome" :disabled="homeSelectedIds.length === 0">
-                                <el-button type="primary" plain size="small">
-                                    <el-icon><Download /></el-icon> 导出
-                                </el-button>
-                                <template #dropdown>
-                                    <el-dropdown-menu>
-                                        <el-dropdown-item command="markdown">Markdown</el-dropdown-item>
-                                        <el-dropdown-item command="pdf">PDF</el-dropdown-item>
-                                        <el-dropdown-item command="csv">CSV</el-dropdown-item>
-                                        <el-dropdown-item command="bibtex">BibTeX</el-dropdown-item>
-                                    </el-dropdown-menu>
-                                </template>
-                            </el-dropdown>
-                        </div>
                         <paper-card 
                             v-for="paper in homeResults" 
                             :key="paper.id" 
                             :paper="paper"
                             :collections="collections"
-                            :selected="homeSelectedIds.includes(paper.id)"
-                            @toggle-select="toggleHomeSelect(paper.id)"
+                            :in-cart="isInCart(paper.arxiv_id)"
                             @add-to-collection="addToCollection"
+                            @add-to-cart="addToCart"
+                            @remove-from-cart="removeFromCartByArxivId"
                         />
                     </div>
                 </div>
@@ -1014,33 +1612,15 @@
                     </div>
 
                     <div v-if="recentPapers.length > 0">
-                        <div class="export-bar">
-                            <el-checkbox v-model="recentSelectAll" @change="toggleRecentSelectAll">
-                                {{ recentSelectedIds.length }} / {{ recentPapers.length }} 已选择
-                            </el-checkbox>
-                            <el-dropdown @command="exportRecent" :disabled="recentSelectedIds.length === 0">
-                                <el-button type="primary" plain>
-                                    <el-icon><Download /></el-icon> 导出
-                                    <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                                </el-button>
-                                <template #dropdown>
-                                    <el-dropdown-menu>
-                                        <el-dropdown-item command="markdown">Markdown (.md)</el-dropdown-item>
-                                        <el-dropdown-item command="pdf">PDF 文档</el-dropdown-item>
-                                        <el-dropdown-item command="csv">CSV 表格</el-dropdown-item>
-                                        <el-dropdown-item command="bibtex">BibTeX (.bib)</el-dropdown-item>
-                                    </el-dropdown-menu>
-                                </template>
-                            </el-dropdown>
-                        </div>
                         <paper-card 
                             v-for="paper in recentPapers" 
                             :key="paper.id" 
                             :paper="paper"
                             :collections="collections"
-                            :selected="recentSelectedIds.includes(paper.id)"
-                            @toggle-select="toggleRecentSelect(paper.id)"
+                            :in-cart="isInCart(paper.arxiv_id)"
                             @add-to-collection="addToCollection"
+                            @add-to-cart="addToCart"
+                            @remove-from-cart="removeFromCartByArxivId"
                         />
                     </div>
                     <div v-else class="empty-state">
@@ -1223,6 +1803,9 @@
             </el-dialog>
 
             <el-dialog v-model="showAddToCollection" title="添加到论文集" width="400px">
+                <p style="margin-bottom: 12px; color: var(--text-secondary);">
+                    将 {{ paperCart.length > 0 ? paperCart.length : 1 }} 篇论文添加到论文集
+                </p>
                 <el-select v-model="selectedCollectionId" placeholder="选择论文集" style="width: 100%;">
                     <el-option v-for="c in collections" :key="c.id" :label="c.name" :value="c.id" />
                 </el-select>
@@ -1260,8 +1843,11 @@
                         :paper="paper"
                         :collections="collections"
                         :in-collection="true"
+                        :in-cart="isInCart(paper.arxiv_id)"
                         @add-to-collection="addToCollection"
                         @remove-from-collection="removePaperFromCollection"
+                        @add-to-cart="addToCart"
+                        @remove-from-cart="removeFromCartByArxivId"
                     />
                 </div>
                 <div v-else class="empty-state">
@@ -1277,12 +1863,230 @@
                 </template>
             </el-dialog>
         </div>
+
+        <!-- Back to Home Button -->
+        <div v-if="!showSetup && currentPage !== 'home'" class="back-home-widget">
+            <div class="back-home-trigger" @click="navigateToHome">
+                <el-button circle size="large">
+                    <el-icon><Search /></el-icon>
+                </el-button>
+            </div>
+        </div>
+
+        <!-- Paper Basket Widget -->
+        <div v-if="!showSetup" class="cart-widget">
+            <div class="cart-trigger" @click="showCart = !showCart">
+                <el-button circle size="large">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    </svg>
+                </el-button>
+                <span v-if="paperCart.length > 0" class="cart-badge">{{ paperCart.length }}</span>
+            </div>
+            
+            <div v-if="showCart" class="cart-panel">
+                <div class="cart-header">
+                    <h3>暂存篮 ({{ paperCart.length }})</h3>
+                    <el-button text @click="showCart = false" style="color: white;">
+                        <el-icon><Close /></el-icon>
+                    </el-button>
+                </div>
+                <div class="cart-body">
+                    <div v-if="paperCart.length === 0" class="cart-empty">
+                        <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor" style="opacity: 0.5;">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                        </svg>
+                        <p style="margin-top: 12px; color: var(--text-muted);">暂存篮是空的</p>
+                        <p style="font-size: 12px; color: var(--text-muted);">点击论文卡片的"暂存"按钮添加论文</p>
+                    </div>
+                    <div v-for="(paper, index) in paperCart" :key="paper.arxiv_id" class="cart-item">
+                        <div class="cart-item-info">
+                            <div class="cart-item-title">{{ paper.title }}</div>
+                            <div class="cart-item-meta">{{ paper.arxiv_id }} · {{ formatDate(paper.published) }}</div>
+                        </div>
+                        <div class="cart-item-actions">
+                            <el-button text size="small" @click="removeFromCart(index)" title="移除">
+                                <el-icon><Delete /></el-icon>
+                            </el-button>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="paperCart.length > 0" class="cart-footer">
+                    <div class="cart-actions">
+                        <el-dropdown @command="exportCart" placement="top">
+                            <el-button type="primary" plain>
+                                <el-icon><Download /></el-icon> 导出
+                            </el-button>
+                            <template #dropdown>
+                                <el-dropdown-menu>
+                                    <el-dropdown-item command="markdown">Markdown</el-dropdown-item>
+                                    <el-dropdown-item command="pdf">PDF（汇总）</el-dropdown-item>
+                                    <el-dropdown-item command="pdf_original">PDF（原文）</el-dropdown-item>
+                                    <el-dropdown-item command="csv">CSV</el-dropdown-item>
+                                    <el-dropdown-item command="bibtex">BibTeX</el-dropdown-item>
+                                </el-dropdown-menu>
+                            </template>
+                        </el-dropdown>
+                        <el-button @click="addCartToCollection" plain>
+                            <el-icon><Folder /></el-icon> 论文集
+                        </el-button>
+                        <el-button @click="copyCartLinks" type="info" plain>
+                            <el-icon><Tickets /></el-icon> 复制链接
+                        </el-button>
+                        <el-button @click="clearCart" type="danger" plain>
+                            <el-icon><Delete /></el-icon> 清空
+                        </el-button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Chat Widget -->
+        <div v-if="!showSetup" class="chat-widget" :class="{ 'chat-expanded': chatExpanded }">
+            <div v-if="!chatExpanded" class="chat-trigger" @click="toggleChat">
+                <el-badge :value="chatUnreadCount" :hidden="chatUnreadCount === 0" :max="9">
+                    <el-button circle size="large" type="primary">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                            <path d="M7 9h10v2H7zm0-3h10v2H7z"/>
+                        </svg>
+                    </el-button>
+                </el-badge>
+            </div>
+            
+            <div v-else class="chat-window">
+                <div class="chat-header">
+                    <span class="chat-title">AI 助手</span>
+                    <div class="chat-header-actions">
+                        <el-button text @click="createNewChat" title="新建对话">
+                            <el-icon><Plus /></el-icon>
+                        </el-button>
+                        <el-button text @click="chatExpanded = false" title="关闭">
+                            <el-icon><Close /></el-icon>
+                        </el-button>
+                    </div>
+                </div>
+                
+                <div class="chat-body">
+                    <div class="chat-sidebar" v-show="showChatSidebar">
+                        <div class="chat-sidebar-header">
+                            <span>对话历史</span>
+                            <el-button text size="small" @click="showChatSidebar = false">
+                                <el-icon><ArrowLeft /></el-icon>
+                            </el-button>
+                        </div>
+                        <div class="chat-session-list">
+                            <div 
+                                v-for="session in chatSessions" 
+                                :key="session.id" 
+                                class="chat-session-item"
+                                :class="{ active: currentChatSession?.id === session.id }"
+                            >
+                                <div class="session-info" @click="selectChatSession(session)">
+                                    <div class="session-title">{{ session.title }}</div>
+                                    <div class="session-time">{{ formatChatTime(session.updated_at) }}</div>
+                                </div>
+                                <el-button 
+                                    class="session-delete" 
+                                    text 
+                                    size="small" 
+                                    @click.stop="deleteChatSession(session)"
+                                    title="删除对话"
+                                >
+                                    <el-icon><Delete /></el-icon>
+                                </el-button>
+                            </div>
+                            <div v-if="chatSessions.length === 0" class="no-sessions">
+                                暂无对话
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-main">
+                        <div class="chat-messages" ref="chatMessagesContainer" @scroll="handleChatScroll">
+                            <div v-if="chatMessages.length === 0" class="chat-welcome">
+                                <el-icon size="48" color="#c9a227"><ChatDotRound /></el-icon>
+                                <h3>AI 学术助手</h3>
+                                <p>我可以帮你分析论文、解答学术问题</p>
+                            </div>
+                            <div v-for="msg in chatMessages" :key="msg.id" class="chat-message" :class="msg.role">
+                                <div v-if="msg.role === 'user'" class="message-avatar user">
+                                    <el-icon><User /></el-icon>
+                                </div>
+                                <div class="message-content">
+                                    <div v-if="msg.paper_ids?.length" class="message-papers">
+                                        <el-tag v-for="pid in msg.paper_ids" :key="pid" size="small" type="info">{{ pid }}</el-tag>
+                                    </div>
+                                    <div class="message-text" v-html="formatChatMessage(msg.content)"></div>
+                                </div>
+                                <div v-if="msg.role === 'assistant'" class="message-avatar assistant">
+                                    <span>AI</span>
+                                </div>
+                            </div>
+                            <div v-if="chatTyping" class="chat-message assistant">
+                                <div class="message-avatar assistant">
+                                    <span>AI</span>
+                                </div>
+                                <div class="message-content">
+                                    <div v-if="chatProgress" class="chat-progress">
+                                        <div class="progress-header">
+                                            <el-icon class="is-loading"><Loading /></el-icon>
+                                            <span class="progress-message">{{ chatProgress.message }}</span>
+                                        </div>
+                                        <div v-if="chatProgress.progress" class="progress-bar-container">
+                                            <div class="progress-bar" :style="{ width: chatProgress.progress + '%' }"></div>
+                                        </div>
+                                        <div v-if="chatProgress.textLength || chatProgress.pageCount" class="progress-details">
+                                            <span v-if="chatProgress.textLength">{{ chatProgress.textLength.toLocaleString() }} 字符</span>
+                                            <span v-if="chatProgress.pageCount">{{ chatProgress.pageCount }} 页</span>
+                                        </div>
+                                    </div>
+                                    <div v-else-if="chatMessages.length > 0 && chatMessages[chatMessages.length - 1].role === 'assistant'" class="message-text" v-html="formatChatMessage(chatMessages[chatMessages.length - 1].content, true)"></div>
+                                    <div v-else class="typing-indicator">
+                                        <span></span><span></span><span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div v-if="selectedChatPapers.length > 0" class="selected-papers-bar">
+                            <span>已选 {{ selectedChatPapers.length }} 篇论文:</span>
+                            <el-tag 
+                                v-for="paper in selectedChatPapers" 
+                                :key="paper.arxiv_id" 
+                                closable 
+                                size="small"
+                                @close="removeSelectedChatPaper(paper.arxiv_id)"
+                            >
+                                {{ paper.title?.slice(0, 20) }}...
+                            </el-tag>
+                        </div>
+                        
+                        <div class="chat-input-area">
+                            <el-button text @click="showChatSidebar = !showChatSidebar" title="对话历史">
+                                <el-icon><List /></el-icon>
+                            </el-button>
+                            <el-input
+                                v-model="chatInput"
+                                placeholder="输入消息..."
+                                @keyup.enter="sendChatMessage"
+                                :disabled="chatTyping"
+                            />
+                            <el-button type="primary" @click="sendChatMessage" :loading="chatTyping" :disabled="!chatInput.trim()">
+                                <el-icon><Promotion /></el-icon>
+                            </el-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="libs/vue/vue.global.prod.js"></script>
     <script src="libs/element-plus/index.full.js"></script>
     <script src="libs/element-plus/icons.iife.min.js"></script>
     <script src="libs/echarts/echarts.min.js"></script>
+    <script src="libs/marked/marked.min.js"></script>
     <script>
         const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
         const API_BASE = '/api';
@@ -1367,6 +2171,23 @@
                 const homeLogs = ref([]);
                 const homeResults = ref([]);
                 const homeSelectedIds = ref([]);
+
+                const paperCart = ref([]);
+                const showCart = ref(false);
+                const cartExportLoading = ref(false);
+
+                const chatExpanded = ref(false);
+                const chatSessions = ref([]);
+                const currentChatSession = ref(null);
+                const chatMessages = ref([]);
+                const chatInput = ref('');
+                const selectedChatPapers = ref([]);
+                const chatTyping = ref(false);
+                const chatProgress = ref(null);
+                const showChatSidebar = ref(false);
+                const chatUnreadCount = ref(0);
+                const chatMessagesContainer = ref(null);
+                const userScrolledUp = ref(false);
 
                 const searchQuery = ref('');
                 const searchDays = ref('');
@@ -1976,6 +2797,28 @@
                 }
 
                 function addToCollection(paper) {
+                    const cardEl = document.querySelector(`[data-arxiv-id="${paper.arxiv_id}"]`);
+                    if (cardEl) {
+                        const rect = cardEl.getBoundingClientRect();
+                        const flyEl = document.createElement('div');
+                        flyEl.className = 'fly-to-collection';
+                        flyEl.style.left = rect.left + 'px';
+                        flyEl.style.top = rect.top + 'px';
+                        flyEl.style.width = rect.width + 'px';
+                        flyEl.style.height = rect.height + 'px';
+                        flyEl.style.background = 'var(--bg-subtle)';
+                        flyEl.style.borderRadius = '12px';
+                        flyEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                        flyEl.innerHTML = `
+                            <div style="padding: 12px; font-size: 12px; color: var(--text-primary);">
+                                <div style="font-weight: 500; margin-bottom: 4px;">${paper.title?.slice(0, 30) || ''}...</div>
+                                <div style="color: var(--text-muted);">加入论文集...</div>
+                            </div>
+                        `;
+                        document.body.appendChild(flyEl);
+                        setTimeout(() => flyEl.remove(), 600);
+                    }
+                    
                     selectedPaper.value = paper;
                     selectedCollectionId.value = null;
                     showAddToCollection.value = true;
@@ -1988,18 +2831,29 @@
                     }
                     addingToCollection.value = true;
                     try {
-                        const res = await fetch(`${API_BASE}/collections/${selectedCollectionId.value}/papers`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ paper_id: selectedPaper.value.id })
-                        });
-                        if (res.ok) {
-                            ElementPlus.ElMessage.success('添加成功');
+                        const papersToAdd = paperCart.value.length > 0 ? paperCart.value : (selectedPaper.value ? [selectedPaper.value] : []);
+                        if (papersToAdd.length === 0) {
+                            ElementPlus.ElMessage.warning('没有选中的论文');
+                            return;
+                        }
+                        
+                        let successCount = 0;
+                        for (const paper of papersToAdd) {
+                            const res = await fetch(`${API_BASE}/collections/${selectedCollectionId.value}/papers`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ paper_id: paper.id })
+                            });
+                            if (res.ok) successCount++;
+                        }
+                        
+                        if (successCount > 0) {
+                            ElementPlus.ElMessage.success(`成功添加 ${successCount} 篇论文`);
                             showAddToCollection.value = false;
                             fetchCollections();
-                        } else {
-                            const data = await res.json();
-                            ElementPlus.ElMessage.error(data.detail || '添加失败');
+                            if (paperCart.value.length > 0) {
+                                paperCart.value = [];
+                            }
                         }
                     } catch (e) {
                         ElementPlus.ElMessage.error('添加失败');
@@ -2127,6 +2981,19 @@
 
                 function navigateTo(page) {
                     currentPage.value = page;
+                }
+
+                function navigateToHome() {
+                    const app = document.querySelector('#app');
+                    if (app) {
+                        app.classList.add('page-circle-exit');
+                        setTimeout(() => {
+                            currentPage.value = 'home';
+                            app.classList.remove('page-circle-exit');
+                        }, 350);
+                    } else {
+                        currentPage.value = 'home';
+                    }
                 }
 
                 function onTabChange(tab) {
@@ -2280,6 +3147,421 @@
                     }
                 });
 
+                function toggleChat() {
+                    chatExpanded.value = !chatExpanded.value;
+                    if (chatExpanded.value && chatSessions.value.length === 0) {
+                        fetchChatSessions();
+                    }
+                }
+
+                async function fetchChatSessions() {
+                    try {
+                        const res = await fetch(`${API_BASE}/chat/sessions`);
+                        chatSessions.value = await res.json();
+                    } catch (e) {
+                        console.error('Failed to fetch chat sessions:', e);
+                    }
+                }
+
+                async function createNewChat() {
+                    try {
+                        const res = await fetch(`${API_BASE}/chat/sessions`, { method: 'POST' });
+                        const session = await res.json();
+                        chatSessions.value.unshift(session);
+                        selectChatSession(session);
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('创建对话失败');
+                    }
+                }
+
+                async function selectChatSession(session) {
+                    currentChatSession.value = session;
+                    showChatSidebar.value = false;
+                    try {
+                        const res = await fetch(`${API_BASE}/chat/sessions/${session.id}`);
+                        const data = await res.json();
+                        chatMessages.value = data.messages || [];
+                        await nextTick();
+                        scrollToBottom();
+                    } catch (e) {
+                        console.error('Failed to fetch messages:', e);
+                    }
+                }
+
+                async function deleteChatSession(session) {
+                    try {
+                        await ElementPlus.ElMessageBox.confirm(
+                            `确定要删除对话 "${session.title}" 吗？`,
+                            '删除对话',
+                            { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
+                        );
+                        
+                        const res = await fetch(`${API_BASE}/chat/sessions/${session.id}`, { method: 'DELETE' });
+                        if (res.ok) {
+                            const idx = chatSessions.value.findIndex(s => s.id === session.id);
+                            if (idx >= 0) chatSessions.value.splice(idx, 1);
+                            
+                            if (currentChatSession.value?.id === session.id) {
+                                currentChatSession.value = null;
+                                chatMessages.value = [];
+                            }
+                            ElementPlus.ElMessage.success('已删除');
+                        }
+                    } catch (e) {
+                        if (e !== 'cancel') {
+                            ElementPlus.ElMessage.error('删除失败');
+                        }
+                    }
+                }
+
+                function scrollToBottom() {
+                    if (chatMessagesContainer.value) {
+                        chatMessagesContainer.value.scrollTop = chatMessagesContainer.value.scrollHeight;
+                    }
+                }
+
+                function handleChatScroll() {
+                    if (chatMessagesContainer.value) {
+                        const { scrollTop, scrollHeight, clientHeight } = chatMessagesContainer.value;
+                        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+                        userScrolledUp.value = !isNearBottom;
+                    }
+                }
+
+                async function sendChatMessage() {
+                    if (!chatInput.value.trim() || chatTyping.value) return;
+                    
+                    if (!currentChatSession.value) {
+                        await createNewChat();
+                        if (!currentChatSession.value) return;
+                    }
+
+                    const userMessage = {
+                        id: Date.now(),
+                        role: 'user',
+                        content: chatInput.value,
+                        paper_ids: selectedChatPapers.value.map(p => p.arxiv_id),
+                        created_at: new Date().toISOString()
+                    };
+                    chatMessages.value.push(userMessage);
+                    
+                    const messageContent = chatInput.value;
+                    const paperIds = selectedChatPapers.value.map(p => p.arxiv_id);
+                    chatInput.value = '';
+                    selectedChatPapers.value = [];
+                    chatTyping.value = true;
+                    chatProgress.value = null;
+                    userScrolledUp.value = false;
+
+                    await nextTick();
+                    scrollToBottom();
+
+                    try {
+                        const response = await fetch(`${API_BASE}/chat/sessions/${currentChatSession.value.id}/send`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ content: messageContent, paper_ids: paperIds })
+                        });
+
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let buffer = '';
+                        let assistantMessage = { id: Date.now() + 1, role: 'assistant', content: '', created_at: new Date().toISOString() };
+                        chatMessages.value.push(assistantMessage);
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop() || '';
+
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const data = JSON.parse(line.slice(6));
+                                        if (data.type === 'progress') {
+                                            chatProgress.value = {
+                                                stage: data.stage,
+                                                message: data.message,
+                                                arxivId: data.arxiv_id,
+                                                paperIndex: data.paper_index,
+                                                totalPapers: data.total_papers,
+                                                progress: data.progress,
+                                                textLength: data.text_length,
+                                                pageCount: data.page_count,
+                                            };
+                                            await nextTick();
+                                            scrollToBottom();
+                                        } else if (data.type === 'chunk') {
+                                            chatProgress.value = null;
+                                            assistantMessage.content += data.content;
+                                            await nextTick();
+                                            if (!userScrolledUp.value) {
+                                                scrollToBottom();
+                                            }
+                                        } else if (data.type === 'error') {
+                                            chatProgress.value = null;
+                                            assistantMessage.content = `**错误**: ${data.message}`;
+                                        } else if (data.type === 'done') {
+                                            chatProgress.value = null;
+                                        }
+                                    } catch (e) {}
+                                }
+                            }
+                        }
+
+                        fetchChatSessions();
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('发送消息失败');
+                    } finally {
+                        chatTyping.value = false;
+                        chatProgress.value = null;
+                        userScrolledUp.value = false;
+                    }
+                }
+
+                function formatChatMessage(content, isStreaming = false) {
+                    if (!content) return '';
+                    
+                    let processedContent = content;
+                    
+                    if (isStreaming) {
+                        const codeBlockCount = (content.match(/```/g) || []).length;
+                        if (codeBlockCount % 2 !== 0) {
+                            processedContent += '\n```';
+                        }
+                    }
+                    
+                    if (typeof marked !== 'undefined') {
+                        try {
+                            return marked.parse(processedContent, {
+                                breaks: true,
+                                gfm: true,
+                            });
+                        } catch (e) {
+                            return content
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/\n/g, '<br>');
+                        }
+                    }
+                    return content
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/\n/g, '<br>')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/`(.*?)`/g, '<code style="background:#f5f5f5;padding:2px 6px;border-radius:4px;">$1</code>');
+                }
+
+                function formatDate(dateStr) {
+                    if (!dateStr) return '';
+                    return new Date(dateStr).toLocaleDateString('zh-CN');
+                }
+
+                function formatChatTime(timeStr) {
+                    if (!timeStr) return '';
+                    const date = new Date(timeStr);
+                    const now = new Date();
+                    const diff = now - date;
+                    if (diff < 60000) return '刚刚';
+                    if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`;
+                    if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`;
+                    return date.toLocaleDateString('zh-CN');
+                }
+
+                function togglePaperSelection(paper) {
+                    const idx = selectedChatPapers.value.findIndex(p => p.arxiv_id === paper.arxiv_id);
+                    if (idx >= 0) {
+                        selectedChatPapers.value.splice(idx, 1);
+                    } else {
+                        selectedChatPapers.value.push(paper);
+                    }
+                }
+
+                function removeSelectedChatPaper(arxivId) {
+                    const idx = selectedChatPapers.value.findIndex(p => p.arxiv_id === arxivId);
+                    if (idx >= 0) {
+                        selectedChatPapers.value.splice(idx, 1);
+                    }
+                }
+
+                function addToCart(paper) {
+                    if (!paperCart.value.some(p => p.arxiv_id === paper.arxiv_id)) {
+                        paperCart.value.push(paper);
+                        ElementPlus.ElMessage.success('已添加到暂存篮');
+                    } else {
+                        ElementPlus.ElMessage.info('该论文已在暂存篮中');
+                    }
+                }
+
+                function removeFromCart(index) {
+                    paperCart.value.splice(index, 1);
+                }
+
+                function removeFromCartByArxivId(arxivId) {
+                    const idx = paperCart.value.findIndex(p => p.arxiv_id === arxivId);
+                    if (idx >= 0) {
+                        paperCart.value.splice(idx, 1);
+                        ElementPlus.ElMessage.success('已从暂存篮移除');
+                    }
+                }
+
+                function clearCart() {
+                    paperCart.value = [];
+                    ElementPlus.ElMessage.success('暂存篮已清空');
+                }
+
+                function isInCart(arxivId) {
+                    return paperCart.value.some(p => p.arxiv_id === arxivId);
+                }
+
+                async function exportCart(format) {
+                    if (paperCart.value.length === 0) return;
+                    
+                    const papersWithId = paperCart.value.filter(p => p.id);
+                    const filename = `papers_export_${Date.now()}`;
+                    
+                    if (format === 'pdf') {
+                        if (papersWithId.length === 0) {
+                            ElementPlus.ElMessage.warning('PDF 导出需要论文已保存到数据库，请先同步论文');
+                            return;
+                        }
+                        try {
+                            const res = await fetch(`${API_BASE}/export/papers`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    paper_ids: papersWithId.map(p => p.id), 
+                                    format: 'pdf',
+                                    include_summary: true 
+                                })
+                            });
+                            if (res.ok) {
+                                const blob = await res.blob();
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `${filename}.pdf`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                            } else {
+                                ElementPlus.ElMessage.error('导出失败');
+                            }
+                        } catch (e) {
+                            ElementPlus.ElMessage.error('导出失败');
+                        }
+                        return;
+                    }
+                    
+                    if (format === 'pdf_original') {
+                        ElementPlus.ElMessage.info(`开始下载 ${paperCart.value.length} 个 PDF 原文...`);
+                        let successCount = 0;
+                        for (const paper of paperCart.value) {
+                            try {
+                                const res = await fetch(`${API_BASE}/papers/pdf/${paper.arxiv_id}`);
+                                if (res.ok) {
+                                    const blob = await res.blob();
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    const safeId = paper.arxiv_id.replace(/[\/\\]/g, '_');
+                                    a.download = `${safeId}.pdf`;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                    successCount++;
+                                    await new Promise(r => setTimeout(r, 300));
+                                } else {
+                                    console.error(`Failed to download ${paper.arxiv_id}: HTTP ${res.status}`);
+                                }
+                            } catch (e) {
+                                console.error(`Failed to download ${paper.arxiv_id}:`, e);
+                            }
+                        }
+                        if (successCount > 0) {
+                            ElementPlus.ElMessage.success(`已下载 ${successCount} 个 PDF 原文`);
+                        } else {
+                            ElementPlus.ElMessage.error('下载失败');
+                        }
+                        return;
+                    }
+                    
+                    let content = '';
+                    
+                    if (format === 'markdown') {
+                        content = paperCart.value.map(p => {
+                            return `## ${p.title}\n\n**arXiv:** ${p.arxiv_id}\n**作者:** ${p.authors?.map(a => a.name).join(', ') || 'N/A'}\n**日期:** ${p.published || 'N/A'}\n\n**摘要:**\n${p.abstract || ''}\n\n${p.summary_text ? '**AI 总结:**\n' + p.summary_text : ''}\n\n---\n`;
+                        }).join('\n');
+                        downloadFile(content, `${filename}.md`, 'text/markdown');
+                    } else if (format === 'csv') {
+                        const header = 'arxiv_id,title,authors,published,abstract\n';
+                        const rows = paperCart.value.map(p => {
+                            const title = (p.title || '').replace(/"/g, '""');
+                            const authors = (p.authors?.map(a => a.name).join('; ') || '').replace(/"/g, '""');
+                            const abstract = (p.abstract || '').replace(/"/g, '""').replace(/\n/g, ' ');
+                            return `"${p.arxiv_id}","${title}","${authors}","${p.published || ''}","${abstract}"`;
+                        }).join('\n');
+                        downloadFile(header + rows, `${filename}.csv`, 'text/csv');
+                    } else if (format === 'bibtex') {
+                        content = paperCart.value.map(p => {
+                            const year = p.published ? new Date(p.published).getFullYear() : new Date().getFullYear();
+                            const firstAuthor = p.authors?.[0]?.name?.split(' ').pop() || 'Unknown';
+                            const key = `${firstAuthor}${year}${p.arxiv_id.replace('.', '')}`;
+                            return `@article{${key},\n  title={${p.title || 'Untitled'}},\n  author={${p.authors?.map(a => a.name).join(' and ') || 'Unknown'}},\n  journal={arXiv preprint arXiv:${p.arxiv_id}},\n  year={${year}},\n  eprint={${p.arxiv_id}}\n}`;
+                        }).join('\n\n');
+                        downloadFile(content, `${filename}.bib`, 'application/x-bibtex');
+                    }
+                }
+
+                function addCartToCollection() {
+                    if (paperCart.value.length === 0) return;
+                    selectedCollectionId.value = null;
+                    showAddToCollection.value = true;
+                }
+
+                function copyCartLinks() {
+                    if (paperCart.value.length === 0) return;
+                    const links = paperCart.value.map(p => `https://arxiv.org/abs/${p.arxiv_id}`).join('\n');
+                    
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(links).then(() => {
+                            ElementPlus.ElMessage.success(`已复制 ${paperCart.value.length} 个链接`);
+                        }).catch(() => {
+                            fallbackCopy(links);
+                        });
+                    } else {
+                        fallbackCopy(links);
+                    }
+                    
+                    function fallbackCopy(text) {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        textarea.style.position = 'fixed';
+                        textarea.style.left = '-9999px';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        try {
+                            document.execCommand('copy');
+                            ElementPlus.ElMessage.success(`已复制 ${paperCart.value.length} 个链接`);
+                        } catch (e) {
+                            ElementPlus.ElMessage.error('复制失败，请手动复制');
+                        }
+                        document.body.removeChild(textarea);
+                    }
+                }
+
+                function downloadFile(content, filename, mimeType) {
+                    const blob = new Blob([content], { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+
                 onMounted(() => {
                     checkInitStatus();
                     fetchStats();
@@ -2288,6 +3570,17 @@
                     fetchCollections();
                     fetchSyncStatus();
                     fetchConfig();
+                    
+                    window.addEventListener('analyze-paper', (e) => {
+                        const paper = e.detail;
+                        if (!selectedChatPapers.value.some(p => p.arxiv_id === paper.arxiv_id)) {
+                            selectedChatPapers.value.push(paper);
+                        }
+                        chatExpanded.value = true;
+                        if (chatSessions.value.length === 0) {
+                            fetchChatSessions();
+                        }
+                    });
                 });
 
                 return {
@@ -2319,18 +3612,27 @@
                     addToCollection, confirmAddToCollection,
                     toggleRecentSelect, toggleRecentSelectAll, toggleSearchSelect, toggleSearchSelectAll,
                     exportRecent, exportSearch, exportCollection,
-                    navigateTo, onTabChange, startHomeSearch, toggleHomeSelect, exportHome
+                    navigateTo, navigateToHome, onTabChange, startHomeSearch, toggleHomeSelect, exportHome,
+                    chatExpanded, chatSessions, currentChatSession, chatMessages, chatInput,
+                    selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
+                    chatUnreadCount, chatMessagesContainer,
+                    toggleChat, fetchChatSessions, createNewChat, selectChatSession,
+                    sendChatMessage, formatChatMessage, formatChatTime, formatDate,
+                    togglePaperSelection, removeSelectedChatPaper, deleteChatSession, userScrolledUp,
+                    paperCart, showCart, cartExportLoading,
+                    addToCart, removeFromCart, removeFromCartByArxivId, clearCart, isInCart, exportCart,
+                    addCartToCollection, copyCartLinks,
+                    scrollToBottom, handleChatScroll
                 };
             }
         });
 
         app.component('paper-card', {
-            props: ['paper', 'collections', 'inCollection', 'selected'],
-            emits: ['add-to-collection', 'remove-from-collection', 'toggle-select', 'download-card'],
+            props: ['paper', 'collections', 'inCollection', 'inCart'],
+            emits: ['add-to-collection', 'remove-from-collection', 'download-card', 'analyze-paper', 'add-to-cart', 'remove-from-cart'],
             template: `
-                <div class="paper-card" :class="{ 'paper-selected': selected }">
+                <div class="paper-card" :data-arxiv-id="paper.arxiv_id">
                     <div class="paper-header">
-                        <el-checkbox v-if="selected !== undefined" :model-value="selected" @change="$emit('toggle-select')" />
                         <div class="paper-title" @click="openArxiv(paper.arxiv_id)">{{ paper.title }}</div>
                     </div>
                     <div v-if="paper.title_translation" class="paper-title-cn">{{ paper.title_translation }}</div>
@@ -2351,7 +3653,7 @@
                     <div v-if="!expanded" class="paper-abstract-preview">{{ paper.abstract?.slice(0, 200) }}...</div>
                     <div class="paper-actions">
                         <el-button size="small" text type="primary" @click="openArxiv(paper.arxiv_id)">
-                            <el-icon><Link /></el-icon> arXiv
+                            <el-icon><Promotion /></el-icon> arXiv
                         </el-button>
                         <el-button size="small" text type="primary" @click="downloadPDF(paper.arxiv_id)">
                             <el-icon><Download /></el-icon> PDF
@@ -2359,11 +3661,20 @@
                         <el-button size="small" text type="primary" @click="downloadCard">
                             <el-icon><Picture /></el-icon> 卡片
                         </el-button>
+                        <el-button v-if="!inCart" size="small" text type="warning" @click="$emit('add-to-cart', paper)">
+                            <el-icon><Star /></el-icon> 暂存
+                        </el-button>
+                        <el-button v-else size="small" type="warning" plain @click="$emit('remove-from-cart', paper.arxiv_id)">
+                            <el-icon><StarFilled /></el-icon> 已暂存
+                        </el-button>
+                        <el-button size="small" text type="primary" @click="analyzePaper">
+                            <el-icon><ChatDotRound /></el-icon> 分析
+                        </el-button>
                         <el-button size="small" text type="primary" @click="expanded = !expanded">
                             {{ expanded ? '收起' : '展开详情' }}
                         </el-button>
                         <el-button size="small" text @click="$emit('add-to-collection', paper)">
-                            <el-icon><FolderAdd /></el-icon> 加入论文集
+                            <el-icon><Folder /></el-icon> 论文集
                         </el-button>
                         <el-button v-if="inCollection" size="small" text type="danger" @click="$emit('remove-from-collection', paper.id)">
                             <el-icon><Delete /></el-icon> 移除
@@ -2605,7 +3916,12 @@
                     
                     ElementPlus.ElMessage.success('已导出卡片图片');
                 };
-                return { expanded, formatDate, formatSummary, openArxiv, downloadPDF, openImage, downloadCard };
+                
+                const analyzePaper = () => {
+                    window.dispatchEvent(new CustomEvent('analyze-paper', { detail: props.paper }));
+                };
+                
+                return { expanded, formatDate, formatSummary, openArxiv, downloadPDF, openImage, downloadCard, analyzePaper };
             }
         });
 
