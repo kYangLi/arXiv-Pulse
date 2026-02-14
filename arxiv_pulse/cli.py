@@ -64,6 +64,28 @@ def _signal_handler(signum, frame):
 @click.option("--port", default=8000, type=int, help="服务监听端口")
 @click.option("--foreground", "-f", is_flag=True, help="前台运行模式（默认后台运行）")
 @click.option("--force", is_flag=True, help="强制启动（忽略已有的锁）")
+def start(directory, host, port, foreground, force):
+    """启动 Web 服务（同 serve）
+
+    DIRECTORY: 数据存储目录（默认为当前目录）
+
+    数据库位置: <DIRECTORY>/data/arxiv_papers.db
+
+    示例:
+        pulse start                    # 后台运行（默认）
+        pulse start -f                 # 前台运行
+        pulse start --port 3000        # 使用 3000 端口
+        pulse start --force            # 强制启动（忽略已有实例）
+    """
+    _do_serve(directory, host, port, foreground, force)
+
+
+@cli.command()
+@click.argument("directory", type=click.Path(exists=False, file_okay=False), default=".")
+@click.option("--host", default="127.0.0.1", help="服务监听地址")
+@click.option("--port", default=8000, type=int, help="服务监听端口")
+@click.option("--foreground", "-f", is_flag=True, help="前台运行模式（默认后台运行）")
+@click.option("--force", is_flag=True, help="强制启动（忽略已有的锁）")
 def serve(directory, host, port, foreground, force):
     """启动 Web 服务
 
@@ -77,6 +99,10 @@ def serve(directory, host, port, foreground, force):
         pulse serve --port 3000        # 使用 3000 端口
         pulse serve --force            # 强制启动（忽略已有实例）
     """
+    _do_serve(directory, host, port, foreground, force)
+
+
+def _do_serve(directory, host, port, foreground, force):
     global _lock_instance
 
     directory = Path(directory).resolve()
@@ -280,6 +306,80 @@ def stop(directory, force):
     else:
         lock.release()
         click.secho("\n✅ 已清理锁文件", fg="green")
+
+
+@cli.command()
+@click.argument("directory", type=click.Path(exists=False, file_okay=False), default=".")
+@click.option("--foreground", "-f", is_flag=True, help="前台运行模式（默认后台运行）")
+@click.option("--force", is_flag=True, help="强制停止并重启")
+def restart(directory, foreground, force):
+    """重启服务
+
+    DIRECTORY: 数据存储目录（默认为当前目录）
+
+    示例:
+        pulse restart           # 重启服务（使用之前的配置）
+        pulse restart -f        # 前台运行
+        pulse restart --force   # 强制重启
+    """
+    import time
+
+    directory = Path(directory).resolve()
+    lock = ServiceLock(directory)
+
+    is_locked, info = lock.is_locked()
+
+    click.echo(f"\n{'=' * 50}")
+    click.echo("  arXiv Pulse - 重启服务")
+    click.echo(f"{'=' * 50}\n")
+    click.echo(f"📂 数据目录: {directory}")
+
+    # Get previous config or use defaults
+    prev_host = info.get("host", "127.0.0.1") if info else "127.0.0.1"
+    prev_port = info.get("port", 8000) if info else 8000
+
+    # Stop if running
+    if is_locked and info:
+        pid = info.get("pid")
+        click.echo(f"🔍 发现运行中的服务: http://{prev_host}:{prev_port} (PID: {pid})")
+
+        try:
+            sig = signal.SIGKILL if force else signal.SIGTERM
+            click.echo("📤 正在停止服务...")
+            os.kill(pid, sig)
+
+            for _ in range(10):
+                try:
+                    os.kill(pid, 0)
+                    time.sleep(0.5)
+                except ProcessLookupError:
+                    break
+
+            try:
+                os.kill(pid, 0)
+                if not force:
+                    os.kill(pid, signal.SIGKILL)
+                    time.sleep(1)
+            except ProcessLookupError:
+                pass
+
+            lock.release()
+            click.echo("✅ 旧服务已停止")
+        except ProcessLookupError:
+            lock.release()
+            click.echo("✅ 旧进程已不存在")
+        except PermissionError:
+            click.secho("❌ 没有权限停止该进程，请尝试使用 sudo", fg="red")
+            sys.exit(1)
+        except Exception as e:
+            click.secho(f"❌ 停止失败: {e}", fg="red")
+            sys.exit(1)
+    else:
+        click.echo("⏹️  服务未运行")
+
+    # Start new service
+    click.echo("\n🚀 正在启动新服务...")
+    _do_serve(str(directory), prev_host, prev_port, foreground, False)
 
 
 if __name__ == "__main__":
