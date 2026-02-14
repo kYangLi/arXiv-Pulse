@@ -15,7 +15,7 @@ class ServiceLock:
 
     def __init__(self, lock_dir: Path | None = None):
         if lock_dir is None:
-            lock_dir = Path.cwd() / "data"
+            lock_dir = Path.cwd()
         self.lock_dir = Path(lock_dir)
         self.lock_file = self.lock_dir / ".pulse.lock"
 

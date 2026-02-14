@@ -86,7 +86,7 @@ def serve(directory, host, port, foreground, force):
     db_path = data_dir / "arxiv_papers.db"
     os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
 
-    lock = ServiceLock(data_dir)
+    lock = ServiceLock(directory)
     is_locked, lock_info = lock.is_locked()
 
     if is_locked and not force:
@@ -194,7 +194,7 @@ def status(directory):
     数据库位置: <DIRECTORY>/data/arxiv_papers.db
     """
     directory = Path(directory).resolve()
-    lock = ServiceLock(directory / "data")
+    lock = ServiceLock(directory)
 
     is_locked, info = lock.is_locked()
 
@@ -226,7 +226,7 @@ def stop(directory, force):
     import time
 
     directory = Path(directory).resolve()
-    lock = ServiceLock(directory / "data")
+    lock = ServiceLock(directory)
 
     is_locked, info = lock.is_locked()
 
