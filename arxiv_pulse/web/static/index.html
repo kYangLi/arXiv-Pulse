@@ -237,6 +237,21 @@
         .home-nav .el-button {
             padding: 12px 24px;
         }
+        .home-footer {
+            margin-top: 32px;
+        }
+        .github-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .github-link:hover {
+            color: var(--primary);
+        }
         
         .header { 
             background: var(--primary); 
@@ -900,7 +915,7 @@
                 </div>
                 
                 <div class="home-hints">
-                    支持 arXiv ID (如 2602.09790)、URL (如 https://arxiv.org/abs/2602.09790) 或关键词搜索
+                    支持 arXiv ID (如 2601.02938)、URL (如 https://arxiv.org/abs/2601.02938) 或关键词搜索
                 </div>
                 
                 <div class="home-nav">
@@ -916,6 +931,12 @@
                     <el-button @click="showSettings = true" circle>
                         <el-icon><Setting /></el-icon>
                     </el-button>
+                </div>
+                
+                <div class="home-footer">
+                    <a href="https://github.com/kYangLi/arXiv-Pulse" target="_blank" class="github-link">
+                        <el-icon><Link /></el-icon> GitHub
+                    </a>
                 </div>
             </div>
             
