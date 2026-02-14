@@ -210,7 +210,17 @@ def enhance_paper_data(paper: Paper, session=None) -> dict[str, Any]:
     if paper.summary:
         try:
             summary_data = json.loads(paper.summary)
-            data["summary_text"] = summary_data.get("summary", "")
+            parts = []
+            if summary_data.get("methodology"):
+                parts.append(f"【方法】{summary_data['methodology']}")
+            if summary_data.get("relevance"):
+                parts.append(f"【相关领域】{summary_data['relevance']}")
+            if summary_data.get("impact"):
+                parts.append(f"【影响】{summary_data['impact']}")
+            if summary_data.get("summary"):
+                parts.insert(0, summary_data["summary"])
+
+            data["summary_text"] = "\n\n".join(parts) if parts else ""
             data["key_findings"] = summary_data.get("key_findings", [])[:5]
             data["keywords"] = summary_data.get("keywords", [])[:10]
         except (json.JSONDecodeError, TypeError):

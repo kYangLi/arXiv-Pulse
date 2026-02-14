@@ -2331,9 +2331,9 @@
                         </el-button>
                     </div>
                     <div v-if="expanded" class="paper-detail">
-                        <div v-if="paper.summary" class="ai-summary-section">
+                        <div v-if="paper.summary_text" class="ai-summary-section">
                             <h4>AI 总结</h4>
-                            <p class="summary-text">{{ paper.summary_text || paper.summary }}</p>
+                            <p class="summary-text" v-html="formatSummary(paper.summary_text)"></p>
                         </div>
                         <div v-if="paper.key_findings?.length" class="key-findings">
                             <h4>关键发现</h4>
@@ -2366,6 +2366,10 @@
                 const formatDate = (dateStr) => {
                     if (!dateStr) return '';
                     return new Date(dateStr).toLocaleDateString('zh-CN');
+                };
+                const formatSummary = (text) => {
+                    if (!text) return '';
+                    return text.replace(/\n/g, '<br>');
                 };
                 const openArxiv = (arxivId) => {
                     window.open(`https://arxiv.org/abs/${arxivId}`, '_blank');
@@ -2433,12 +2437,18 @@
                     if (props.paper.summary_text) {
                         elements.push({ type: 'section-title', text: 'AI 总结', y: y });
                         y += 28 * scale;
-                        const summaryLines = wrapText(props.paper.summary_text, width - padding * 2, 14);
-                        summaryLines.forEach(line => {
-                            elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#333', y: y });
-                            y += 22 * scale;
+                        const paragraphs = props.paper.summary_text.split('\n\n');
+                        paragraphs.forEach(para => {
+                            if (para.trim()) {
+                                const summaryLines = wrapText(para.trim(), width - padding * 2, 14);
+                                summaryLines.forEach(line => {
+                                    elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#333', y: y });
+                                    y += 22 * scale;
+                                });
+                                y += 8 * scale;
+                            }
                         });
-                        y += 12 * scale;
+                        y += 4 * scale;
                     }
                     
                     if (props.paper.keywords?.length) {
@@ -2556,7 +2566,7 @@
                     
                     ElementPlus.ElMessage.success('已导出卡片图片');
                 };
-                return { expanded, formatDate, openArxiv, downloadPDF, openImage, downloadCard };
+                return { expanded, formatDate, formatSummary, openArxiv, downloadPDF, openImage, downloadCard };
             }
         });
 
