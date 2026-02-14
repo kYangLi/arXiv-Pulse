@@ -1416,7 +1416,7 @@
         <div v-if="showSetup" class="setup-container">
             <div class="setup-card">
                 <h1>arXiv Pulse</h1>
-                <p class="subtitle">智能学术文献追踪与分析系统</p>
+                <p class="subtitle">{{ t('home.subtitle') }}</p>
                 
                 <div class="setup-steps">
                     <div class="setup-step" :class="setupStep > 1 ? 'done' : (setupStep === 1 ? 'active' : 'pending')">1</div>
@@ -1426,15 +1426,15 @@
                 </div>
 
                 <div v-if="setupStep === 1">
-                    <h3 style="margin-bottom: 24px; color: var(--primary); font-size: 18px;">API 配置</h3>
+                    <h3 style="margin-bottom: 24px; color: var(--primary); font-size: 18px;">{{ t('setup.apiConfig') }}</h3>
                     <el-form label-position="top">
-                        <el-form-item label="API Base URL">
+                        <el-form-item :label="t('settings.apiBaseUrl')">
                             <el-input v-model="setupConfig.ai_base_url" placeholder="https://api.openai.com/v1" />
                         </el-form-item>
-                        <el-form-item label="API Key">
-                            <el-input v-model="setupConfig.ai_api_key" type="password" show-password placeholder="输入你的 API Key" />
+                        <el-form-item :label="t('settings.apiKey')">
+                            <el-input v-model="setupConfig.ai_api_key" type="password" show-password placeholder="Enter your API Key" />
                         </el-form-item>
-                        <el-form-item label="模型名称">
+                        <el-form-item :label="t('settings.modelName')">
                             <el-select v-model="setupConfig.ai_model" filterable allow-create style="width: 100%;">
                                 <el-option label="DeepSeek-V3.2" value="DeepSeek-V3.2" />
                                 <el-option label="gpt-4o" value="gpt-4o" />
@@ -1444,57 +1444,57 @@
                         </el-form-item>
                     </el-form>
                     <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
-                        <el-button @click="testSetupAI" :loading="testingAI">测试连接</el-button>
-                        <el-button type="primary" @click="setupStep = 2">下一步</el-button>
+                        <el-button @click="testSetupAI" :loading="testingAI">{{ t('settings.testConnection') }}</el-button>
+                        <el-button type="primary" @click="setupStep = 2">{{ currentLang === 'zh' ? '下一步' : 'Next' }}</el-button>
                     </div>
                 </div>
 
                 <div v-if="setupStep === 2">
-                    <h3 style="margin-bottom: 8px; color: var(--primary); font-size: 18px;">研究领域</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">选择你感兴趣的研究领域（可多选）</p>
+                    <h3 style="margin-bottom: 8px; color: var(--primary); font-size: 18px;">{{ t('setup.selectFields') }}</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">{{ t('setup.fieldsHint') }}</p>
                     <div class="field-grid">
                         <div v-for="(field, key) in researchFields" :key="key" 
                              class="field-item" :class="{ selected: setupConfig.selected_fields.includes(key) }"
                              @click="toggleSetupField(key)">
-                            <div class="name">{{ field.name }}</div>
-                            <div class="desc">{{ field.description }}</div>
+                            <div class="name">{{ currentLang === 'zh' ? field.name : (i18n[currentLang]?.fields?.[key]?.name || field.name) }}</div>
+                            <div class="desc">{{ currentLang === 'zh' ? field.description : (i18n[currentLang]?.fields?.[key]?.desc || field.description) }}</div>
                         </div>
                     </div>
                     <div style="margin-top: 24px; display: flex; justify-content: space-between;">
-                        <el-button @click="setupStep = 1">上一步</el-button>
+                        <el-button @click="setupStep = 1">{{ currentLang === 'zh' ? '上一步' : 'Back' }}</el-button>
                         <el-button type="primary" @click="setupStep = 3" :disabled="setupConfig.selected_fields.length === 0">
-                            下一步
+                            {{ currentLang === 'zh' ? '下一步' : 'Next' }}
                         </el-button>
                     </div>
                 </div>
 
                 <div v-if="setupStep === 3">
-                    <h3 style="margin-bottom: 24px; color: var(--primary); font-size: 18px;">同步设置</h3>
+                    <h3 style="margin-bottom: 24px; color: var(--primary); font-size: 18px;">{{ t('setup.syncSettings') }}</h3>
                     <el-form label-position="top">
-                        <el-form-item label="初始同步回溯年数">
+                        <el-form-item :label="t('setup.yearsBack')">
                             <el-select v-model="setupConfig.years_back" style="width: 100%;">
                                 <el-option v-for="item in initYearOptions" :key="item.value" :label="item.label" :value="item.value" />
                             </el-select>
                         </el-form-item>
                     </el-form>
                     <p style="color: var(--text-muted); font-size: 13px; margin-top: 12px;">
-                        已选择: {{ setupConfig.selected_fields.length }} 个研究领域
+                        {{ currentLang === 'zh' ? '已选择' : 'Selected' }}: {{ setupConfig.selected_fields.length }} {{ currentLang === 'zh' ? '个研究领域' : 'research fields' }}
                     </p>
                     <div style="margin-top: 24px; display: flex; justify-content: space-between;">
-                        <el-button @click="setupStep = 2">上一步</el-button>
+                        <el-button @click="setupStep = 2">{{ currentLang === 'zh' ? '上一步' : 'Back' }}</el-button>
                         <el-button type="primary" @click="startInitialSync" :loading="initializing">
-                            开始同步
+                            {{ t('setup.syncBtn') }}
                         </el-button>
                     </div>
                 </div>
 
                 <div v-if="setupStep === 4">
-                    <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary);">初始化中...</h3>
+                    <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary);">{{ t('setup.syncing') }}</h3>
                     <div style="text-align: center; margin-bottom: 20px; color: var(--text-muted); font-size: 14px;">
                         {{ waitingMessage }}
                     </div>
                     <div v-if="initProgress > 0" style="text-align: center; margin-bottom: 16px; color: var(--text-secondary);">
-                        正在处理: {{ initCurrentQuery }} / {{ initTotalQueries }} 个研究领域
+                        {{ currentLang === 'zh' ? '正在处理' : 'Processing' }}: {{ initCurrentQuery }} / {{ initTotalQueries }} {{ currentLang === 'zh' ? '个研究领域' : 'fields' }}
                     </div>
                     <el-progress v-if="initProgress > 0" :percentage="initProgress" style="margin-bottom: 24px;" />
                     <div v-if="initLogs.length > 0" class="logs-container" style="max-height: 280px;">
@@ -2492,6 +2492,8 @@
         function setLanguage(lang) {
             currentLang = lang;
         }
+        window.t = t;
+        window.setLanguage = setLanguage;
 
         const researchFields = {
             "condensed_matter": { "name": "凝聚态物理", "description": "超导、强关联电子、介观系统等" },
@@ -2839,6 +2841,7 @@
                             ui_language: data.ui_language || 'zh',
                             translate_language: data.translate_language || 'zh'
                         };
+                        setLanguage(settingsConfig.value.ui_language || 'zh');
                     } catch (e) {
                         console.error('Failed to fetch config:', e);
                     }
@@ -2895,17 +2898,22 @@
                             body: JSON.stringify(settingsConfig.value)
                         });
                         if (res.ok) {
-                            ElementPlus.ElMessage.success('设置已保存');
+                            ElementPlus.ElMessage.success(currentLang === 'zh' ? '设置已保存' : 'Settings saved');
+                            setLanguage(settingsConfig.value.ui_language || 'zh');
                             showSettings.value = false;
                             fetchFieldStats();
                         } else {
-                            ElementPlus.ElMessage.error('保存失败');
+                            ElementPlus.ElMessage.error(currentLang === 'zh' ? '保存失败' : 'Save failed');
                         }
                     } catch (e) {
-                        ElementPlus.ElMessage.error('保存失败');
+                        ElementPlus.ElMessage.error(currentLang === 'zh' ? '保存失败' : 'Save failed');
                     } finally {
                         savingSettings.value = false;
                     }
+                }
+
+                function onLanguageChange(lang) {
+                    setLanguage(lang);
                 }
 
                 async function fetchStats() {
@@ -4009,7 +4017,7 @@
                     recentSelectedIds, recentSelectAll, searchSelectedIds, searchSelectAll,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
                     checkInitStatus, testSetupAI, toggleSetupField, startInitialSync,
-                    testAIConnection, saveSettings, toggleSettingsField,
+                    testAIConnection, saveSettings, toggleSettingsField, onLanguageChange,
                     fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers, startSearch, fetchCollections,
                     fetchSyncStatus, startSync,
                     saveCollection, cancelCollectionDialog, openEditCollection,
@@ -4028,7 +4036,8 @@
                     paperCart, showCart, cartExportLoading,
                     addToCart, removeFromCart, removeFromCartByArxivId, clearCart, isInCart, exportCart,
                     addCartToCollection, copyCartLinks,
-                    scrollToBottom, handleChatScroll
+                    scrollToBottom, handleChatScroll,
+                    t, currentLang
                 };
             }
         });
@@ -4049,7 +4058,7 @@
                         </span>
                         <span class="paper-meta-item">
                             <el-icon><User /></el-icon>
-                            {{ paper.authors?.slice(0, 2).map(a => a.name).join(', ') }}{{ paper.authors?.length > 2 ? ' 等' : '' }}
+                            {{ paper.authors?.slice(0, 2).map(a => a.name).join(', ') }}{{ paper.authors?.length > 2 ? (currentLang === 'zh' ? ' 等' : ' et al.') : '' }}
                         </span>
                         <span class="paper-relevance">
                             <span v-for="i in 5" :key="i" class="star">{{ i <= paper.relevance_score ? '★' : '☆' }}</span>
@@ -4059,46 +4068,46 @@
                     <div v-if="!expanded" class="paper-abstract-preview">{{ paper.abstract?.slice(0, 200) }}...</div>
                     <div class="paper-actions">
                         <el-button size="small" text type="primary" @click="openArxiv(paper.arxiv_id)">
-                            <el-icon><Promotion /></el-icon> arXiv
+                            <el-icon><Promotion /></el-icon> {{ t('paper.arxiv') }}
                         </el-button>
                         <el-button size="small" text type="primary" @click="downloadPDF(paper.arxiv_id)">
-                            <el-icon><Download /></el-icon> PDF
+                            <el-icon><Download /></el-icon> {{ t('paper.pdf') }}
                         </el-button>
                         <el-button size="small" text type="primary" @click="downloadCard">
-                            <el-icon><Picture /></el-icon> 卡片
+                            <el-icon><Picture /></el-icon> {{ t('paper.card') }}
                         </el-button>
                         <el-button v-if="!inCart" size="small" text type="warning" @click="$emit('add-to-cart', paper)">
-                            <el-icon><Star /></el-icon> 暂存
+                            <el-icon><Star /></el-icon> {{ t('paper.bookmark') }}
                         </el-button>
                         <el-button v-else size="small" type="warning" plain @click="$emit('remove-from-cart', paper.arxiv_id)">
-                            <el-icon><StarFilled /></el-icon> 已暂存
+                            <el-icon><StarFilled /></el-icon> {{ t('paper.bookmarked') }}
                         </el-button>
                         <el-button size="small" text type="primary" @click="analyzePaper">
-                            <el-icon><ChatDotRound /></el-icon> 分析
+                            <el-icon><ChatDotRound /></el-icon> {{ t('paper.analyze') }}
                         </el-button>
                         <el-button size="small" text type="primary" @click="expanded = !expanded">
-                            {{ expanded ? '收起' : '展开详情' }}
+                            {{ expanded ? t('paper.collapse') : t('paper.expandDetail') }}
                         </el-button>
                         <el-button size="small" text @click="$emit('add-to-collection', paper)">
-                            <el-icon><Folder /></el-icon> 论文集
+                            <el-icon><Folder /></el-icon> {{ t('paper.addToCollection') }}
                         </el-button>
                         <el-button v-if="inCollection" size="small" text type="danger" @click="$emit('remove-from-collection', paper.id)">
-                            <el-icon><Delete /></el-icon> 移除
+                            <el-icon><Delete /></el-icon> {{ t('paper.removeFromCollection') }}
                         </el-button>
                     </div>
                     <div v-if="expanded" class="paper-detail">
                         <div v-if="paper.summary_text" class="ai-summary-section">
-                            <h4>AI 总结</h4>
+                            <h4>{{ t('paper.aiSummary') }}</h4>
                             <p class="summary-text" v-html="formatSummary(paper.summary_text)"></p>
                         </div>
                         <div v-if="paper.key_findings?.length" class="key-findings">
-                            <h4>关键发现</h4>
+                            <h4>{{ t('paper.keyFindings') }}</h4>
                             <ul>
                                 <li v-for="(finding, i) in paper.key_findings" :key="i">{{ finding }}</li>
                             </ul>
                         </div>
                         <div v-if="paper.keywords?.length" class="paper-keywords">
-                            <h4>关键词</h4>
+                            <h4>{{ t('paper.keywords') }}</h4>
                             <div class="keywords-list">
                                 <el-tag v-for="kw in paper.keywords" :key="kw" size="small" type="info">{{ kw }}</el-tag>
                             </div>
@@ -4107,10 +4116,10 @@
                             <img :src="paper.figure_url" @click="openImage(paper.figure_url)" />
                         </div>
                         <div class="abstract-section">
-                            <h4>摘要 (Abstract)</h4>
+                            <h4>{{ t('paper.abstract') }}</h4>
                             <p>{{ paper.abstract }}</p>
                             <div v-if="paper.abstract_translation" class="translation">
-                                <h4>中文翻译</h4>
+                                <h4>{{ t('paper.chineseTranslation') }}</h4>
                                 <p>{{ paper.abstract_translation }}</p>
                             </div>
                         </div>
