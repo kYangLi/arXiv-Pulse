@@ -361,17 +361,28 @@
         }
         .floating-buttons-left .el-button,
         .floating-buttons-right .el-button {
-            width: 64px;
-            height: 64px;
+            width: 64px !important;
+            height: 64px !important;
+            min-width: 64px !important;
             font-size: 18px;
             font-weight: 600;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.4;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         .floating-buttons-left .el-button:hover,
         .floating-buttons-right .el-button:hover {
             transform: scale(1.08);
             box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+            opacity: 1;
+        }
+        .floating-buttons-left .el-badge,
+        .floating-buttons-right .el-badge {
+            display: flex;
+            justify-content: center;
+            line-height: 1;
         }
         .lang-btn {
             background: linear-gradient(135deg, #2d5a87 0%, #1e3a5f 100%) !important;
@@ -1703,13 +1714,13 @@
                     </el-input>
                 </div>
                     
-                    <div v-if="homeLogs.length > 0" class="logs-container" style="margin-top: 20px; max-height: 200px;">
+                    <div v-if="homeLogs.length > 0" class="logs-container" style="margin-top: 20px; max-height: 200px; max-width: 680px; width: 100%;">
                         <div v-for="(log, index) in homeLogs" :key="index" class="log-line" :class="log.type">
                             > {{ log.message }}
                         </div>
                     </div>
                     
-                    <div v-if="homeResults.length > 0" style="margin-top: 24px;">
+                    <div v-if="homeResults.length > 0" style="margin-top: 24px; max-width: 680px; width: 100%;">
                         <paper-card 
                             v-for="paper in homeResults" 
                             :key="paper.id" 
