@@ -446,6 +446,38 @@
             padding-top: 20px; 
             border-top: 1px solid var(--border-light); 
         }
+        .ai-summary-section {
+            background: linear-gradient(135deg, #f8f7f4 0%, #fff9f0 100%);
+            padding: 16px 20px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+            border-left: 3px solid var(--primary);
+        }
+        .ai-summary-section h4 {
+            color: var(--primary);
+            font-size: 14px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        .ai-summary-section .summary-text {
+            color: var(--text-primary);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .paper-keywords {
+            margin-bottom: 20px;
+        }
+        .paper-keywords h4 {
+            color: var(--primary);
+            font-size: 14px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .keywords-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
         .key-findings { 
             background: #fffbf0; 
             padding: 16px 20px; 
@@ -2277,7 +2309,7 @@
                         </span>
                     </div>
                     <div class="paper-category" v-if="paper.category_explanation">{{ paper.category_explanation }}</div>
-                    <div class="paper-abstract-preview">{{ paper.abstract?.slice(0, 200) }}...</div>
+                    <div v-if="!expanded" class="paper-abstract-preview">{{ paper.abstract?.slice(0, 200) }}...</div>
                     <div class="paper-actions">
                         <el-button size="small" text type="primary" @click="openArxiv(paper.arxiv_id)">
                             <el-icon><Link /></el-icon> arXiv
@@ -2299,11 +2331,21 @@
                         </el-button>
                     </div>
                     <div v-if="expanded" class="paper-detail">
+                        <div v-if="paper.summary" class="ai-summary-section">
+                            <h4>AI 总结</h4>
+                            <p class="summary-text">{{ paper.summary_text || paper.summary }}</p>
+                        </div>
                         <div v-if="paper.key_findings?.length" class="key-findings">
                             <h4>关键发现</h4>
                             <ul>
                                 <li v-for="(finding, i) in paper.key_findings" :key="i">{{ finding }}</li>
                             </ul>
+                        </div>
+                        <div v-if="paper.keywords?.length" class="paper-keywords">
+                            <h4>关键词</h4>
+                            <div class="keywords-list">
+                                <el-tag v-for="kw in paper.keywords" :key="kw" size="small" type="info">{{ kw }}</el-tag>
+                            </div>
                         </div>
                         <div v-if="paper.figure_url" class="paper-figure">
                             <img :src="paper.figure_url" @click="openImage(paper.figure_url)" />
@@ -2387,6 +2429,29 @@
                     
                     elements.push({ type: 'divider', y: y });
                     y += 20 * scale;
+                    
+                    if (props.paper.summary_text) {
+                        elements.push({ type: 'section-title', text: 'AI 总结', y: y });
+                        y += 28 * scale;
+                        const summaryLines = wrapText(props.paper.summary_text, width - padding * 2, 14);
+                        summaryLines.forEach(line => {
+                            elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#333', y: y });
+                            y += 22 * scale;
+                        });
+                        y += 12 * scale;
+                    }
+                    
+                    if (props.paper.keywords?.length) {
+                        elements.push({ type: 'section-title', text: '关键词', y: y });
+                        y += 28 * scale;
+                        const keywordsText = props.paper.keywords.join('  •  ');
+                        const keywordLines = wrapText(keywordsText, width - padding * 2, 13);
+                        keywordLines.forEach(line => {
+                            elements.push({ type: 'text', text: line, font: `${13 * scale}px sans-serif`, color: '#c9a227', y: y });
+                            y += 20 * scale;
+                        });
+                        y += 12 * scale;
+                    }
                     
                     if (props.paper.key_findings?.length) {
                         elements.push({ type: 'section-title', text: '关键发现', y: y });

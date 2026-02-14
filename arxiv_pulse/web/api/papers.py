@@ -206,7 +206,21 @@ def enhance_paper_data(paper: Paper, session=None) -> dict[str, Any]:
 
     data["relevance_score"] = calculate_relevance_score(paper)
     data["category_explanation"] = get_category_explanation(paper.categories or "")
-    data["key_findings"] = extract_key_findings(paper.summary)
+
+    if paper.summary:
+        try:
+            summary_data = json.loads(paper.summary)
+            data["summary_text"] = summary_data.get("summary", "")
+            data["key_findings"] = summary_data.get("key_findings", [])[:5]
+            data["keywords"] = summary_data.get("keywords", [])[:10]
+        except (json.JSONDecodeError, TypeError):
+            data["summary_text"] = paper.summary
+            data["key_findings"] = []
+            data["keywords"] = []
+    else:
+        data["summary_text"] = ""
+        data["key_findings"] = []
+        data["keywords"] = []
 
     data["title_translation"] = translate_text(paper.title)
     if paper.abstract:
