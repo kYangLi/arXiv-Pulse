@@ -50,9 +50,9 @@ def _signal_handler(signum, frame):
 @click.argument("directory", type=click.Path(exists=False, file_okay=False), default=".")
 @click.option("--host", default="127.0.0.1", help="服务监听地址")
 @click.option("--port", default=8000, type=int, help="服务监听端口")
-@click.option("--detach", is_flag=True, help="后台运行模式")
+@click.option("--foreground", "-f", is_flag=True, help="前台运行模式（默认后台运行）")
 @click.option("--force", is_flag=True, help="强制启动（忽略已有的锁）")
-def serve(directory, host, port, detach, force):
+def serve(directory, host, port, foreground, force):
     """启动 Web 服务
 
     DIRECTORY: 数据存储目录（默认为当前目录）
@@ -60,10 +60,9 @@ def serve(directory, host, port, detach, force):
     数据库位置: <DIRECTORY>/data/arxiv_papers.db
 
     示例:
-        pulse serve                    # 在当前目录启动服务
-        pulse serve /path/to/data      # 使用指定目录
+        pulse serve                    # 后台运行（默认）
+        pulse serve -f                 # 前台运行
         pulse serve --port 3000        # 使用 3000 端口
-        pulse serve --detach           # 后台运行
         pulse serve --force            # 强制启动（忽略已有实例）
     """
     global _lock_instance
@@ -111,9 +110,22 @@ def serve(directory, host, port, detach, force):
     click.echo(f"\n📂 数据目录: {directory}")
     click.echo(f"🌐 Web 界面: http://{host}:{port}")
     click.echo(f"📚 API 文档: http://{host}:{port}/docs")
-    click.echo(f"🔄 运行模式: {'后台运行' if detach else '前台运行'}")
+    click.echo(f"🔄 运行模式: {'前台运行' if foreground else '后台运行'}")
 
-    if detach:
+    if foreground:
+        import uvicorn
+
+        click.echo("\n按 Ctrl+C 停止服务\n")
+        try:
+            uvicorn.run(
+                "arxiv_pulse.web.app:app",
+                host=host,
+                port=port,
+                log_level="info",
+            )
+        finally:
+            _cleanup_lock()
+    else:
         log_file = directory / "data" / "web.log"
         log_file.parent.mkdir(exist_ok=True)
 
@@ -148,19 +160,6 @@ def serve(directory, host, port, detach, force):
         click.echo(f"📝 日志文件: {log_file}")
         click.echo(f"\n💡 停止服务: pulse stop")
         click.echo(f"   查看状态: pulse status")
-    else:
-        import uvicorn
-
-        click.echo("\n按 Ctrl+C 停止服务\n")
-        try:
-            uvicorn.run(
-                "arxiv_pulse.web.app:app",
-                host=host,
-                port=port,
-                log_level="info",
-            )
-        finally:
-            _cleanup_lock()
 
 
 @cli.command()
