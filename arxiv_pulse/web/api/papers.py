@@ -943,6 +943,11 @@ async def search_papers_stream(
                 if summarize_and_cache_paper(paper):
                     summarized_count += 1
                     paper.summarized = True
+                    # Refresh paper object to get updated summary
+                    with db.get_session() as s:
+                        refreshed = s.query(Paper).filter_by(arxiv_id=paper.arxiv_id).first()
+                        if refreshed:
+                            paper.summary = refreshed.summary
 
             with db.get_session() as s:
                 figure_url = get_figure_url_cached(paper.arxiv_id, s)

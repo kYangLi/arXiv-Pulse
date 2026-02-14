@@ -39,6 +39,7 @@ class InitConfig(BaseModel):
     ai_api_key: str = ""
     ai_model: str = "DeepSeek-V3.2"
     ai_base_url: str = "https://llmapi.paratera.com"
+    translate_language: str = "zh"
     selected_fields: list[str] = []
     years_back: int = 5
 
@@ -185,6 +186,7 @@ async def initialize_system(init_config: InitConfig):
     db.set_config("ai_api_key", init_config.ai_api_key)
     db.set_config("ai_model", init_config.ai_model)
     db.set_config("ai_base_url", init_config.ai_base_url)
+    db.set_config("translate_language", init_config.translate_language)
     db.set_config("years_back", str(init_config.years_back))
     db.set_selected_fields(init_config.selected_fields)
 

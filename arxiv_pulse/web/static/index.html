@@ -49,6 +49,28 @@
             justify-content: center; 
             background: linear-gradient(180deg, #f8f7f4 0%, #e8e5df 100%);
             padding: 20px;
+            position: relative;
+        }
+        .setup-lang-btn {
+            position: fixed;
+            left: 24px;
+            bottom: 24px;
+            width: 56px !important;
+            height: 56px !important;
+            min-width: 56px !important;
+            padding: 0 !important;
+            font-size: 16px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #2d5a87 0%, #1e3a5f 100%) !important;
+            border: none !important;
+            color: white !important;
+            opacity: 0.6;
+            transition: all 0.3s;
+            border-radius: 50% !important;
+        }
+        .setup-lang-btn:hover {
+            transform: scale(1.08);
+            opacity: 1;
         }
         .setup-card { 
             background: var(--bg-card); 
@@ -1610,7 +1632,7 @@
                 </div>
 
                 <div v-if="setupStep === 1">
-                    <h3 style="margin-bottom: 24px; color: var(--primary); font-size: 18px;">{{ t('setup.apiConfig') }}</h3>
+                    <h3 style="margin-bottom: 24px; color: var(--primary); font-size: 18px;">{{ t('setup.aiConfig') }}</h3>
                     <el-form label-position="top">
                         <el-form-item :label="t('settings.apiBaseUrl')">
                             <el-input v-model="setupConfig.ai_base_url" placeholder="https://api.openai.com/v1" />
@@ -1626,10 +1648,15 @@
                                 <el-option label="gpt-3.5-turbo" value="gpt-3.5-turbo" />
                             </el-select>
                         </el-form-item>
+                        <el-form-item :label="t('settings.aiLanguage')">
+                            <el-select v-model="setupConfig.translate_language" style="width: 100%;">
+                                <el-option v-for="lang in aiLanguageOptions" :key="lang.value" :label="lang.label" :value="lang.value" />
+                            </el-select>
+                        </el-form-item>
                     </el-form>
                     <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
                         <el-button @click="testSetupAI" :loading="testingAI">{{ t('settings.testConnection') }}</el-button>
-                        <el-button type="primary" @click="setupStep = 2">{{ currentLang === 'zh' ? '下一步' : 'Next' }}</el-button>
+                        <el-button type="primary" @click="setupStep = 2">{{ t('common.next') }}</el-button>
                     </div>
                 </div>
 
@@ -1645,9 +1672,9 @@
                         </div>
                     </div>
                     <div style="margin-top: 24px; display: flex; justify-content: space-between;">
-                        <el-button @click="setupStep = 1">{{ currentLang === 'zh' ? '上一步' : 'Back' }}</el-button>
+                        <el-button @click="setupStep = 1">{{ t('common.back') }}</el-button>
                         <el-button type="primary" @click="setupStep = 3" :disabled="setupConfig.selected_fields.length === 0">
-                            {{ currentLang === 'zh' ? '下一步' : 'Next' }}
+                            {{ t('common.next') }}
                         </el-button>
                     </div>
                 </div>
@@ -1662,10 +1689,10 @@
                         </el-form-item>
                     </el-form>
                     <p style="color: var(--text-muted); font-size: 13px; margin-top: 12px;">
-                        {{ currentLang === 'zh' ? '已选择' : 'Selected' }}: {{ setupConfig.selected_fields.length }} {{ currentLang === 'zh' ? '个研究领域' : 'research fields' }}
+                        {{ t('setup.selectedFields', { count: setupConfig.selected_fields.length }) }}
                     </p>
                     <div style="margin-top: 24px; display: flex; justify-content: space-between;">
-                        <el-button @click="setupStep = 2">{{ currentLang === 'zh' ? '上一步' : 'Back' }}</el-button>
+                        <el-button @click="setupStep = 2">{{ t('common.back') }}</el-button>
                         <el-button type="primary" @click="startInitialSync" :loading="initializing">
                             {{ t('setup.syncBtn') }}
                         </el-button>
@@ -1678,7 +1705,7 @@
                         {{ waitingMessage }}
                     </div>
                     <div v-if="initProgress > 0" style="text-align: center; margin-bottom: 16px; color: var(--text-secondary);">
-                        {{ currentLang === 'zh' ? '正在处理' : 'Processing' }}: {{ initCurrentQuery }} / {{ initTotalQueries }} {{ currentLang === 'zh' ? '个研究领域' : 'fields' }}
+                        {{ t('setup.processing', { current: initCurrentQuery, total: initTotalQueries }) }}
                     </div>
                     <el-progress v-if="initProgress > 0" :percentage="initProgress" style="margin-bottom: 24px;" />
                     <div v-if="initLogs.length > 0" class="logs-container" style="max-height: 280px;">
@@ -1689,6 +1716,11 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Setup Language Switcher -->
+            <el-button circle class="setup-lang-btn" @click="toggleLanguage">
+                {{ currentLang === 'zh' ? 'EN' : '中' }}
+            </el-button>
         </div>
 
         <div v-else class="app-container">
@@ -1696,13 +1728,13 @@
             <div v-if="currentPage === 'home'" class="home-container">
                 <div class="home-brand">
                     <h1>arXiv Pulse</h1>
-                    <p>智能学术文献追踪与分析系统</p>
+                    <p>{{ t('home.subtitle') }}</p>
                 </div>
                 
                 <div class="home-search-box">
                     <el-input 
                         v-model="homeQuery" 
-                        placeholder="输入 arXiv ID、网址或关键词搜索..."
+                        :placeholder="t('home.searchPlaceholder')"
                         size="large"
                         @keyup.enter="startHomeSearch"
                         clearable
@@ -1739,7 +1771,7 @@
                 </div>
                 
                 <div class="home-hints">
-                    支持 arXiv ID (如 2601.02938)、URL (如 https://arxiv.org/abs/2601.02938) 或关键词搜索
+                    {{ t('home.hints') }}
                 </div>
                 
                 <div class="home-footer">
@@ -1770,21 +1802,21 @@
                             <div v-if="currentPage === 'recent'" class="page-content">
                     <div class="search-options" style="margin-bottom: 20px;">
                         <div class="search-options-row">
-                            <el-select v-model="recentDays" placeholder="时间范围" style="width: 120px;">
+                            <el-select v-model="recentDays" :placeholder="t('papers.timeRange')" style="width: 120px;">
                                 <el-option v-for="item in daysOptions" :key="item.value" :label="item.label" :value="item.value" />
                             </el-select>
-                            <el-select v-model="recentLimit" placeholder="数量限制" style="width: 120px;">
+                            <el-select v-model="recentLimit" :placeholder="t('papers.limit')" style="width: 120px;">
                                 <el-option v-for="item in limitOptions" :key="item.value" :label="item.label" :value="item.value" />
                             </el-select>
-                            <el-select v-model="recentCategories" multiple collapse-tags placeholder="领域过滤" style="width: 200px;">
+                            <el-select v-model="recentCategories" multiple collapse-tags :placeholder="t('papers.categoryFilter')" style="width: 200px;">
                                 <el-option v-for="item in categoryOptions" :key="item.value" :label="item.label" :value="item.value" />
                             </el-select>
-                            <el-checkbox v-model="recentNeedSync" style="margin: 0 10px;">同步新论文</el-checkbox>
-                            <el-select v-if="recentNeedSync" v-model="recentSyncYears" placeholder="回溯年数" style="width: 100px;">
+                            <el-checkbox v-model="recentNeedSync" style="margin: 0 10px;">{{ t('papers.syncNewPapers') }}</el-checkbox>
+                            <el-select v-if="recentNeedSync" v-model="recentSyncYears" :placeholder="t('papers.yearsBack')" style="width: 100px;">
                                 <el-option v-for="item in syncYearOptions" :key="item.value" :label="item.label" :value="item.value" />
                             </el-select>
                             <el-button type="primary" @click="updateRecentPapers" :loading="updatingRecent">
-                                <el-icon><Refresh /></el-icon> 更新
+                                <el-icon><Refresh /></el-icon> {{ t('papers.update') }}
                             </el-button>
                         </div>
                     </div>
@@ -1809,8 +1841,8 @@
                     </div>
                     <div v-else class="empty-state">
                         <div class="icon"><el-icon><Document /></el-icon></div>
-                        <h3>暂无论文</h3>
-                        <p>点击"更新"获取最新文献</p>
+                        <h3>{{ t('papers.noPapers') }}</h3>
+                        <p>{{ t('papers.noPapersHint') }}</p>
                     </div>
                 </div>
 
@@ -1818,38 +1850,38 @@
             <div v-else-if="currentPage === 'sync'" class="page-content">
                 <div class="sync-status-grid">
                         <div class="sync-status-card">
-                            <div class="label">同步状态</div>
+                            <div class="label">{{ t('sync.status') }}</div>
                             <div class="value" :class="syncStatusClass">{{ syncStatusText }}</div>
                         </div>
                         <div class="sync-status-card">
-                            <div class="label">上次同步</div>
+                            <div class="label">{{ t('sync.lastSync') }}</div>
                             <div class="value" :class="syncTimeClass">{{ formatSyncTime }}</div>
                         </div>
                         <div class="sync-status-card">
-                            <div class="label">研究领域</div>
+                            <div class="label">{{ t('sync.researchFields') }}</div>
                             <div class="value">{{ fieldStats.filter(f => f.is_selected).length }}</div>
                         </div>
                         <div class="sync-status-card">
-                            <div class="label">总论文数</div>
+                            <div class="label">{{ t('sync.totalPapers') }}</div>
                             <div class="value">{{ stats?.papers?.total || 0 }}</div>
                         </div>
                     </div>
 
                     <div class="sync-options">
-                        <h3>同步设置</h3>
+                        <h3>{{ t('sync.syncSettings') }}</h3>
                         <el-form label-position="top">
                             <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-                                <el-form-item label="回溯年数">
+                                <el-form-item :label="t('sync.yearsBack')">
                                     <el-select v-model="syncYearsBack" style="width: 120px;">
                                         <el-option v-for="item in syncYearsBackOptions" :key="item.value" :label="item.label" :value="item.value" />
                                     </el-select>
                                 </el-form-item>
-                                <el-form-item label="强制同步">
+                                <el-form-item :label="t('sync.forceSync')">
                                     <el-switch v-model="syncForce" />
                                 </el-form-item>
                                 <el-form-item label=" ">
                                     <el-button type="primary" @click="startSync" :loading="syncing">
-                                        <el-icon><Refresh /></el-icon> 开始同步
+                                        <el-icon><Refresh /></el-icon> {{ t('sync.startSync') }}
                                     </el-button>
                                 </el-form-item>
                             </div>
@@ -1864,7 +1896,7 @@
 
                     <div class="charts-row">
                         <div class="chart-card">
-                            <h3>文献年份分布</h3>
+                            <h3>{{ t('sync.yearDistribution') }}</h3>
                             <div id="yearChart" class="chart-container"></div>
                         </div>
                         <div class="chart-card">
@@ -1878,7 +1910,7 @@
             <div v-else-if="currentPage === 'collections'" class="page-content">
                 <div style="margin-bottom: 20px;">
                         <el-button type="primary" @click="showCreateCollection = true">
-                            <el-icon><Plus /></el-icon> 新建论文集
+                            <el-icon><Plus /></el-icon> {{ t('collections.create') }}
                         </el-button>
                     </div>
 
@@ -1887,17 +1919,17 @@
                              class="collection-card" @click="openCollectionDetail(collection)">
                             <div class="color-bar" :style="{ background: collection.color }"></div>
                             <h4>{{ collection.name }}</h4>
-                            <p>{{ collection.description || '暂无描述' }}</p>
+                            <p>{{ collection.description || t('collections.noDescription') }}</p>
                             <div class="count">
                                 <el-icon><Document /></el-icon>
-                                {{ collection.paper_count || 0 }} 篇论文
+                                {{ collection.paper_count || 0 }} {{ t('collections.papers') }}
                             </div>
                         </div>
                     </div>
                     <div v-else class="empty-state">
                         <div class="icon"><el-icon><Folder /></el-icon></div>
-                        <h3>暂无论文集</h3>
-                        <p>创建论文集来整理你感兴趣的文献</p>
+                        <h3>{{ t('collections.noCollections') }}</h3>
+                        <p>{{ t('collections.createHint') }}</p>
                     </div>
                 </div>
             </div>
@@ -1946,10 +1978,10 @@
                                  }"
                                  @click="toggleSettingsField(field.key)">
                                 <div class="name">
-                                    {{ field.name }}
+                                    {{ currentLang === 'zh' ? field.name : (i18n[currentLang]?.fields?.[field.key]?.name || field.name) }}
                                     <span v-if="field.paper_count > 0" class="paper-badge">{{ field.paper_count }} {{ t('collections.papers') }}</span>
                                 </div>
-                                <div class="desc">{{ field.description }}</div>
+                                <div class="desc">{{ currentLang === 'zh' ? field.description : (i18n[currentLang]?.fields?.[field.key]?.desc || field.description) }}</div>
                             </div>
                         </div>
                     </div>
@@ -2019,17 +2051,17 @@
                 </div>
                 <div v-else-if="collectionPapers.length > 0">
                     <div class="export-bar">
-                        <span style="color: var(--text-secondary);">{{ collectionPapers.length }} 篇论文</span>
+                        <span style="color: var(--text-secondary);">{{ collectionPapers.length }} {{ t('collections.papers') }}</span>
                         <el-dropdown @command="exportCollection">
                             <el-button type="primary" plain>
-                                <el-icon><Download /></el-icon> 导出论文集
+                                <el-icon><Download /></el-icon> {{ t('collections.exportCollection') }}
                                 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
                             </el-button>
                             <template #dropdown>
                                 <el-dropdown-menu>
                                     <el-dropdown-item command="markdown">Markdown (.md)</el-dropdown-item>
-                                    <el-dropdown-item command="pdf">PDF 文档</el-dropdown-item>
-                                    <el-dropdown-item command="csv">CSV 表格</el-dropdown-item>
+                                    <el-dropdown-item command="pdf">{{ t('export.pdfDoc') }}</el-dropdown-item>
+                                    <el-dropdown-item command="csv">{{ t('export.csvTable') }}</el-dropdown-item>
                                     <el-dropdown-item command="bibtex">BibTeX (.bib)</el-dropdown-item>
                                 </el-dropdown-menu>
                             </template>
@@ -2049,15 +2081,15 @@
                     />
                 </div>
                 <div v-else class="empty-state">
-                    <p>该论文集暂无论文</p>
+                    <p>{{ t('collections.noPapersInCollection') }}</p>
                 </div>
             </el-dialog>
 
-            <el-dialog v-model="showDeleteConfirm" title="确认删除" width="400px">
-                <p>确定要删除论文集 "{{ deletingCollection?.name }}" 吗？此操作不可恢复。</p>
+            <el-dialog v-model="showDeleteConfirm" :title="t('common.confirmDelete')" width="400px">
+                <p>{{ t('collections.deleteConfirm', { name: deletingCollection?.name }) }}</p>
                 <template #footer>
-                    <el-button @click="showDeleteConfirm = false">取消</el-button>
-                    <el-button type="danger" @click="deleteCollection" :loading="deletingCollectionInProgress">删除</el-button>
+                    <el-button @click="showDeleteConfirm = false">{{ t('common.cancel') }}</el-button>
+                    <el-button type="danger" @click="deleteCollection" :loading="deletingCollectionInProgress">{{ t('common.delete') }}</el-button>
                 </template>
             </el-dialog>
         </div>
@@ -2294,7 +2326,7 @@
                         </div>
                         
                         <div v-if="selectedChatPapers.length > 0" class="selected-papers-bar">
-                            <span>已选 {{ selectedChatPapers.length }} 篇论文:</span>
+                            <span>{{ t('chat.selectedPapers', { count: selectedChatPapers.length }) }}</span>
                             <el-tag 
                                 v-for="paper in selectedChatPapers" 
                                 :key="paper.arxiv_id" 
@@ -2358,7 +2390,10 @@
                     loading: '加载中...',
                     noData: '暂无数据',
                     success: '成功',
-                    error: '错误'
+                    error: '错误',
+                    confirmDelete: '确认删除',
+                    next: '下一步',
+                    back: '上一步'
                 },
                 home: {
                     title: 'arXiv Pulse',
@@ -2379,10 +2414,32 @@
                     startSync: '开始同步',
                     never: '从未',
                     noPapers: '暂无论文',
+                    noPapersHint: '点击"更新"获取最新文献',
                     syncNow: '立即同步',
                     latestSync: '最近同步',
                     daysAgo: '天前',
-                    justNow: '刚刚'
+                    justNow: '刚刚',
+                    timeRange: '时间范围',
+                    limit: '数量限制',
+                    categoryFilter: '领域过滤',
+                    syncNewPapers: '同步新论文',
+                    yearsBack: '回溯年数'
+                },
+                sync: {
+                    status: '同步状态',
+                    lastSync: '上次同步',
+                    researchFields: '研究领域',
+                    totalPapers: '总论文数',
+                    syncSettings: '同步设置',
+                    forceSync: '强制同步',
+                    startSync: '开始同步',
+                    yearsBack: '回溯年数',
+                    yearDistribution: '文献年份分布',
+                    categoryDistribution: '热门领域研究',
+                    noCache: '无缓存',
+                    neverSynced: '从未同步',
+                    completed: '已完成',
+                    inProgress: '进行中'
                 },
                 collections: {
                     title: '论文集',
@@ -2392,11 +2449,19 @@
                     color: '颜色',
                     papers: '篇论文',
                     noCollections: '暂无论文集',
+                    noDescription: '暂无描述',
+                    createHint: '创建论文集来整理你感兴趣的文献',
+                    noPapersInCollection: '该论文集暂无论文',
+                    deleteConfirm: '确定要删除论文集 "{name}" 吗？此操作不可恢复。',
                     exportCollection: '导出论文集',
                     addToCollection: '添加到论文集',
                     addPapersTo: '将 {count} 篇论文添加到论文集',
                     alreadyIn: '已在论文集中',
                     selectPlaceholder: '选择论文集'
+                },
+                export: {
+                    pdfDoc: 'PDF 文档',
+                    csvTable: 'CSV 表格'
                 },
                 settings: {
                     title: '系统设置',
@@ -2417,15 +2482,17 @@
                 setup: {
                     welcome: '欢迎使用 arXiv Pulse',
                     step: '步骤',
-                    apiConfig: '配置 AI API',
+                    aiConfig: '配置 AI',
                     selectFields: '选择研究领域',
                     syncSettings: '同步设置',
                     startSync: '开始同步',
-                    apiHint: '配置 AI API 以启用智能总结和翻译功能',
+                    apiHint: '配置 AI 以启用智能总结和翻译功能',
                     fieldsHint: '选择您感兴趣的研究领域',
                     syncHint: '设置同步参数',
                     syncBtn: '开始同步',
                     yearsBack: '回溯年数',
+                    selectedFields: '已选择: {count} 个研究领域',
+                    processing: '正在处理: {current} / {total} 个研究领域',
                     syncing: '正在同步...',
                     syncComplete: '同步完成'
                 },
@@ -2438,7 +2505,9 @@
                     copyLinks: '复制链接',
                     clear: '清空',
                     added: '已添加到暂存篮',
-                    removed: '已从暂存篮移除'
+                    alreadyInCart: '该论文已在暂存篮中',
+                    removed: '已从暂存篮移除',
+                    cleared: '暂存篮已清空'
                 },
                 chat: {
                     title: 'AI 助手',
@@ -2448,6 +2517,7 @@
                     thinking: '思考中...',
                     history: '对话历史',
                     noSession: '暂无对话',
+                    selectedPapers: '已选 {count} 篇论文:',
                     welcome: '你好！我是 AI 助手，可以帮你分析论文、回答问题。有什么可以帮你的吗？',
                     analyzePaper: '分析'
                 },
@@ -2520,11 +2590,15 @@
                     delete: 'Delete',
                     edit: 'Edit',
                     confirm: 'Confirm',
+                    confirmDelete: 'Confirm Delete',
                     add: 'Add',
                     loading: 'Loading...',
                     noData: 'No data',
                     success: 'Success',
-                    error: 'Error'
+                    error: 'Error',
+                    confirmDelete: 'Confirm Delete',
+                    next: 'Next',
+                    back: 'Back'
                 },
                 home: {
                     title: 'arXiv Pulse',
@@ -2545,10 +2619,32 @@
                     startSync: 'Start Sync',
                     never: 'Never',
                     noPapers: 'No papers yet',
+                    noPapersHint: 'Click "Update" to fetch latest papers',
                     syncNow: 'Sync Now',
                     latestSync: 'Latest Sync',
                     daysAgo: 'days ago',
-                    justNow: 'Just now'
+                    justNow: 'Just now',
+                    timeRange: 'Time Range',
+                    limit: 'Limit',
+                    categoryFilter: 'Category Filter',
+                    syncNewPapers: 'Sync New Papers',
+                    yearsBack: 'Years Back'
+                },
+                sync: {
+                    status: 'Sync Status',
+                    lastSync: 'Last Sync',
+                    researchFields: 'Research Fields',
+                    totalPapers: 'Total Papers',
+                    syncSettings: 'Sync Settings',
+                    forceSync: 'Force Sync',
+                    startSync: 'Start Sync',
+                    yearsBack: 'Years Back',
+                    yearDistribution: 'Year Distribution',
+                    categoryDistribution: 'Top Categories',
+                    noCache: 'No cache',
+                    neverSynced: 'Never synced',
+                    completed: 'Completed',
+                    inProgress: 'In progress'
                 },
                 collections: {
                     title: 'Collections',
@@ -2558,11 +2654,19 @@
                     color: 'Color',
                     papers: 'papers',
                     noCollections: 'No collections yet',
+                    noDescription: 'No description',
+                    createHint: 'Create collections to organize your papers',
+                    noPapersInCollection: 'This collection has no papers',
+                    deleteConfirm: 'Are you sure you want to delete "{name}"? This cannot be undone.',
                     exportCollection: 'Export Collection',
                     addToCollection: 'Add to Collection',
                     addPapersTo: 'Add {count} paper(s) to collection',
                     alreadyIn: 'Already in',
                     selectPlaceholder: 'Select collection'
+                },
+                export: {
+                    pdfDoc: 'PDF Document',
+                    csvTable: 'CSV Spreadsheet'
                 },
                 settings: {
                     title: 'Settings',
@@ -2583,28 +2687,32 @@
                 setup: {
                     welcome: 'Welcome to arXiv Pulse',
                     step: 'Step',
-                    apiConfig: 'Configure AI API',
+                    aiConfig: 'Configure AI',
                     selectFields: 'Select Research Fields',
                     syncSettings: 'Sync Settings',
                     startSync: 'Start Sync',
-                    apiHint: 'Configure AI API for intelligent summarization and translation',
+                    apiHint: 'Configure AI for intelligent summarization and translation',
                     fieldsHint: 'Select your research fields of interest',
                     syncHint: 'Set sync parameters',
                     syncBtn: 'Start Sync',
                     yearsBack: 'Years Back',
+                    selectedFields: 'Selected: {count} research fields',
+                    processing: 'Processing: {current} / {total} fields',
                     syncing: 'Syncing...',
                     syncComplete: 'Sync Complete'
                 },
                 basket: {
                     title: 'Basket',
                     empty: 'Basket is empty',
-                    emptyHint: 'Click "Bookmark" on paper cards to add papers',
+                    emptyHint: 'Click "Mark" on paper cards to add papers',
                     export: 'Export',
                     addToCollection: 'Collection',
                     copyLinks: 'Copy Links',
                     clear: 'Clear',
                     added: 'Added to basket',
-                    removed: 'Removed from basket'
+                    alreadyInCart: 'Paper already in basket',
+                    removed: 'Removed from basket',
+                    cleared: 'Basket cleared'
                 },
                 chat: {
                     title: 'AI Assistant',
@@ -2614,6 +2722,7 @@
                     thinking: 'Thinking...',
                     history: 'Chat History',
                     noSession: 'No sessions yet',
+                    selectedPapers: 'Selected {count} paper(s):',
                     welcome: 'Hello! I\'m an AI assistant that can help you analyze papers and answer questions. How can I help you?',
                     analyzePaper: 'Analyze'
                 },
@@ -2748,6 +2857,7 @@
                     ai_api_key: '',
                     ai_model: 'DeepSeek-V3.2',
                     ai_base_url: 'https://llmapi.paratera.com',
+                    translate_language: 'zh',
                     selected_fields: ['condensed_matter', 'dft', 'machine_learning'],
                     years_back: 5
                 });
@@ -2837,13 +2947,16 @@
                 let yearChart = null;
                 let categoryChart = null;
 
-                const daysOptions = [
-                    { value: '1', label: '1 天' },
-                    { value: '3', label: '3 天' },
-                    { value: '7', label: '7 天' },
-                    { value: '14', label: '14 天' },
-                    { value: '30', label: '30 天' }
-                ];
+                const daysOptions = computed(() => {
+                    const isZh = currentLang.value === 'zh';
+                    return [
+                        { value: '1', label: isZh ? '1 天' : '1 day' },
+                        { value: '3', label: isZh ? '3 天' : '3 days' },
+                        { value: '7', label: isZh ? '7 天' : '7 days' },
+                        { value: '14', label: isZh ? '14 天' : '14 days' },
+                        { value: '30', label: isZh ? '30 天' : '30 days' }
+                    ];
+                });
 
                 const limitOptions = [
                     { value: '20', label: '20' },
@@ -2853,37 +2966,49 @@
                     { value: '200', label: '200' }
                 ];
 
-                const syncYearOptions = [
-                    { value: '1', label: '1 年' },
-                    { value: '2', label: '2 年' },
-                    { value: '3', label: '3 年' },
-                    { value: '5', label: '5 年' },
-                    { value: '10', label: '10 年' }
-                ];
+                const syncYearOptions = computed(() => {
+                    const isZh = currentLang.value === 'zh';
+                    return [
+                        { value: '1', label: isZh ? '1 年' : '1 year' },
+                        { value: '2', label: isZh ? '2 年' : '2 years' },
+                        { value: '3', label: isZh ? '3 年' : '3 years' },
+                        { value: '5', label: isZh ? '5 年' : '5 years' },
+                        { value: '10', label: isZh ? '10 年' : '10 years' }
+                    ];
+                });
 
-                const initYearOptions = [
-                    { value: 1, label: '1 年' },
-                    { value: 2, label: '2 年' },
-                    { value: 3, label: '3 年' },
-                    { value: 5, label: '5 年（推荐）' },
-                    { value: 10, label: '10 年' }
-                ];
+                const initYearOptions = computed(() => {
+                    const isZh = currentLang.value === 'zh';
+                    return [
+                        { value: 1, label: isZh ? '1 年' : '1 year' },
+                        { value: 2, label: isZh ? '2 年' : '2 years' },
+                        { value: 3, label: isZh ? '3 年' : '3 years' },
+                        { value: 5, label: isZh ? '5 年（推荐）' : '5 years (Recommended)' },
+                        { value: 10, label: isZh ? '10 年' : '10 years' }
+                    ];
+                });
 
-                const syncYearsBackOptions = [
-                    { value: '1', label: '1 年' },
-                    { value: '2', label: '2 年' },
-                    { value: '5', label: '5 年' },
-                    { value: '10', label: '10 年' },
-                    { value: '20', label: '20 年' }
-                ];
+                const syncYearsBackOptions = computed(() => {
+                    const isZh = currentLang.value === 'zh';
+                    return [
+                        { value: '1', label: isZh ? '1 年' : '1 year' },
+                        { value: '2', label: isZh ? '2 年' : '2 years' },
+                        { value: '5', label: isZh ? '5 年' : '5 years' },
+                        { value: '10', label: isZh ? '10 年' : '10 years' },
+                        { value: '20', label: isZh ? '20 年' : '20 years' }
+                    ];
+                });
 
-                const searchDaysOptions = [
-                    { value: '', label: '不限' },
-                    { value: '30', label: '最近 30 天' },
-                    { value: '90', label: '最近 90 天' },
-                    { value: '180', label: '最近 180 天' },
-                    { value: '365', label: '最近 1 年' }
-                ];
+                const searchDaysOptions = computed(() => {
+                    const isZh = currentLang.value === 'zh';
+                    return [
+                        { value: '', label: isZh ? '不限' : 'Any' },
+                        { value: '30', label: isZh ? '最近 30 天' : 'Last 30 days' },
+                        { value: '90', label: isZh ? '最近 90 天' : 'Last 90 days' },
+                        { value: '180', label: isZh ? '最近 180 天' : 'Last 180 days' },
+                        { value: '365', label: isZh ? '最近 1 年' : 'Last 1 year' }
+                    ];
+                });
 
                 const aiLanguageOptions = [
                     { value: 'zh', label: '中文' },
@@ -2908,12 +3033,12 @@
                         const date = new Date(info.updated_at);
                         return `缓存于 ${date.toLocaleString('zh-CN')}`;
                     }
-                    return '无缓存';
+                    return t('sync.noCache');
                 });
 
                 const syncStatusText = computed(() => {
-                    if (!syncStatus.value?.last_sync) return '从未同步';
-                    return syncStatus.value.last_sync.status === 'completed' ? '已完成' : '进行中';
+                    if (!syncStatus.value?.last_sync) return t('sync.neverSynced');
+                    return syncStatus.value.last_sync.status === 'completed' ? t('sync.completed') : t('sync.inProgress');
                 });
 
                 const syncStatusClass = computed(() => {
@@ -4029,9 +4154,9 @@
                 function addToCart(paper) {
                     if (!paperCart.value.some(p => p.arxiv_id === paper.arxiv_id)) {
                         paperCart.value.push(paper);
-                        ElementPlus.ElMessage.success('已添加到暂存篮');
+                        ElementPlus.ElMessage.success(t('basket.added'));
                     } else {
-                        ElementPlus.ElMessage.info('该论文已在暂存篮中');
+                        ElementPlus.ElMessage.info(t('basket.alreadyInCart'));
                     }
                 }
 
@@ -4043,13 +4168,13 @@
                     const idx = paperCart.value.findIndex(p => p.arxiv_id === arxivId);
                     if (idx >= 0) {
                         paperCart.value.splice(idx, 1);
-                        ElementPlus.ElMessage.success('已从暂存篮移除');
+                        ElementPlus.ElMessage.success(t('basket.removed'));
                     }
                 }
 
                 function clearCart() {
                     paperCart.value = [];
-                    ElementPlus.ElMessage.success('暂存篮已清空');
+                    ElementPlus.ElMessage.success(t('basket.cleared'));
                 }
 
                 function isInCart(arxivId) {
@@ -4261,7 +4386,7 @@
                     addToCart, removeFromCart, removeFromCartByArxivId, clearCart, isInCart, exportCart,
                     addCartToCollection, copyCartLinks,
                     scrollToBottom, handleChatScroll,
-                    t, currentLang, toggleLanguage
+                    t, currentLang, toggleLanguage, i18n
                 };
             }
         });
