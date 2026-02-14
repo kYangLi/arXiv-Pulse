@@ -8,6 +8,7 @@ Intelligent arXiv literature crawler and analyzer for physics research. Features
 - FastAPI web interface with Vue 3 + Element Plus frontend
 - SQLite database with SQLAlchemy ORM
 - SSE (Server-Sent Events) for real-time progress streaming
+- Multilingual support (Chinese/English UI, translation to Chinese/English)
 
 Target domains: condensed matter physics, DFT, machine learning, force fields, computational materials science.
 
@@ -39,8 +40,11 @@ pytest tests/test_module.py::test_name  # Run single test
 pytest --cov=arxiv_pulse            # With coverage
 
 # Web server
-pulse serve .                        # Start web server
-uvicorn arxiv_pulse.web.app:app --host 127.0.0.1 --port 8000 --reload
+pulse serve .                        # Start web server (background)
+pulse serve . -f                     # Start web server (foreground)
+pulse status .                       # Check service status
+pulse stop .                         # Stop service
+pulse restart .                      # Restart service
 ```
 
 Note: mypy may show SQLAlchemy Column type errors - these are known issues and don't affect runtime.
@@ -61,6 +65,7 @@ from pydantic import BaseModel
 
 from arxiv_pulse.config import Config
 from arxiv_pulse.models import Database, Paper
+from arxiv_pulse.i18n import t, get_translation_prompt
 ```
 
 ### Naming Conventions
@@ -122,6 +127,7 @@ return StreamingResponse(
 Located at `arxiv_pulse/web/static/index.html`:
 - Use `v-for` with `:key` for lists
 - Use `ref()` for reactive state
+- i18n: Use `t('key.path')` for translations
 - SSE handling with buffer for incomplete lines:
 ```javascript
 let buffer = '';
@@ -150,6 +156,10 @@ arxiv_pulse/
 ├── output_manager.py     # Console output formatting
 ├── search_engine.py      # Enhanced search functionality
 ├── summarizer.py         # AI summarization
+├── i18n/                 # Internationalization
+│   ├── __init__.py       # t() function, get_translation_prompt()
+│   ├── zh.py             # Chinese translations
+│   └── en.py             # English translations
 └── web/
     ├── app.py            # FastAPI application
     ├── static/index.html # Vue 3 frontend
@@ -164,18 +174,20 @@ arxiv_pulse/
 
 ## Configuration
 
-Environment variables (`.env` from `.ENV.TEMPLATE`):
+Configuration is stored in database, managed via Web UI settings:
 - `AI_API_KEY`: OpenAI/DeepSeek API key
 - `AI_MODEL`: Model name (default: DeepSeek-V3.2)
 - `AI_BASE_URL`: API base URL
-- `SEARCH_QUERIES`: Semicolon-separated search queries
-- `DATABASE_URL`: Database URL (default: SQLite)
-- `ARXIV_MAX_RESULTS`: Max results per query
+- `ui_language`: UI language ("zh" | "en")
+- `translate_language`: Translation target ("zh" | "en")
+- `years_back`: Years to sync
+- `arxiv_max_results`: Max results per query
 
 ## API Endpoints Summary
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/api/config` | GET/PUT | Get/update configuration |
 | `/api/papers/recent/cache` | GET | Get cached recent papers |
 | `/api/papers/recent/update` | POST (SSE) | Update recent papers |
 | `/api/papers/search/stream` | GET (SSE) | AI-powered search |
@@ -196,3 +208,4 @@ Environment variables (`.env` from `.ENV.TEMPLATE`):
 4. **Run lint commands** before committing: `black --check . && ruff check .`
 5. **Restart server** after Python code changes
 6. **Force refresh browser** (Ctrl+Shift+R) after frontend changes
+7. **Use i18n** for user-facing strings: `from arxiv_pulse.i18n import t`
