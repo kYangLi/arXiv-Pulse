@@ -7,6 +7,7 @@ arXiv Pulse - Web 界面启动器
 import atexit
 import os
 import signal
+import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -15,6 +16,17 @@ import click
 
 from arxiv_pulse.__version__ import __version__
 from arxiv_pulse.lock import ServiceLock, check_and_acquire_lock
+
+
+def _is_port_in_use(host: str, port: int) -> bool:
+    """Check if a port is already in use"""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(1)
+            result = s.connect_ex((host, port))
+            return result == 0
+    except Exception:
+        return False
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -91,6 +103,17 @@ def serve(directory, host, port, foreground, force):
         click.secho("\n⚠️  警告: 强制模式，将覆盖已有锁文件", fg="yellow")
         lock.release()
 
+    # Check if port is already in use
+    if _is_port_in_use(host, port):
+        click.echo(f"\n{'=' * 50}")
+        click.secho(f"  ❌ 端口 {port} 已被占用", fg="red", bold=True)
+        click.echo(f"{'=' * 50}\n")
+        click.echo(f"请检查是否有其他服务正在使用端口 {port}")
+        click.echo(f"或使用 --port 指定其他端口")
+        if is_locked and lock_info:
+            click.echo(f"\n如果这是 arXiv Pulse 的旧实例，请先停止: pulse stop")
+        sys.exit(1)
+
     # Acquire lock
     acquired = lock.acquire(host, port)
     if not acquired:
@@ -126,8 +149,7 @@ def serve(directory, host, port, foreground, force):
         finally:
             _cleanup_lock()
     else:
-        log_file = directory / "data" / "web.log"
-        log_file.parent.mkdir(exist_ok=True)
+        log_file = directory / "web.log"
 
         cmd = [
             sys.executable,
