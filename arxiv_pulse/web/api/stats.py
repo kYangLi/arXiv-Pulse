@@ -4,9 +4,11 @@ Stats API Router
 
 import json
 from collections import Counter
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter
 
+from arxiv_pulse.config import Config
 from arxiv_pulse.models import Collection, CollectionPaper, Database, Paper
 from arxiv_pulse.research_fields import RESEARCH_FIELDS
 
@@ -18,18 +20,11 @@ def get_db():
     return Database()
 
 
-@router.get("")
-async def get_stats():
-    """Get database statistics"""
+def update_stats_cache():
+    """更新统计数据缓存"""
     with get_db().get_session() as session:
         total_papers = session.query(Paper).count()
         summarized_papers = session.query(Paper).filter_by(summarized=True).count()
-
-        today_count = 0
-        week_count = 0
-        month_count = 0
-
-        from datetime import UTC, datetime, timedelta
 
         now = datetime.now(UTC).replace(tzinfo=None)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -60,7 +55,8 @@ async def get_stats():
         total_collections = session.query(Collection).count()
         total_collection_papers = session.query(CollectionPaper).count()
 
-        return {
+        cache_data = {
+            "updated_at": datetime.now(UTC).isoformat(),
             "papers": {
                 "total": total_papers,
                 "summarized": summarized_papers,
@@ -79,6 +75,31 @@ async def get_stats():
                 "total_papers": total_collection_papers,
             },
         }
+
+        db = get_db()
+        db.set_config("stats_cache", json.dumps(cache_data, ensure_ascii=False))
+        return cache_data
+
+
+@router.get("")
+async def get_stats():
+    """Get database statistics (from cache if available)"""
+    db = get_db()
+    cached = db.get_config("stats_cache")
+
+    if cached:
+        try:
+            return json.loads(cached)
+        except:
+            pass
+
+    return update_stats_cache()
+
+
+@router.post("/refresh")
+async def refresh_stats():
+    """Force refresh stats cache"""
+    return update_stats_cache()
 
 
 @router.get("/fields")

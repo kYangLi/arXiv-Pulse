@@ -207,6 +207,8 @@ def summarize_and_cache_paper(paper: Paper) -> bool:
 
 def enhance_paper_data(paper: Paper, session=None) -> dict[str, Any]:
     """增强论文数据，添加翻译、关键发现、图片等"""
+    from arxiv_pulse.models import Collection, CollectionPaper
+
     data = paper.to_dict()
 
     data["relevance_score"] = calculate_relevance_score(paper)
@@ -216,14 +218,17 @@ def enhance_paper_data(paper: Paper, session=None) -> dict[str, Any]:
         try:
             summary_data = json.loads(paper.summary)
             data["summary_data"] = summary_data
+            data["summary_text"] = summary_data.get("summary", "") or summary_data.get("methodology", "") or ""
             data["key_findings"] = summary_data.get("key_findings", [])[:5]
             data["keywords"] = summary_data.get("keywords", [])[:10]
         except (json.JSONDecodeError, TypeError):
             data["summary_data"] = None
+            data["summary_text"] = ""
             data["key_findings"] = []
             data["keywords"] = []
     else:
         data["summary_data"] = None
+        data["summary_text"] = ""
         data["key_findings"] = []
         data["keywords"] = []
 
@@ -236,10 +241,14 @@ def enhance_paper_data(paper: Paper, session=None) -> dict[str, Any]:
     if session:
         figure = session.query(FigureCache).filter_by(arxiv_id=paper.arxiv_id).first()
         data["figure_url"] = figure.figure_url if figure else None
+        collection_ids = [cp.collection_id for cp in session.query(CollectionPaper).filter_by(paper_id=paper.id).all()]
+        data["collection_ids"] = collection_ids
     else:
         with get_db().get_session() as s:
             figure = s.query(FigureCache).filter_by(arxiv_id=paper.arxiv_id).first()
             data["figure_url"] = figure.figure_url if figure else None
+            collection_ids = [cp.collection_id for cp in s.query(CollectionPaper).filter_by(paper_id=paper.id).all()]
+            data["collection_ids"] = collection_ids
 
     return data
 

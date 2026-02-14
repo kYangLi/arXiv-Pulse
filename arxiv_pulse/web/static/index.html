@@ -635,18 +635,17 @@
         }
         .paper-actions { 
             display: flex; 
-            gap: 10px; 
+            gap: 6px; 
             flex-wrap: wrap;
             padding-top: 16px;
             border-top: 1px solid var(--border-light);
         }
         .paper-actions .el-button {
             display: inline-flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            padding: 10px 12px;
-            border-radius: 10px;
-            min-width: 56px;
+            padding: 6px 10px;
+            border-radius: 8px;
             gap: 4px;
             transition: all 0.25s ease;
         }
@@ -655,11 +654,11 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         .paper-actions .el-button .el-icon {
-            font-size: 20px;
+            font-size: 16px;
             margin-right: 0 !important;
         }
         .paper-actions .el-button > span:not(.el-icon) {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 500;
         }
         
@@ -1995,16 +1994,22 @@
                 </template>
             </el-dialog>
 
-            <el-dialog v-model="showAddToCollection" title="添加到论文集" width="400px">
+            <el-dialog v-model="showAddToCollection" :title="t('collections.addToCollection')" width="400px">
                 <p style="margin-bottom: 12px; color: var(--text-secondary);">
-                    将 {{ paperCart.length > 0 ? paperCart.length : 1 }} 篇论文添加到论文集
+                    {{ t('collections.addPapersTo', { count: paperCart.length > 0 ? paperCart.length : 1 }) }}
                 </p>
-                <el-select v-model="selectedCollectionId" placeholder="选择论文集" style="width: 100%;">
+                <div v-if="selectedPaper?.collection_ids?.length > 0" style="margin-bottom: 12px; padding: 8px 12px; background: var(--bg-subtle); border-radius: 8px;">
+                    <span style="color: var(--text-muted); font-size: 12px;">{{ t('collections.alreadyIn') }}: </span>
+                    <el-tag v-for="cid in selectedPaper.collection_ids" :key="cid" size="small" style="margin: 2px;">
+                        {{ collections.find(c => c.id === cid)?.name || '#' + cid }}
+                    </el-tag>
+                </div>
+                <el-select v-model="selectedCollectionId" :placeholder="t('collections.selectPlaceholder')" style="width: 100%;">
                     <el-option v-for="c in collections" :key="c.id" :label="c.name" :value="c.id" />
                 </el-select>
                 <template #footer>
-                    <el-button @click="showAddToCollection = false">取消</el-button>
-                    <el-button type="primary" @click="confirmAddToCollection" :loading="addingToCollection">添加</el-button>
+                    <el-button @click="showAddToCollection = false">{{ t('common.cancel') }}</el-button>
+                    <el-button type="primary" @click="confirmAddToCollection" :loading="addingToCollection">{{ t('common.add') }}</el-button>
                 </template>
             </el-dialog>
 
@@ -2349,6 +2354,7 @@
                     delete: '删除',
                     edit: '编辑',
                     confirm: '确认',
+                    add: '添加',
                     loading: '加载中...',
                     noData: '暂无数据',
                     success: '成功',
@@ -2386,7 +2392,11 @@
                     color: '颜色',
                     papers: '篇论文',
                     noCollections: '暂无论文集',
-                    exportCollection: '导出论文集'
+                    exportCollection: '导出论文集',
+                    addToCollection: '添加到论文集',
+                    addPapersTo: '将 {count} 篇论文添加到论文集',
+                    alreadyIn: '已在论文集中',
+                    selectPlaceholder: '选择论文集'
                 },
                 settings: {
                     title: '系统设置',
@@ -2447,7 +2457,7 @@
                     keywords: '关键词',
                     abstract: '摘要',
                     chineseTranslation: '中文翻译',
-                    expandDetail: '展开详情',
+                    expandDetail: '展开',
                     collapse: '收起',
                     arxiv: 'arXiv',
                     pdf: 'PDF',
@@ -2510,6 +2520,7 @@
                     delete: 'Delete',
                     edit: 'Edit',
                     confirm: 'Confirm',
+                    add: 'Add',
                     loading: 'Loading...',
                     noData: 'No data',
                     success: 'Success',
@@ -2547,7 +2558,11 @@
                     color: 'Color',
                     papers: 'papers',
                     noCollections: 'No collections yet',
-                    exportCollection: 'Export Collection'
+                    exportCollection: 'Export Collection',
+                    addToCollection: 'Add to Collection',
+                    addPapersTo: 'Add {count} paper(s) to collection',
+                    alreadyIn: 'Already in',
+                    selectPlaceholder: 'Select collection'
                 },
                 settings: {
                     title: 'Settings',
@@ -2613,8 +2628,8 @@
                     arxiv: 'arXiv',
                     pdf: 'PDF',
                     card: 'Card',
-                    bookmark: 'Bookmark',
-                    bookmarked: 'Bookmarked',
+                    bookmark: 'Mark',
+                    bookmarked: 'Marked',
                     analyze: 'Analyze',
                     addToCollection: 'Collection',
                     removeFromCollection: 'Remove'
@@ -2657,7 +2672,7 @@
         };
 
         const currentLang = ref('zh');
-        function t(key) {
+        function t(key, params = {}) {
             const keys = key.split('.');
             let value = i18n[currentLang.value];
             for (const k of keys) {
@@ -2667,7 +2682,8 @@
                     return key;
                 }
             }
-            return typeof value === 'string' ? value : key;
+            if (typeof value !== 'string') return key;
+            return value.replace(/\{(\w+)\}/g, (_, k) => params[k] ?? `{${k}}`);
         }
         function setLanguage(lang) {
             currentLang.value = lang;
@@ -3429,28 +3445,6 @@
                 }
 
                 function addToCollection(paper) {
-                    const cardEl = document.querySelector(`[data-arxiv-id="${paper.arxiv_id}"]`);
-                    if (cardEl) {
-                        const rect = cardEl.getBoundingClientRect();
-                        const flyEl = document.createElement('div');
-                        flyEl.className = 'fly-to-collection';
-                        flyEl.style.left = rect.left + 'px';
-                        flyEl.style.top = rect.top + 'px';
-                        flyEl.style.width = rect.width + 'px';
-                        flyEl.style.height = rect.height + 'px';
-                        flyEl.style.background = 'var(--bg-subtle)';
-                        flyEl.style.borderRadius = '12px';
-                        flyEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-                        flyEl.innerHTML = `
-                            <div style="padding: 12px; font-size: 12px; color: var(--text-primary);">
-                                <div style="font-weight: 500; margin-bottom: 4px;">${paper.title?.slice(0, 30) || ''}...</div>
-                                <div style="color: var(--text-muted);">加入论文集...</div>
-                            </div>
-                        `;
-                        document.body.appendChild(flyEl);
-                        setTimeout(() => flyEl.remove(), 600);
-                    }
-                    
                     selectedPaper.value = paper;
                     selectedCollectionId.value = null;
                     showAddToCollection.value = true;
@@ -3718,8 +3712,10 @@
                 }
 
                 function initCharts() {
-                    yearChart = echarts.init(document.getElementById('yearChart'));
-                    categoryChart = echarts.init(document.getElementById('categoryChart'));
+                    const yearEl = document.getElementById('yearChart');
+                    const categoryEl = document.getElementById('categoryChart');
+                    if (yearEl) yearChart = echarts.init(yearEl);
+                    if (categoryEl) categoryChart = echarts.init(categoryEl);
                 }
 
                 function renderYearChart(data) {
@@ -3771,6 +3767,16 @@
 
                 watch(showSetup, (val) => {
                     if (!val) {
+                        nextTick(() => {
+                            if (!yearChart) initCharts();
+                            renderYearChart(stats.value?.years);
+                            renderCategoryChart(stats.value?.categories?.top);
+                        });
+                    }
+                });
+                
+                watch(currentPage, (newPage) => {
+                    if (newPage === 'sync') {
                         nextTick(() => {
                             if (!yearChart) initCharts();
                             renderYearChart(stats.value?.years);
@@ -4303,11 +4309,11 @@
                         <el-button size="small" text type="primary" @click="analyzePaper">
                             <el-icon><ChatDotRound /></el-icon> {{ t('paper.analyze') }}
                         </el-button>
-                        <el-button size="small" text type="primary" @click="expanded = !expanded">
-                            {{ expanded ? t('paper.collapse') : t('paper.expandDetail') }}
-                        </el-button>
                         <el-button size="small" text @click="$emit('add-to-collection', paper)">
                             <el-icon><Folder /></el-icon> {{ t('paper.addToCollection') }}
+                        </el-button>
+                        <el-button size="small" text type="primary" @click="expanded = !expanded">
+                            {{ expanded ? t('paper.collapse') : t('paper.expandDetail') }}
                         </el-button>
                         <el-button v-if="inCollection" size="small" text type="danger" @click="$emit('remove-from-collection', paper.id)">
                             <el-icon><Delete /></el-icon> {{ t('paper.removeFromCollection') }}

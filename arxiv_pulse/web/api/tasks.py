@@ -193,6 +193,16 @@ async def start_sync_stream(
             except Exception as e:
                 yield f"data: {json.dumps({'type': 'log', 'message': f'更新缓存失败: {str(e)[:80]}'}, ensure_ascii=False)}\n\n"
 
+            yield f"data: {json.dumps({'type': 'log', 'message': '正在更新统计缓存...'}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.1)
+            try:
+                from arxiv_pulse.web.api.stats import update_stats_cache
+
+                update_stats_cache()
+                yield f"data: {json.dumps({'type': 'log', 'message': '统计缓存已更新'}, ensure_ascii=False)}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'更新统计缓存失败: {str(e)[:80]}'}, ensure_ascii=False)}\n\n"
+
             with get_db().get_session() as session:
                 task = session.query(SyncTask).filter_by(id=task_id).first()
                 if task:

@@ -196,7 +196,7 @@ async def add_paper_to_collection(collection_id: int, data: AddPaperToCollection
 
         existing = session.query(CollectionPaper).filter_by(collection_id=collection_id, paper_id=data.paper_id).first()
         if existing:
-            raise HTTPException(status_code=400, detail="Paper already in collection")
+            return {"message": "Paper already in collection", "already_exists": True}
 
         cp = CollectionPaper(
             collection_id=collection_id,
