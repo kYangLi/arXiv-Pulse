@@ -1534,7 +1534,7 @@
                             @click="startHomeSearch" 
                             :loading="homeSearching"
                         >
-                            搜索
+                            {{ t('common.search') }}
                         </el-button>
                     </div>
                     
@@ -1559,9 +1559,9 @@
                 </div>
                 
                 <div class="home-stats">
-                    <span><el-icon><Document /></el-icon> {{ stats?.papers?.total || 0 }} 篇论文</span>
-                    <span><el-icon><Collection /></el-icon> {{ stats?.collections?.total || 0 }} 个论文集</span>
-                    <span><el-icon><TrendCharts /></el-icon> {{ stats?.papers?.summarized || 0 }} 篇已总结</span>
+                    <span><el-icon><Document /></el-icon> {{ stats?.papers?.total || 0 }} {{ t('home.totalPapers') }}</span>
+                    <span><el-icon><Collection /></el-icon> {{ stats?.collections?.total || 0 }} {{ t('home.totalCollections') }}</span>
+                    <span><el-icon><TrendCharts /></el-icon> {{ stats?.papers?.summarized || 0 }} {{ t('home.summarizedPapers') }}</span>
                 </div>
                 
                 <div class="home-hints">
@@ -1570,13 +1570,13 @@
                 
                 <div class="home-nav">
                     <el-button @click="navigateTo('recent')">
-                        <el-icon><Clock /></el-icon> 最近论文
+                        <el-icon><Clock /></el-icon> {{ t('home.recentPapers') }}
                     </el-button>
                     <el-button @click="navigateTo('sync')">
-                        <el-icon><Refresh /></el-icon> 同步管理
+                        <el-icon><Refresh /></el-icon> {{ t('home.syncManage') }}
                     </el-button>
                     <el-button @click="navigateTo('collections')">
-                        <el-icon><Folder /></el-icon> 论文集
+                        <el-icon><Folder /></el-icon> {{ t('home.paperCollections') }}
                     </el-button>
                     <el-button @click="showSettings = true" circle>
                         <el-icon><Setting /></el-icon>
@@ -1599,7 +1599,7 @@
                     <div class="header-inner">
                         <div class="header-brand" style="cursor: pointer;" @click="navigateTo('home')">
                             <h1>arXiv Pulse</h1>
-                            <p>智能学术文献追踪</p>
+                            <p>{{ t('home.subtitle') }}</p>
                         </div>
                         <div class="header-actions">
                             <el-button @click="showSettings = true" circle>
@@ -1613,9 +1613,9 @@
                     <!-- Navigation Tabs -->
                     <div class="tabs-container">
                         <el-tabs v-model="currentPage" @tab-change="onTabChange">
-                            <el-tab-pane label="最近论文" name="recent"></el-tab-pane>
-                            <el-tab-pane label="同步管理" name="sync"></el-tab-pane>
-                            <el-tab-pane label="论文集" name="collections"></el-tab-pane>
+                            <el-tab-pane :label="t('nav.recent')" name="recent"></el-tab-pane>
+                            <el-tab-pane :label="t('nav.sync')" name="sync"></el-tab-pane>
+                            <el-tab-pane :label="t('nav.collections')" name="collections"></el-tab-pane>
                         </el-tabs>
                     </div>
 
@@ -1757,30 +1757,30 @@
             </template>
 
             <!-- Settings Drawer -->
-            <el-drawer v-model="showSettings" title="系统设置" size="480px" class="settings-drawer">
+            <el-drawer v-model="showSettings" :title="t('settings.title')" size="480px" class="settings-drawer">
                 <div style="padding: 24px;">
                     <div class="settings-section">
-                        <h3>API 配置</h3>
+                        <h3>{{ t('settings.apiConfig') }}</h3>
                         <el-form label-position="top">
-                            <el-form-item label="API Base URL">
+                            <el-form-item :label="t('settings.apiBaseUrl')">
                                 <el-input v-model="settingsConfig.ai_base_url" />
                             </el-form-item>
-                            <el-form-item label="API Key">
+                            <el-form-item :label="t('settings.apiKey')">
                                 <el-input v-model="settingsConfig.ai_api_key" type="password" show-password />
                             </el-form-item>
-                            <el-form-item label="模型名称">
+                            <el-form-item :label="t('settings.modelName')">
                                 <el-input v-model="settingsConfig.ai_model" />
                             </el-form-item>
                             <el-form-item>
-                                <el-button @click="testAIConnection" :loading="testingAI">测试连接</el-button>
+                                <el-button @click="testAIConnection" :loading="testingAI">{{ t('settings.testConnection') }}</el-button>
                             </el-form-item>
                         </el-form>
                     </div>
 
                     <div class="settings-section">
-                        <h3>研究领域</h3>
+                        <h3>{{ t('settings.researchFields') }}</h3>
                         <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 12px;">
-                            已有论文的领域取消后仅停止同步，不会删除已有论文
+                            {{ t('settings.fieldsHint') }}
                         </p>
                         <div class="field-grid" style="max-height: 300px;">
                             <div v-for="field in fieldStats" :key="field.key" 
@@ -1792,7 +1792,7 @@
                                  @click="toggleSettingsField(field.key)">
                                 <div class="name">
                                     {{ field.name }}
-                                    <span v-if="field.paper_count > 0" class="paper-badge">{{ field.paper_count }} 篇</span>
+                                    <span v-if="field.paper_count > 0" class="paper-badge">{{ field.paper_count }} {{ t('collections.papers') }}</span>
                                 </div>
                                 <div class="desc">{{ field.description }}</div>
                             </div>
@@ -1800,60 +1800,60 @@
                     </div>
 
                     <div class="settings-section">
-                        <h3>同步设置</h3>
+                        <h3>{{ t('settings.syncSettings') }}</h3>
                         <el-form label-position="top">
-                            <el-form-item label="回溯年数">
+                            <el-form-item :label="t('settings.yearsBack')">
                                 <el-select v-model="settingsConfig.years_back" style="width: 100%;">
                                     <el-option v-for="item in initYearOptions" :key="item.value" :label="item.label" :value="item.value" />
                                 </el-select>
                             </el-form-item>
-                            <el-form-item label="arXiv 最大结果数">
+                            <el-form-item :label="t('settings.arxivMaxResults')">
                                 <el-input-number v-model="settingsConfig.arxiv_max_results" :min="1000" :max="50000" :step="1000" style="width: 100%;" />
                             </el-form-item>
                         </el-form>
                     </div>
 
                     <div class="settings-section">
-                        <h3>语言设置</h3>
+                        <h3>{{ t('settings.languageSettings') }}</h3>
                         <el-form label-position="top">
-                            <el-form-item label="界面语言">
-                                <el-select v-model="settingsConfig.ui_language" style="width: 100%;">
+                            <el-form-item :label="t('settings.uiLanguage')">
+                                <el-select v-model="settingsConfig.ui_language" @change="onLanguageChange" style="width: 100%;">
                                     <el-option label="中文" value="zh" />
                                     <el-option label="English" value="en" />
                                 </el-select>
                             </el-form-item>
-                            <el-form-item label="翻译语言">
+                            <el-form-item :label="t('settings.translateLanguage')">
                                 <el-select v-model="settingsConfig.translate_language" style="width: 100%;">
                                     <el-option label="中文" value="zh" />
-                                    <el-option label="English (不翻译)" value="en" />
+                                    <el-option :label="t('settings.noTranslate')" value="en" />
                                 </el-select>
                             </el-form-item>
                         </el-form>
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                        <el-button @click="showSettings = false">取消</el-button>
-                        <el-button type="primary" @click="saveSettings" :loading="savingSettings">保存设置</el-button>
+                        <el-button @click="showSettings = false">{{ t('common.cancel') }}</el-button>
+                        <el-button type="primary" @click="saveSettings" :loading="savingSettings">{{ t('settings.saveSettings') }}</el-button>
                     </div>
                 </div>
             </el-drawer>
 
             <!-- Dialogs -->
-            <el-dialog v-model="showCreateCollection" title="新建论文集" width="480px">
+            <el-dialog v-model="showCreateCollection" :title="t('collections.create')" width="480px">
                 <el-form label-position="top">
-                    <el-form-item label="名称">
-                        <el-input v-model="newCollection.name" placeholder="论文集名称" />
+                    <el-form-item :label="t('collections.name')">
+                        <el-input v-model="newCollection.name" :placeholder="t('collections.name')" />
                     </el-form-item>
-                    <el-form-item label="描述">
-                        <el-input v-model="newCollection.description" type="textarea" rows="3" placeholder="简要描述" />
+                    <el-form-item :label="t('collections.description')">
+                        <el-input v-model="newCollection.description" type="textarea" rows="3" :placeholder="t('collections.description')" />
                     </el-form-item>
-                    <el-form-item label="颜色">
+                    <el-form-item :label="t('collections.color')">
                         <el-color-picker v-model="newCollection.color" />
                     </el-form-item>
                 </el-form>
                 <template #footer>
-                    <el-button @click="showCreateCollection = false">取消</el-button>
-                    <el-button type="primary" @click="saveCollection" :loading="savingCollection">创建</el-button>
+                    <el-button @click="showCreateCollection = false">{{ t('common.cancel') }}</el-button>
+                    <el-button type="primary" @click="saveCollection" :loading="savingCollection">{{ t('common.confirm') }}</el-button>
                 </template>
             </el-dialog>
 
@@ -1941,7 +1941,7 @@
             
             <div v-if="showCart" class="cart-panel">
                 <div class="cart-header">
-                    <h3>暂存篮 ({{ paperCart.length }})</h3>
+                    <h3>{{ t('basket.title') }} ({{ paperCart.length }})</h3>
                     <el-button text @click="showCart = false" style="color: white;">
                         <el-icon><Close /></el-icon>
                     </el-button>
@@ -1951,8 +1951,8 @@
                         <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor" style="opacity: 0.5;">
                             <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
                         </svg>
-                        <p style="margin-top: 12px; color: var(--text-muted);">暂存篮是空的</p>
-                        <p style="font-size: 12px; color: var(--text-muted);">点击论文卡片的"暂存"按钮添加论文</p>
+                        <p style="margin-top: 12px; color: var(--text-muted);">{{ t('basket.empty') }}</p>
+                        <p style="font-size: 12px; color: var(--text-muted);">{{ t('basket.emptyHint') }}</p>
                     </div>
                     <div v-for="(paper, index) in paperCart" :key="paper.arxiv_id" class="cart-item">
                         <div class="cart-item-info">
@@ -1960,7 +1960,7 @@
                             <div class="cart-item-meta">{{ paper.arxiv_id }} · {{ formatDate(paper.published) }}</div>
                         </div>
                         <div class="cart-item-actions">
-                            <el-button text size="small" @click="removeFromCart(index)" title="移除">
+                            <el-button text size="small" @click="removeFromCart(index)" :title="t('common.delete')">
                                 <el-icon><Delete /></el-icon>
                             </el-button>
                         </div>
@@ -1970,26 +1970,26 @@
                     <div class="cart-actions">
                         <el-dropdown @command="exportCart" placement="top">
                             <el-button type="primary" plain>
-                                <el-icon><Download /></el-icon> 导出
+                                <el-icon><Download /></el-icon> {{ t('basket.export') }}
                             </el-button>
                             <template #dropdown>
                                 <el-dropdown-menu>
                                     <el-dropdown-item command="markdown">Markdown</el-dropdown-item>
-                                    <el-dropdown-item command="pdf">PDF（汇总）</el-dropdown-item>
-                                    <el-dropdown-item command="pdf_original">PDF（原文）</el-dropdown-item>
+                                    <el-dropdown-item command="pdf">PDF</el-dropdown-item>
+                                    <el-dropdown-item command="pdf_original">PDF (Original)</el-dropdown-item>
                                     <el-dropdown-item command="csv">CSV</el-dropdown-item>
                                     <el-dropdown-item command="bibtex">BibTeX</el-dropdown-item>
                                 </el-dropdown-menu>
                             </template>
                         </el-dropdown>
                         <el-button @click="addCartToCollection" plain>
-                            <el-icon><Folder /></el-icon> 论文集
+                            <el-icon><Folder /></el-icon> {{ t('basket.addToCollection') }}
                         </el-button>
                         <el-button @click="copyCartLinks" type="info" plain>
-                            <el-icon><Tickets /></el-icon> 复制链接
+                            <el-icon><Tickets /></el-icon> {{ t('basket.copyLinks') }}
                         </el-button>
                         <el-button @click="clearCart" type="danger" plain>
-                            <el-icon><Delete /></el-icon> 清空
+                            <el-icon><Delete /></el-icon> {{ t('basket.clear') }}
                         </el-button>
                     </div>
                 </div>
@@ -2011,12 +2011,12 @@
             
             <div v-else class="chat-window">
                 <div class="chat-header">
-                    <span class="chat-title">AI 助手</span>
+                    <span class="chat-title">{{ t('chat.title') }}</span>
                     <div class="chat-header-actions">
-                        <el-button text @click="createNewChat" title="新建对话">
+                        <el-button text @click="createNewChat" :title="t('chat.newChat')">
                             <el-icon><Plus /></el-icon>
                         </el-button>
-                        <el-button text @click="chatExpanded = false" title="关闭">
+                        <el-button text @click="chatExpanded = false" :title="t('common.cancel')">
                             <el-icon><Close /></el-icon>
                         </el-button>
                     </div>
@@ -2025,7 +2025,7 @@
                 <div class="chat-body">
                     <div class="chat-sidebar" v-show="showChatSidebar">
                         <div class="chat-sidebar-header">
-                            <span>对话历史</span>
+                            <span>{{ t('chat.history') }}</span>
                             <el-button text size="small" @click="showChatSidebar = false">
                                 <el-icon><ArrowLeft /></el-icon>
                             </el-button>
@@ -2046,13 +2046,13 @@
                                     text 
                                     size="small" 
                                     @click.stop="deleteChatSession(session)"
-                                    title="删除对话"
+                                    :title="t('common.delete')"
                                 >
                                     <el-icon><Delete /></el-icon>
                                 </el-button>
                             </div>
                             <div v-if="chatSessions.length === 0" class="no-sessions">
-                                暂无对话
+                                {{ t('chat.noSession') }}
                             </div>
                         </div>
                     </div>
@@ -2061,8 +2061,8 @@
                         <div class="chat-messages" ref="chatMessagesContainer" @scroll="handleChatScroll">
                             <div v-if="chatMessages.length === 0" class="chat-welcome">
                                 <el-icon size="48" color="#c9a227"><ChatDotRound /></el-icon>
-                                <h3>AI 学术助手</h3>
-                                <p>我可以帮你分析论文、解答学术问题</p>
+                                <h3>{{ t('chat.title') }}</h3>
+                                <p>{{ t('chat.welcome') }}</p>
                             </div>
                             <div v-for="msg in chatMessages" :key="msg.id" class="chat-message" :class="msg.role">
                                 <div v-if="msg.role === 'user'" class="message-avatar user">
@@ -2118,12 +2118,12 @@
                         </div>
                         
                         <div class="chat-input-area">
-                            <el-button text @click="showChatSidebar = !showChatSidebar" title="对话历史">
+                            <el-button text @click="showChatSidebar = !showChatSidebar" :title="t('chat.history')">
                                 <el-icon><List /></el-icon>
                             </el-button>
                             <el-input
                                 v-model="chatInput"
-                                placeholder="输入消息..."
+                                :placeholder="t('chat.inputPlaceholder')"
                                 @keyup.enter="sendChatMessage"
                                 :disabled="chatTyping"
                             />
