@@ -176,7 +176,7 @@ def serve(directory, host, port, foreground, force):
         # Update lock with actual PID
         lock.release()
         lock.acquire(host, port, pid=process.pid)
-        _lock_instance = lock
+        _lock_instance = None  # Prevent atexit from cleaning up the lock
 
         click.echo(f"\n✅ 服务已在后台启动 (PID: {process.pid})")
         click.echo(f"📝 日志文件: {log_file}")
