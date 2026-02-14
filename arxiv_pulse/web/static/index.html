@@ -783,21 +783,24 @@
             cursor: pointer;
         }
         .back-home-trigger .el-button {
-            width: 50px;
-            height: 50px;
+            width: 56px;
+            height: 56px;
             box-shadow: 0 4px 16px rgba(30, 58, 95, 0.3);
             transition: all 0.3s ease;
             animation: homeBtnFadeIn 0.5s ease forwards;
             background: linear-gradient(135deg, #5a6c7d 0%, #7a8c9d 100%);
             border: none;
             color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .back-home-trigger .el-button:hover {
-            transform: scale(1.1);
+            transform: scale(1.05);
             box-shadow: 0 6px 20px rgba(30, 58, 95, 0.5);
         }
         .back-home-trigger .el-button .el-icon {
-            font-size: 20px;
+            font-size: 24px;
         }
         @keyframes homeBtnFadeIn {
             0% {
@@ -873,6 +876,8 @@
         }
         .cart-trigger .el-button svg {
             color: white;
+            width: 24px;
+            height: 24px;
         }
         .cart-badge {
             position: absolute;
@@ -995,8 +1000,8 @@
             opacity: 0.5;
         }
         .chat-trigger .el-button {
-            width: 60px;
-            height: 60px;
+            width: 56px;
+            height: 56px;
             box-shadow: 0 4px 16px rgba(30, 58, 95, 0.4);
             background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
             border: none;
@@ -1011,6 +1016,8 @@
         }
         .chat-trigger .el-button svg {
             color: white;
+            width: 24px;
+            height: 24px;
         }
         .chat-window {
             width: 480px;
@@ -1976,7 +1983,7 @@
             <div v-if="!chatExpanded" class="chat-trigger" @click="toggleChat">
                 <el-badge :value="chatUnreadCount" :hidden="chatUnreadCount === 0" :max="9">
                     <el-button circle size="large" type="primary">
-                        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
                             <path d="M7 9h10v2H7zm0-3h10v2H7z"/>
                         </svg>
