@@ -466,6 +466,52 @@ class ArXivCrawler:
             traceback.print_exc()
             return None
 
+    def search_and_save(self, query: str, max_results: int = 15) -> tuple[list[Paper], int, int]:
+        """Search arXiv by query and save new papers to database
+
+        Args:
+            query: Search query string
+            max_results: Maximum results to fetch from arXiv
+
+        Returns:
+            Tuple of (list of Paper objects, total found, new papers count)
+        """
+        try:
+            results = self.search_arxiv(query=query, max_results=max_results)
+            if not results:
+                return [], 0, 0
+
+            total = len(results)
+            new_papers = []
+            saved_papers = []
+
+            with self.db.get_session() as session:
+                for result in results:
+                    arxiv_id = result.entry_id.split("/")[-1]
+                    if "v" in arxiv_id:
+                        arxiv_id = arxiv_id.split("v")[0]
+
+                    existing = session.query(Paper).filter_by(arxiv_id=arxiv_id).first()
+                    if existing:
+                        saved_papers.append(existing)
+                    else:
+                        paper_obj = Paper.from_arxiv_entry(result, f"remote_search:{query}")
+                        session.add(paper_obj)
+                        new_papers.append(paper_obj)
+                        saved_papers.append(paper_obj)
+
+                session.commit()
+
+                for p in saved_papers:
+                    session.refresh(p)
+
+            output.debug(f"远程搜索 '{query}': 找到 {total} 篇，新增 {len(new_papers)} 篇")
+            return saved_papers, total, len(new_papers)
+
+        except Exception as e:
+            output.error(f"远程搜索失败: {query}", details={"exception": str(e)})
+            return [], 0, 0
+
     def get_crawler_stats(self) -> dict[str, Any]:
         """Get crawler statistics"""
         with self.db.get_session() as session:

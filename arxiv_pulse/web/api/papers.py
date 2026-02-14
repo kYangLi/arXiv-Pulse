@@ -656,7 +656,45 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
 
         from arxiv_pulse.search_engine import SearchEngine, SearchFilter
 
+        import arxiv as arxiv_lib
+
         all_papers = []
+        remote_total = 0
+        remote_new = 0
+
+        yield f"data: {json.dumps({'type': 'log', 'message': '正在从 arXiv 远程搜索...'}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.1)
+
+        try:
+            crawler = ArXivCrawler()
+            for term in search_terms:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'远程搜索: {term}'}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.05)
+
+                papers, total, new_count = crawler.search_and_save(term, max_results=15)
+                remote_total += total
+                remote_new += new_count
+
+                if papers:
+                    all_papers.extend(papers)
+                    if new_count > 0:
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'找到 {total} 篇，其中 {new_count} 篇为新论文'}, ensure_ascii=False)}\n\n"
+                    else:
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'找到 {total} 篇论文（均已收录）'}, ensure_ascii=False)}\n\n"
+                else:
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'未找到相关论文'}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.1)
+
+        except arxiv_lib.HTTPError as e:
+            yield f"data: {json.dumps({'type': 'log', 'message': f'arXiv API 暂时不可用，仅使用本地搜索'}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.1)
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'log', 'message': f'远程搜索失败: {str(e)[:50]}'}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.1)
+
+        yield f"data: {json.dumps({'type': 'log', 'message': '正在搜索本地数据库...'}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.1)
+
         with db.get_session() as session:
             search_engine = SearchEngine(session)
             for term in search_terms:
@@ -664,12 +702,13 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                     query=term,
                     search_fields=["title", "abstract"],
                     days_back=0,
-                    limit=30,
+                    limit=20,
                     sort_by="published",
                     sort_order="desc",
                 )
-                papers = search_engine.search_papers(filter_config)
-                all_papers.extend(papers)
+                local_papers = search_engine.search_papers(filter_config)
+                for p in local_papers:
+                    all_papers.append(p)
 
         seen_ids = set()
         unique_papers = []
@@ -679,15 +718,18 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                 unique_papers.append(p)
 
         unique_papers.sort(key=lambda p: p.published if p.published else datetime.min, reverse=True)
-        papers = unique_papers[:20]
+        papers = unique_papers[:25]
 
         if not papers:
-            yield f"data: {json.dumps({'type': 'log', 'message': '数据库中未找到匹配论文'}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'type': 'log', 'message': '未找到匹配论文'}, ensure_ascii=False)}\n\n"
             await asyncio.sleep(0.1)
             yield f"data: {json.dumps({'type': 'done', 'total': 0}, ensure_ascii=False)}\n\n"
             return
 
-        yield f"data: {json.dumps({'type': 'log', 'message': f'找到 {len(papers)} 篇匹配论文'}, ensure_ascii=False)}\n\n"
+        summary_msg = f"合并结果：共 {len(papers)} 篇论文"
+        if remote_new > 0:
+            summary_msg += f"（远程新增 {remote_new} 篇）"
+        yield f"data: {json.dumps({'type': 'log', 'message': summary_msg}, ensure_ascii=False)}\n\n"
         await asyncio.sleep(0.1)
 
         for i, paper in enumerate(papers):
