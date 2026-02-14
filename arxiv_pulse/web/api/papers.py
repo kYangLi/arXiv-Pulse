@@ -215,31 +215,21 @@ def enhance_paper_data(paper: Paper, session=None) -> dict[str, Any]:
     if paper.summary:
         try:
             summary_data = json.loads(paper.summary)
-            parts = []
-            if summary_data.get("methodology"):
-                parts.append(f"【方法】{summary_data['methodology']}")
-            if summary_data.get("relevance"):
-                parts.append(f"【相关领域】{summary_data['relevance']}")
-            if summary_data.get("impact"):
-                parts.append(f"【影响】{summary_data['impact']}")
-            if summary_data.get("summary"):
-                parts.insert(0, summary_data["summary"])
-
-            data["summary_text"] = "\n\n".join(parts) if parts else ""
+            data["summary_data"] = summary_data
             data["key_findings"] = summary_data.get("key_findings", [])[:5]
             data["keywords"] = summary_data.get("keywords", [])[:10]
         except (json.JSONDecodeError, TypeError):
-            data["summary_text"] = paper.summary
+            data["summary_data"] = None
             data["key_findings"] = []
             data["keywords"] = []
     else:
-        data["summary_text"] = ""
+        data["summary_data"] = None
         data["key_findings"] = []
         data["keywords"] = []
 
-    data["title_translation"] = translate_text(paper.title)
+    data["title_translation"] = translate_text(paper.title, Config.TRANSLATE_LANGUAGE)
     if paper.abstract:
-        data["abstract_translation"] = translate_text(paper.abstract)
+        data["abstract_translation"] = translate_text(paper.abstract, Config.TRANSLATE_LANGUAGE)
     else:
         data["abstract_translation"] = ""
 
@@ -992,9 +982,9 @@ async def get_paper_translation(paper_id: int):
             "id": paper.id,
             "arxiv_id": paper.arxiv_id,
             "title": paper.title,
-            "title_translation": translate_text(paper.title),
+            "title_translation": translate_text(paper.title, Config.TRANSLATE_LANGUAGE),
             "abstract": paper.abstract,
-            "abstract_translation": translate_text(paper.abstract) if paper.abstract else "",
+            "abstract_translation": translate_text(paper.abstract, Config.TRANSLATE_LANGUAGE) if paper.abstract else "",
         }
 
 

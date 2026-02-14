@@ -183,48 +183,24 @@
             max-width: 680px;
             margin-bottom: 24px;
         }
-        .home-search-input {
-            position: relative;
-        }
-        .home-search-input .el-input__wrapper {
+        .home-search-box .el-input__wrapper {
             padding: 16px 20px;
             border-radius: 16px;
             box-shadow: var(--shadow-lg);
             border: 2px solid transparent;
             transition: all 0.3s ease;
         }
-        .home-search-input .el-input__wrapper:hover,
-        .home-search-input .el-input__wrapper.is-focus {
+        .home-search-box .el-input__wrapper:hover,
+        .home-search-box .el-input__wrapper.is-focus {
             border-color: var(--primary);
             box-shadow: var(--shadow-lg), 0 0 0 4px rgba(30, 58, 95, 0.1);
         }
-        .home-search-input .el-input__inner {
+        .home-search-box .el-input__inner {
             font-size: 17px;
             height: 32px;
         }
-        .home-search-input .el-input__inner::placeholder {
+        .home-search-box .el-input__inner::placeholder {
             font-size: 17px;
-        }
-        .home-search-btn {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: var(--primary);
-            border: none;
-            border-radius: 8px;
-            padding: 8px 28px;
-            font-size: 15px;
-            font-weight: 500;
-            letter-spacing: 2px;
-            transition: all 0.25s ease;
-        }
-        .home-search-btn:hover {
-            background: #2d4a6f;
-            transform: translateY(-50%) scale(1.02);
-        }
-        .home-search-btn:active {
-            transform: translateY(-50%) scale(0.98);
         }
         .home-stats {
             display: flex;
@@ -244,16 +220,9 @@
             font-size: 13px;
             text-align: center;
         }
-        .home-nav {
-            display: flex;
-            gap: 16px;
-            margin-top: 40px;
-        }
-        .home-nav .el-button {
-            padding: 12px 24px;
-        }
         .home-footer {
             margin-top: 32px;
+            padding-bottom: 100px;
         }
         .github-link {
             display: inline-flex;
@@ -266,6 +235,197 @@
         }
         .github-link:hover {
             color: var(--primary);
+        }
+        
+        /* Bottom Navigation Bar - Auto Hide */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(30, 58, 95, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+            padding: 8px 12px;
+            z-index: 1001;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .bottom-nav::before {
+            content: '';
+            width: 40px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 2px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+        .bottom-nav:hover::before {
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .bottom-nav .nav-items-wrapper {
+            display: flex;
+            gap: 6px;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .bottom-nav:hover .nav-items-wrapper {
+            max-height: 70px;
+            opacity: 1;
+        }
+        .nav-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: rgba(255, 255, 255, 0.7);
+            min-width: 56px;
+        }
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            transform: translateY(-2px);
+        }
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            transform: translateY(-2px);
+        }
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            width: 16px;
+            height: 2px;
+            background: #c9a227;
+            border-radius: 1px;
+        }
+        .nav-item svg {
+            margin-bottom: 2px;
+        }
+        .nav-item span {
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        /* Page Transition Animations */
+        .page-fade-enter-active,
+        .page-fade-leave-active {
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .page-fade-enter-from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        .page-fade-leave-to {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        
+        @keyframes pageFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .page-animate {
+            animation: pageFadeIn 0.3s ease-out;
+        }
+        
+        /* Floating Buttons */
+        .floating-buttons-left,
+        .floating-buttons-right {
+            position: fixed;
+            bottom: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        .floating-buttons-left {
+            left: 24px;
+        }
+        .floating-buttons-right {
+            right: 24px;
+        }
+        .floating-buttons-left .el-button,
+        .floating-buttons-right .el-button {
+            width: 64px;
+            height: 64px;
+            font-size: 18px;
+            font-weight: 600;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .floating-buttons-left .el-button:hover,
+        .floating-buttons-right .el-button:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+        }
+        .lang-btn {
+            background: linear-gradient(135deg, #2d5a87 0%, #1e3a5f 100%) !important;
+            border: none !important;
+            color: white !important;
+        }
+        .settings-btn {
+            background: linear-gradient(135deg, #5a6c7d 0%, #3d4f5f 100%) !important;
+            border: none !important;
+            color: white !important;
+        }
+        .cart-fab-btn {
+            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%) !important;
+            border: none !important;
+            color: white !important;
+        }
+        .cart-fab-btn svg {
+            color: white !important;
+        }
+        .chat-fab-btn {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%) !important;
+            border: none !important;
+            color: white !important;
+        }
+        .chat-fab-btn svg {
+            color: white !important;
+        }
+        
+        /* Page Transition Animations */
+        .page-slide-enter-active {
+            animation: slideInRight 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .page-slide-leave-active {
+            animation: slideOutLeft 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        @keyframes slideOutLeft {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
         }
         
         .header { 
@@ -348,17 +508,19 @@
             font-family: Georgia, 'Times New Roman', serif;
         }
         
-        /* Tabs */
-        .tabs-container { margin-bottom: 24px; }
-        .el-tabs__item {
-            font-size: 15px;
-            font-weight: 500;
+        /* Page Content */
+        .page-content {
+            animation: pageFadeIn 0.35s ease-out;
         }
-        .el-tabs__item.is-active {
-            color: var(--primary);
-        }
-        .el-tabs__active-bar {
-            background-color: var(--primary);
+        @keyframes pageFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         /* Settings Section */
@@ -772,47 +934,6 @@
             z-index: 1000;
         }
         
-        /* Back to Home Button */
-        .back-home-widget {
-            position: fixed;
-            bottom: 24px;
-            right: 176px;
-            z-index: 999;
-        }
-        .back-home-trigger {
-            cursor: pointer;
-        }
-        .back-home-trigger .el-button {
-            width: 56px;
-            height: 56px;
-            box-shadow: 0 4px 16px rgba(30, 58, 95, 0.3);
-            transition: all 0.3s ease;
-            animation: homeBtnFadeIn 0.5s ease forwards;
-            background: linear-gradient(135deg, #5a6c7d 0%, #7a8c9d 100%);
-            border: none;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .back-home-trigger .el-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(30, 58, 95, 0.5);
-        }
-        .back-home-trigger .el-button .el-icon {
-            font-size: 24px;
-        }
-        @keyframes homeBtnFadeIn {
-            0% {
-                opacity: 0;
-                transform: translateY(20px) scale(0.8);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-        
         /* Page transition animation */
         .page-circle-exit {
             animation: circleShrink 0.4s ease forwards;
@@ -902,24 +1023,47 @@
             width: 400px;
             max-height: 500px;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            animation: panelSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes panelSlideUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .cart-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 20px;
-            background: linear-gradient(135deg, #c9a227 0%, #d4af37 100%);
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #f5a623 0%, #f7b731 100%);
             color: white;
         }
         .cart-header h3 {
             margin: 0;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .cart-header .collapse-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .cart-header .collapse-btn:hover {
+            background: rgba(255,255,255,0.3);
         }
         .cart-body {
             flex: 1;
@@ -1028,30 +1172,60 @@
             max-height: 85vh;
             background: white;
             border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
             display: flex;
             flex-direction: column;
             overflow: hidden;
             resize: both;
+            animation: panelSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
         .chat-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 20px;
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
         .chat-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .chat-header-actions {
             display: flex;
-            gap: 4px;
+            gap: 6px;
         }
         .chat-header-actions .el-button {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.15);
             color: white;
+            transition: all 0.2s;
+        }
+        .chat-header-actions .el-button:hover {
+            background: rgba(255,255,255,0.25);
+        }
+        .chat-header-actions .collapse-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chat-header-actions .collapse-btn:hover {
+            background: rgba(255,255,255,0.25);
         }
         .chat-body {
             flex: 1;
@@ -1516,27 +1690,18 @@
                 </div>
                 
                 <div class="home-search-box">
-                    <div class="home-search-input">
-                        <el-input 
-                            v-model="homeQuery" 
-                            placeholder="输入 arXiv ID、网址或关键词搜索..."
-                            size="large"
-                            @keyup.enter="startHomeSearch"
-                            clearable
-                        >
-                            <template #prefix>
-                                <el-icon><Search /></el-icon>
-                            </template>
-                        </el-input>
-                        <el-button 
-                            class="home-search-btn" 
-                            type="primary" 
-                            @click="startHomeSearch" 
-                            :loading="homeSearching"
-                        >
-                            {{ t('common.search') }}
-                        </el-button>
-                    </div>
+                    <el-input 
+                        v-model="homeQuery" 
+                        placeholder="输入 arXiv ID、网址或关键词搜索..."
+                        size="large"
+                        @keyup.enter="startHomeSearch"
+                        clearable
+                    >
+                        <template #prefix>
+                            <el-icon><Search /></el-icon>
+                        </template>
+                    </el-input>
+                </div>
                     
                     <div v-if="homeLogs.length > 0" class="logs-container" style="margin-top: 20px; max-height: 200px;">
                         <div v-for="(log, index) in homeLogs" :key="index" class="log-line" :class="log.type">
@@ -1556,7 +1721,6 @@
                             @remove-from-cart="removeFromCartByArxivId"
                         />
                     </div>
-                </div>
                 
                 <div class="home-stats">
                     <span><el-icon><Document /></el-icon> {{ stats?.papers?.total || 0 }} {{ t('home.totalPapers') }}</span>
@@ -1566,21 +1730,6 @@
                 
                 <div class="home-hints">
                     支持 arXiv ID (如 2601.02938)、URL (如 https://arxiv.org/abs/2601.02938) 或关键词搜索
-                </div>
-                
-                <div class="home-nav">
-                    <el-button @click="navigateTo('recent')">
-                        <el-icon><Clock /></el-icon> {{ t('home.recentPapers') }}
-                    </el-button>
-                    <el-button @click="navigateTo('sync')">
-                        <el-icon><Refresh /></el-icon> {{ t('home.syncManage') }}
-                    </el-button>
-                    <el-button @click="navigateTo('collections')">
-                        <el-icon><Folder /></el-icon> {{ t('home.paperCollections') }}
-                    </el-button>
-                    <el-button @click="showSettings = true" circle>
-                        <el-icon><Setting /></el-icon>
-                    </el-button>
                 </div>
                 
                 <div class="home-footer">
@@ -1601,26 +1750,14 @@
                             <h1>arXiv Pulse</h1>
                             <p>{{ t('home.subtitle') }}</p>
                         </div>
-                        <div class="header-actions">
-                            <el-button @click="showSettings = true" circle>
-                                <el-icon><Setting /></el-icon>
-                            </el-button>
-                        </div>
                     </div>
                 </header>
 
-                <main class="main-content">
-                    <!-- Navigation Tabs -->
-                    <div class="tabs-container">
-                        <el-tabs v-model="currentPage" @tab-change="onTabChange">
-                            <el-tab-pane :label="t('nav.recent')" name="recent"></el-tab-pane>
-                            <el-tab-pane :label="t('nav.sync')" name="sync"></el-tab-pane>
-                            <el-tab-pane :label="t('nav.collections')" name="collections"></el-tab-pane>
-                        </el-tabs>
-                    </div>
-
-                <!-- Recent Papers Tab -->
-                <div v-if="currentPage === 'recent'">
+                <main class="main-content" style="padding-bottom: 100px;">
+                    <transition name="page-slide" mode="out-in">
+                        <div :key="currentPage">
+                            <!-- Recent Papers Page -->
+                            <div v-if="currentPage === 'recent'" class="page-content">
                     <div class="search-options" style="margin-bottom: 20px;">
                         <div class="search-options-row">
                             <el-select v-model="recentDays" placeholder="时间范围" style="width: 120px;">
@@ -1667,9 +1804,9 @@
                     </div>
                 </div>
 
-                <!-- Sync Tab -->
-                <div v-if="currentPage === 'sync'">
-                    <div class="sync-status-grid">
+            <!-- Sync Page -->
+            <div v-else-if="currentPage === 'sync'" class="page-content">
+                <div class="sync-status-grid">
                         <div class="sync-status-card">
                             <div class="label">同步状态</div>
                             <div class="value" :class="syncStatusClass">{{ syncStatusText }}</div>
@@ -1727,9 +1864,9 @@
                     </div>
                 </div>
 
-                <!-- Collections Tab -->
-                <div v-if="currentPage === 'collections'">
-                    <div style="margin-bottom: 20px;">
+            <!-- Collections Page -->
+            <div v-else-if="currentPage === 'collections'" class="page-content">
+                <div style="margin-bottom: 20px;">
                         <el-button type="primary" @click="showCreateCollection = true">
                             <el-icon><Plus /></el-icon> 新建论文集
                         </el-button>
@@ -1753,14 +1890,16 @@
                         <p>创建论文集来整理你感兴趣的文献</p>
                     </div>
                 </div>
-            </main>
-            </template>
+            </div>
+        </transition>
+    </main>
+</template>
 
             <!-- Settings Drawer -->
             <el-drawer v-model="showSettings" :title="t('settings.title')" size="480px" class="settings-drawer">
                 <div style="padding: 24px;">
                     <div class="settings-section">
-                        <h3>{{ t('settings.apiConfig') }}</h3>
+                        <h3>{{ t('settings.aiConfig') }}</h3>
                         <el-form label-position="top">
                             <el-form-item :label="t('settings.apiBaseUrl')">
                                 <el-input v-model="settingsConfig.ai_base_url" />
@@ -1770,6 +1909,12 @@
                             </el-form-item>
                             <el-form-item :label="t('settings.modelName')">
                                 <el-input v-model="settingsConfig.ai_model" />
+                            </el-form-item>
+                            <el-form-item :label="t('settings.aiLanguage')">
+                                <el-select v-model="settingsConfig.translate_language" style="width: 100%;">
+                                    <el-option v-for="lang in aiLanguageOptions" :key="lang.value" :label="lang.label" :value="lang.value" />
+                                </el-select>
+                                <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">{{ t('settings.aiLanguageHint') }}</p>
                             </el-form-item>
                             <el-form-item>
                                 <el-button @click="testAIConnection" :loading="testingAI">{{ t('settings.testConnection') }}</el-button>
@@ -1809,24 +1954,6 @@
                             </el-form-item>
                             <el-form-item :label="t('settings.arxivMaxResults')">
                                 <el-input-number v-model="settingsConfig.arxiv_max_results" :min="1000" :max="50000" :step="1000" style="width: 100%;" />
-                            </el-form-item>
-                        </el-form>
-                    </div>
-
-                    <div class="settings-section">
-                        <h3>{{ t('settings.languageSettings') }}</h3>
-                        <el-form label-position="top">
-                            <el-form-item :label="t('settings.uiLanguage')">
-                                <el-select v-model="settingsConfig.ui_language" @change="onLanguageChange" style="width: 100%;">
-                                    <el-option label="中文" value="zh" />
-                                    <el-option label="English" value="en" />
-                                </el-select>
-                            </el-form-item>
-                            <el-form-item :label="t('settings.translateLanguage')">
-                                <el-select v-model="settingsConfig.translate_language" style="width: 100%;">
-                                    <el-option label="中文" value="zh" />
-                                    <el-option :label="t('settings.noTranslate')" value="en" />
-                                </el-select>
                             </el-form-item>
                         </el-form>
                     </div>
@@ -1919,32 +2046,52 @@
             </el-dialog>
         </div>
 
-        <!-- Back to Home Button -->
-        <div v-if="!showSetup && currentPage !== 'home'" class="back-home-widget">
-            <div class="back-home-trigger" @click="navigateToHome">
-                <el-button circle size="large">
-                    <el-icon><Search /></el-icon>
-                </el-button>
+        <!-- Bottom Navigation Bar -->
+        <div v-if="!showSetup" class="bottom-nav" @mouseenter="(e) => e.currentTarget.style.cursor='default'">
+            <div class="nav-items-wrapper">
+                <div class="nav-item" :class="{ active: currentPage === 'home' }" @click="navigateTo('home')">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                    </svg>
+                    <span>{{ t('nav.home') }}</span>
+                </div>
+                <div class="nav-item" :class="{ active: currentPage === 'recent' }" @click="navigateTo('recent')">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    </svg>
+                    <span>{{ t('nav.recent') }}</span>
+                </div>
+                <div class="nav-item" :class="{ active: currentPage === 'sync' }" @click="navigateTo('sync')">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+                    </svg>
+                    <span>{{ t('nav.sync') }}</span>
+                </div>
+                <div class="nav-item" :class="{ active: currentPage === 'collections' }" @click="navigateTo('collections')">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                    </svg>
+                    <span>{{ t('nav.collections') }}</span>
+                </div>
             </div>
         </div>
 
-        <!-- Paper Basket Widget -->
-        <div v-if="!showSetup" class="cart-widget">
-            <div class="cart-trigger" @click="showCart = !showCart">
-                <el-button circle size="large">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-                    </svg>
-                </el-button>
-                <span v-if="paperCart.length > 0" class="cart-badge">{{ paperCart.length }}</span>
-            </div>
-            
-            <div v-if="showCart" class="cart-panel">
+        <!-- Paper Basket Panel -->
+        <transition name="panel">
+            <div v-if="!showSetup && showCart" class="cart-panel" style="position: fixed; bottom: 100px; right: 16px; z-index: 1000;">
                 <div class="cart-header">
-                    <h3>{{ t('basket.title') }} ({{ paperCart.length }})</h3>
-                    <el-button text @click="showCart = false" style="color: white;">
-                        <el-icon><Close /></el-icon>
-                    </el-button>
+                    <h3>
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+                        </svg>
+                        {{ t('basket.title') }}
+                        <span v-if="paperCart.length > 0" style="opacity: 0.7; font-weight: 400;">({{ paperCart.length }})</span>
+                    </h3>
+                    <div class="collapse-btn" @click="showCart = false" :title="currentLang === 'zh' ? '收起' : 'Collapse'">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
+                        </svg>
+                    </div>
                 </div>
                 <div class="cart-body">
                     <div v-if="paperCart.length === 0" class="cart-empty">
@@ -1994,31 +2141,57 @@
                     </div>
                 </div>
             </div>
+        </transition>
+
+        <!-- Floating Buttons Left (Language + Settings) -->
+        <div v-if="!showSetup" class="floating-buttons-left">
+            <el-button circle class="lang-btn" @click="toggleLanguage">
+                {{ currentLang === 'zh' ? 'EN' : '中' }}
+            </el-button>
+            <el-button circle class="settings-btn" @click="showSettings = true">
+                <el-icon><Setting /></el-icon>
+            </el-button>
         </div>
 
-        <!-- AI Chat Widget -->
-        <div v-if="!showSetup" class="chat-widget" :class="{ 'chat-expanded': chatExpanded }">
-            <div v-if="!chatExpanded" class="chat-trigger" @click="toggleChat">
-                <el-badge :value="chatUnreadCount" :hidden="chatUnreadCount === 0" :max="9">
-                    <el-button circle size="large" type="primary">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-                            <path d="M7 9h10v2H7zm0-3h10v2H7z"/>
-                        </svg>
-                    </el-button>
-                </el-badge>
-            </div>
-            
-            <div v-else class="chat-window">
+        <!-- Floating Buttons Right (Cart + Chat) -->
+        <div v-if="!showSetup" class="floating-buttons-right">
+            <el-badge :value="paperCart.length" :hidden="paperCart.length === 0" :max="9">
+                <el-button circle class="cart-fab-btn" @click="showCart = !showCart">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
+                        <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+                    </svg>
+                </el-button>
+            </el-badge>
+            <el-badge :value="chatUnreadCount" :hidden="chatUnreadCount === 0" :max="9">
+                <el-button circle class="chat-fab-btn" @click="toggleChat">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
+                        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                    </svg>
+                </el-button>
+            </el-badge>
+        </div>
+
+        <!-- AI Chat Window -->
+        <transition name="panel">
+            <div v-if="!showSetup && chatExpanded" class="chat-window" style="position: fixed; bottom: 100px; right: 16px; z-index: 999;">
                 <div class="chat-header">
-                    <span class="chat-title">{{ t('chat.title') }}</span>
+                    <span class="chat-title">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                        </svg>
+                        {{ t('chat.title') }}
+                    </span>
                     <div class="chat-header-actions">
                         <el-button text @click="createNewChat" :title="t('chat.newChat')">
-                            <el-icon><Plus /></el-icon>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                            </svg>
                         </el-button>
-                        <el-button text @click="chatExpanded = false" :title="t('common.cancel')">
-                            <el-icon><Close /></el-icon>
-                        </el-button>
+                        <div class="collapse-btn" @click="chatExpanded = false" :title="currentLang === 'zh' ? '收起' : 'Collapse'">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
                 
@@ -2134,7 +2307,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </transition>
     </div>
 
     <script src="libs/vue/vue.global.prod.js"></script>
@@ -2206,7 +2379,7 @@
                 },
                 settings: {
                     title: '系统设置',
-                    apiConfig: 'API 配置',
+                    aiConfig: 'AI 设置',
                     apiBaseUrl: 'API Base URL',
                     apiKey: 'API Key',
                     modelName: '模型名称',
@@ -2216,10 +2389,8 @@
                     syncSettings: '同步设置',
                     yearsBack: '回溯年数',
                     arxivMaxResults: 'arXiv 最大结果数',
-                    languageSettings: '语言设置',
-                    uiLanguage: '界面语言',
-                    translateLanguage: '翻译语言',
-                    noTranslate: 'English (不翻译)',
+                    aiLanguage: 'AI 输出语言',
+                    aiLanguageHint: 'AI 总结、翻译、对话的语言。切换后已缓存的翻译不会更新，建议谨慎切换。',
                     saveSettings: '保存设置'
                 },
                 setup: {
@@ -2369,7 +2540,7 @@
                 },
                 settings: {
                     title: 'Settings',
-                    apiConfig: 'API Configuration',
+                    aiConfig: 'AI Settings',
                     apiBaseUrl: 'API Base URL',
                     apiKey: 'API Key',
                     modelName: 'Model Name',
@@ -2379,10 +2550,8 @@
                     syncSettings: 'Sync Settings',
                     yearsBack: 'Years Back',
                     arxivMaxResults: 'arXiv Max Results',
-                    languageSettings: 'Language Settings',
-                    uiLanguage: 'UI Language',
-                    translateLanguage: 'Translation Language',
-                    noTranslate: 'English (No translation)',
+                    aiLanguage: 'AI Output Language',
+                    aiLanguageHint: 'Language for AI summaries, translations, and chat. Cached translations won\'t update after switching.',
                     saveSettings: 'Save Settings'
                 },
                 setup: {
@@ -2476,10 +2645,10 @@
             }
         };
 
-        let currentLang = 'zh';
+        const currentLang = ref('zh');
         function t(key) {
             const keys = key.split('.');
-            let value = i18n[currentLang];
+            let value = i18n[currentLang.value];
             for (const k of keys) {
                 if (value && typeof value === 'object') {
                     value = value[k];
@@ -2490,7 +2659,7 @@
             return typeof value === 'string' ? value : key;
         }
         function setLanguage(lang) {
-            currentLang = lang;
+            currentLang.value = lang;
         }
         window.t = t;
         window.setLanguage = setLanguage;
@@ -2527,15 +2696,25 @@
                 const initCurrentQuery = ref(0);
                 const initTotalQueries = ref(0);
                 
-                const waitingMessages = [
-                    '正在从 arXiv 获取论文...',
-                    '首次同步可能需要几分钟...',
-                    '正在处理论文数据...',
-                    'arXiv 服务器响应中...',
-                    '马上就好了...',
-                    '正在建立索引...'
-                ];
-                const waitingMessage = ref(waitingMessages[0]);
+                const waitingMessages = computed(() => {
+                    const isZh = currentLang.value === 'zh';
+                    return isZh ? [
+                        '正在从 arXiv 获取论文...',
+                        '首次同步可能需要几分钟...',
+                        '正在处理论文数据...',
+                        'arXiv 服务器响应中...',
+                        '马上就好了...',
+                        '正在建立索引...'
+                    ] : [
+                        'Fetching papers from arXiv...',
+                        'First sync may take a few minutes...',
+                        'Processing paper data...',
+                        'arXiv server responding...',
+                        'Almost done...',
+                        'Building index...'
+                    ];
+                });
+                const waitingMessage = ref('');
                 let waitingTimer = null;
                 
                 const setupConfig = ref({
@@ -2679,6 +2858,16 @@
                     { value: '365', label: '最近 1 年' }
                 ];
 
+                const aiLanguageOptions = [
+                    { value: 'zh', label: '中文' },
+                    { value: 'en', label: 'English' },
+                    { value: 'ja', label: '日本語' },
+                    { value: 'ko', label: '한국어' },
+                    { value: 'fr', label: 'Français' },
+                    { value: 'de', label: 'Deutsch' },
+                    { value: 'es', label: 'Español' }
+                ];
+
                 const categoryOptions = computed(() => {
                     return fieldStats.value
                         .filter(f => f.paper_count > 0)
@@ -2768,9 +2957,10 @@
                     initTotalQueries.value = 0;
 
                     let msgIndex = 0;
+                    waitingMessage.value = waitingMessages.value[0];
                     waitingTimer = setInterval(() => {
-                        msgIndex = (msgIndex + 1) % waitingMessages.length;
-                        waitingMessage.value = waitingMessages[msgIndex];
+                        msgIndex = (msgIndex + 1) % waitingMessages.value.length;
+                        waitingMessage.value = waitingMessages.value[msgIndex];
                     }, 3000);
 
                     try {
@@ -2914,6 +3104,23 @@
 
                 function onLanguageChange(lang) {
                     setLanguage(lang);
+                }
+
+                async function toggleLanguage() {
+                    const newLang = currentLang.value === 'zh' ? 'en' : 'zh';
+                    setLanguage(newLang);
+                    if (settingsConfig.value) {
+                        settingsConfig.value.ui_language = newLang;
+                        try {
+                            await fetch(`${API_BASE}/config`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(settingsConfig.value)
+                            });
+                        } catch (e) {
+                            console.error('Failed to save language setting:', e);
+                        }
+                    }
                 }
 
                 async function fetchStats() {
@@ -4004,7 +4211,7 @@
                     currentPage, stats, fieldStats, recentPapers, searchResults, collections,
                     loadingRecent, updatingRecent, recentLogs,
                     recentDays, recentLimit, recentNeedSync, recentSyncYears, recentCategories,
-                    categoryOptions, daysOptions, limitOptions, syncYearOptions, initYearOptions, syncYearsBackOptions, searchDaysOptions,
+                    categoryOptions, daysOptions, limitOptions, syncYearOptions, initYearOptions, syncYearsBackOptions, searchDaysOptions, aiLanguageOptions,
                     searching, searchQuery, searchDays, searchLogs,
                     syncStatus, syncing, syncLogs, syncYearsBack, syncForce,
                     syncStatusText, syncStatusClass, syncTimeClass, formatSyncTime,
@@ -4037,7 +4244,7 @@
                     addToCart, removeFromCart, removeFromCartByArxivId, clearCart, isInCart, exportCart,
                     addCartToCollection, copyCartLinks,
                     scrollToBottom, handleChatScroll,
-                    t, currentLang
+                    t, currentLang, toggleLanguage
                 };
             }
         });
@@ -4058,7 +4265,7 @@
                         </span>
                         <span class="paper-meta-item">
                             <el-icon><User /></el-icon>
-                            {{ paper.authors?.slice(0, 2).map(a => a.name).join(', ') }}{{ paper.authors?.length > 2 ? (currentLang === 'zh' ? ' 等' : ' et al.') : '' }}
+                            {{ paper.authors?.slice(0, 2).map(a => a.name).join(', ') }}{{ paper.authors?.length > 2 ? (isZh ? ' 等' : ' et al.') : '' }}
                         </span>
                         <span class="paper-relevance">
                             <span v-for="i in 5" :key="i" class="star">{{ i <= paper.relevance_score ? '★' : '☆' }}</span>
@@ -4145,6 +4352,8 @@
                 const openImage = (url) => {
                     window.open(url, '_blank');
                 };
+                
+                const isZh = computed(() => currentLang.value === 'zh');
                 const downloadCard = async () => {
                     const scale = 2;
                     const width = 700 * scale;
@@ -4336,7 +4545,7 @@
                     window.dispatchEvent(new CustomEvent('analyze-paper', { detail: props.paper }));
                 };
                 
-                return { expanded, formatDate, formatSummary, openArxiv, downloadPDF, openImage, downloadCard, analyzePaper };
+                return { expanded, formatDate, formatSummary, openArxiv, downloadPDF, openImage, downloadCard, analyzePaper, t, currentLang, isZh };
             }
         });
 

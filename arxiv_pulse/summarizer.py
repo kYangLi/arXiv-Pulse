@@ -97,31 +97,63 @@ class PaperSummarizer:
             }
         )
 
+    def get_summary_prompt(self, paper: Paper, lang: str = "zh") -> tuple[str, str]:
+        """Get summary prompt and system message based on language"""
+        if lang == "zh":
+            prompt = f"""
+请用结构化的格式总结以下研究论文：
+
+标题: {paper.title}
+
+摘要: {paper.abstract}
+
+请提供：
+1. 关键发现/贡献（要点列表）
+2. 使用的方法论/方法
+3. 与凝聚态物理、DFT、机器学习或力场的相关性
+4. 潜在影响/重要性
+
+请将回答格式化为JSON对象，包含以下字段：
+- key_findings: 字符串数组
+- methodology: 字符串
+- relevance: 字符串
+- impact: 字符串
+- keywords: 相关关键词数组（5-10个）
+"""
+            system_msg = "你是一个总结物理学和计算科学论文的研究助手。"
+        else:
+            prompt = f"""
+Please summarize the following research paper in a structured format:
+
+Title: {paper.title}
+
+Abstract: {paper.abstract}
+
+Please provide:
+1. Key findings/contributions (bullet points)
+2. Methodology/approach used
+3. Relevance to condensed matter physics, DFT, machine learning, or force fields
+4. Potential impact/significance
+
+Please format your response as a JSON object with the following fields:
+- key_findings: array of strings
+- methodology: string
+- relevance: string
+- impact: string
+- keywords: array of relevant keywords (5-10)
+"""
+            system_msg = (
+                "You are a research assistant specializing in summarizing physics and computational science papers."
+            )
+
+        return prompt, system_msg
+
     def deepseek_summary(self, paper: Paper) -> str | None:
         """Generate summary using DeepSeek"""
         if not self.config.AI_API_KEY:
             return None
 
-        prompt = f"""
-        请用结构化的格式总结以下研究论文：
-        
-        标题: {paper.title}
-        
-        摘要: {paper.abstract}
-        
-        请提供：
-        1. 关键发现/贡献（要点列表）
-        2. 使用的方法论/方法
-        3. 与凝聚态物理、DFT、机器学习或力场的相关性
-        4. 潜在影响/重要性
-        
-        请将回答格式化为JSON对象，包含以下字段：
-        - key_findings: 字符串数组
-        - methodology: 字符串
-        - relevance: 字符串
-        - impact: 字符串
-        - keywords: 相关关键词数组（5-10个）
-        """
+        prompt, system_msg = self.get_summary_prompt(paper, self.config.TRANSLATE_LANGUAGE)
 
         try:
             output.do(f"总结论文: {paper.arxiv_id}")
@@ -134,10 +166,7 @@ class PaperSummarizer:
             response = client.chat.completions.create(
                 model=self.config.AI_MODEL,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "你是一个总结物理学和计算科学论文的研究助手。",
-                    },
+                    {"role": "system", "content": system_msg},
                     {"role": "user", "content": prompt},
                 ],
                 max_tokens=self.config.SUMMARY_MAX_TOKENS,
