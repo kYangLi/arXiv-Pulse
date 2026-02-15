@@ -3781,6 +3781,7 @@
                                             initComplete.value = true;
                                             setTimeout(() => {
                                                 showSetup.value = false;
+                                                fetchConfig();
                                                 fetchStats();
                                                 fetchFieldStats();
                                                 fetchRecentCache();

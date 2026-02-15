@@ -240,6 +240,7 @@ async def initial_sync():
         search_queries = db.get_search_queries()
         selected_fields = db.get_selected_fields()
         years_back = int(db.get_config("years_back", "5") or "5")
+        arxiv_max_results_per_field = int(db.get_config("arxiv_max_results_per_field", "10000") or "10000")
         arxiv_max_results = int(db.get_config("arxiv_max_results", "100000") or "100000")
 
         if not search_queries:
@@ -247,23 +248,30 @@ async def initial_sync():
             return
 
         yield f"data: {json.dumps({'type': 'total', 'total': len(search_queries)}, ensure_ascii=False)}\n\n"
-        yield f"data: {json.dumps({'type': 'log', 'message': f'回溯 {years_back} 年，{len(search_queries)} 个研究领域，最大 {arxiv_max_results} 篇论文'}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'type': 'log', 'message': f'回溯 {years_back} 年，{len(search_queries)} 个研究领域，每领域最多 {arxiv_max_results_per_field} 篇，全局最多 {arxiv_max_results} 篇'}, ensure_ascii=False)}\n\n"
         await asyncio.sleep(0.1)
 
         total_added = 0
         crawler = ArXivCrawler()
 
         for i, query in enumerate(search_queries, 1):
+            if total_added >= arxiv_max_results:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'已达到全局限制 ({arxiv_max_results})，停止同步'}, ensure_ascii=False)}\n\n"
+                break
+
             field_name = query
             if i <= len(selected_fields):
                 field_name = get_field_display_name(selected_fields[i - 1], "zh")
+
+            remaining = arxiv_max_results - total_added
+            field_limit = min(arxiv_max_results_per_field, remaining)
 
             yield f"data: {json.dumps({'type': 'log', 'message': f'[{i}/{len(search_queries)}] {field_name}'}, ensure_ascii=False)}\n\n"
             await asyncio.sleep(0.05)
 
             try:
                 result = crawler.sync_query(
-                    query=query, years_back=years_back, force=False, arxiv_max_results=arxiv_max_results
+                    query=query, years_back=years_back, force=False, arxiv_max_results=field_limit
                 )
                 print(f"[DEBUG] sync_query result: {result.get('error', 'no error')}")
                 if "error" in result:
