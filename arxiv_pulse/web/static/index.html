@@ -1908,27 +1908,6 @@
             color: var(--text-muted);
             font-size: 13px;
         }
-        .field-selector-tabs {
-            display: flex;
-            padding: 8px 12px;
-            gap: 8px;
-            border-bottom: 1px solid var(--border-light);
-        }
-        .field-selector-tab {
-            padding: 6px 12px;
-            font-size: 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            color: var(--text-secondary);
-            transition: all 0.2s;
-        }
-        .field-selector-tab:hover {
-            background: var(--bg-subtle);
-        }
-        .field-selector-tab.active {
-            background: var(--primary);
-            color: white;
-        }
         
         /* Responsive */
         @media (max-width: 1024px) {
@@ -2495,70 +2474,43 @@
                                 </template>
                             </el-input>
                         </div>
-                        <div class="field-selector-tabs">
-                            <div class="field-selector-tab" :class="{ active: fieldSelectorTab === 'selected' }" @click="fieldSelectorTab = 'selected'">
-                                {{ currentLang === 'zh' ? '已选领域' : 'Selected' }} ({{ tempSelectedFields.length }})
-                            </div>
-                            <div class="field-selector-tab" :class="{ active: fieldSelectorTab === 'all' }" @click="fieldSelectorTab = 'all'">
-                                {{ currentLang === 'zh' ? '全部领域' : 'All Fields' }}
-                            </div>
-                        </div>
                         <div class="field-selector-tree">
-                            <template v-if="fieldSelectorTab === 'selected'">
-                                <div v-if="tempSelectedFields.length === 0" class="field-selector-empty">
-                                    {{ currentLang === 'zh' ? '暂未选择任何领域' : 'No fields selected' }}
-                                </div>
-                                <div v-else>
-                                    <div v-for="fieldId in tempSelectedFields" :key="fieldId" class="field-selected-item">
-                                        <div class="name">
-                                            <span v-if="allCategories[fieldId]?.recommended" class="star">⭐</span>
-                                            <span>{{ currentLang === 'zh' ? allCategories[fieldId]?.name : allCategories[fieldId]?.name_en }}</span>
-                                            <span style="color: var(--text-muted); font-size: 11px;">{{ fieldId }}</span>
-                                        </div>
-                                        <div class="remove-btn" @click="removeFromTempSelection(fieldId)">
-                                            <el-icon><Close /></el-icon>
-                                        </div>
+                            <template v-for="(group, groupKey) in filteredCategories" :key="groupKey">
+                                <div class="field-group">
+                                    <div class="field-group-header" :class="{ expanded: fieldSelectorExpanded[groupKey] }" @click="toggleFieldSelectorGroup(groupKey)">
+                                        <el-icon><ArrowRight /></el-icon>
+                                        <span>{{ currentLang === 'zh' ? group.name : group.name_en }}</span>
+                                        <span v-if="group.recommended" class="recommended-badge">{{ t('fields.recommended') }}</span>
                                     </div>
-                                </div>
-                            </template>
-                            <template v-else>
-                                <template v-for="(group, groupKey) in filteredCategories" :key="groupKey">
-                                    <div class="field-group">
-                                        <div class="field-group-header" :class="{ expanded: fieldSelectorExpanded[groupKey] }" @click="toggleFieldSelectorGroup(groupKey)">
-                                            <el-icon><ArrowRight /></el-icon>
-                                            <span>{{ currentLang === 'zh' ? group.name : group.name_en }}</span>
-                                            <span v-if="group.recommended" class="recommended-badge">{{ t('fields.recommended') }}</span>
-                                        </div>
-                                        <div v-show="fieldSelectorExpanded[groupKey]" class="field-group-children">
-                                            <template v-for="(cat, catKey) in group.children" :key="catKey">
-                                                <div v-if="cat.children" class="field-group">
-                                                    <div class="field-group-header" :class="{ expanded: fieldSelectorExpanded[catKey] }" @click.stop="toggleFieldSelectorGroup(catKey)">
-                                                        <el-icon><ArrowRight /></el-icon>
-                                                        <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
-                                                    </div>
-                                                    <div v-show="fieldSelectorExpanded[catKey]" class="field-group-children">
-                                                        <div v-for="(subcat, subcatKey) in cat.children" :key="subcatKey"
-                                                             class="field-item"
-                                                             :class="{ selected: tempSelectedFields.includes(subcat.id) }"
-                                                             @click="toggleTempField(subcat.id)">
-                                                            <el-checkbox :model-value="tempSelectedFields.includes(subcat.id)" />
-                                                            <span v-if="subcat.recommended" class="star">⭐</span>
-                                                            <span>{{ currentLang === 'zh' ? subcat.name : subcat.name_en }}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div v-else
-                                                     class="field-item"
-                                                     :class="{ selected: tempSelectedFields.includes(cat.id) }"
-                                                     @click="toggleTempField(cat.id)">
-                                                    <el-checkbox :model-value="tempSelectedFields.includes(cat.id)" />
-                                                    <span v-if="cat.recommended" class="star">⭐</span>
+                                    <div v-show="fieldSelectorExpanded[groupKey]" class="field-group-children">
+                                        <template v-for="(cat, catKey) in group.children" :key="catKey">
+                                            <div v-if="cat.children" class="field-group">
+                                                <div class="field-group-header" :class="{ expanded: fieldSelectorExpanded[catKey] }" @click.stop="toggleFieldSelectorGroup(catKey)">
+                                                    <el-icon><ArrowRight /></el-icon>
                                                     <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
                                                 </div>
-                                            </template>
-                                        </div>
+                                                <div v-show="fieldSelectorExpanded[catKey]" class="field-group-children">
+                                                    <div v-for="(subcat, subcatKey) in cat.children" :key="subcatKey"
+                                                         class="field-item"
+                                                         :class="{ selected: tempSelectedFields.includes(subcat.id) }"
+                                                         @click="toggleTempField(subcat.id)">
+                                                        <el-checkbox :model-value="tempSelectedFields.includes(subcat.id)" />
+                                                        <span v-if="subcat.recommended" class="star">⭐</span>
+                                                        <span>{{ currentLang === 'zh' ? subcat.name : subcat.name_en }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div v-else
+                                                 class="field-item"
+                                                 :class="{ selected: tempSelectedFields.includes(cat.id) }"
+                                                 @click="toggleTempField(cat.id)">
+                                                <el-checkbox :model-value="tempSelectedFields.includes(cat.id)" />
+                                                <span v-if="cat.recommended" class="star">⭐</span>
+                                                <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
+                                            </div>
+                                        </template>
                                     </div>
-                                </template>
+                                </div>
                             </template>
                         </div>
                     </template>
@@ -2577,6 +2529,7 @@
                                 <div class="name">
                                     <span v-if="allCategories[fieldId]?.recommended" class="star">⭐</span>
                                     <span>{{ currentLang === 'zh' ? allCategories[fieldId]?.name : allCategories[fieldId]?.name_en }}</span>
+                                    <span style="color: var(--text-muted); font-size: 11px; margin-left: 4px;">{{ fieldId }}</span>
                                 </div>
                                 <div class="remove-btn" @click="removeFromTempSelection(fieldId)">
                                     <el-icon><Close /></el-icon>
@@ -3472,7 +3425,6 @@
                 const fieldSelectorSource = ref('settings');
                 const tempSelectedFields = ref([]);
                 const fieldSearchQuery = ref('');
-                const fieldSelectorTab = ref('selected');
                 const fieldSelectorExpanded = ref({});
                 const recentCategories = ref([]);
                 const fieldAdvancedMode = ref(false);
@@ -3953,12 +3905,6 @@
                     
                     fieldSearchQuery.value = '';
                     nextTick(() => { syncingFromCode = false; });
-                    
-                    if (source === 'recent') {
-                        fieldSelectorTab.value = tempSelectedFields.value.length > 0 ? 'selected' : 'all';
-                    } else {
-                        fieldSelectorTab.value = 'all';
-                    }
                     
                     const recommendedGroups = ['physics', 'cond-mat', 'cs', 'quant-ph'];
                     fieldSelectorExpanded.value = {};
@@ -5294,7 +5240,7 @@
                     scrollToBottom, handleChatScroll,
                     t, currentLang, toggleLanguage, i18n, getFieldTranslation,
                     // Field Selector
-                    showFieldSelector, fieldSelectorSource, tempSelectedFields, fieldSearchQuery, fieldSelectorTab,
+                    showFieldSelector, fieldSelectorSource, tempSelectedFields, fieldSearchQuery,
                     fieldSelectorExpanded, openFieldSelector, toggleFieldSelectorGroup, toggleTempField,
                     removeFromTempSelection, clearTempSelection, confirmFieldSelection, filteredCategories,
                     fieldAdvancedMode, advancedQueriesText, advancedQueriesLines, parsedCodeResult
