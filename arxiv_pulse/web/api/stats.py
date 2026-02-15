@@ -10,7 +10,7 @@ from fastapi import APIRouter
 
 from arxiv_pulse.config import Config
 from arxiv_pulse.models import Collection, CollectionPaper, Database, Paper
-from arxiv_pulse.research_fields import RESEARCH_FIELDS
+from arxiv_pulse.research_fields import ARXIV_CATEGORIES, get_all_categories
 
 router = APIRouter()
 
@@ -108,31 +108,28 @@ async def get_field_stats():
     db = get_db()
 
     selected_fields = db.get_selected_fields()
+    all_cats = get_all_categories()
 
     with db.get_session() as session:
-        query_counts = {}
         papers = session.query(Paper).all()
-
-        for field_key, field_info in RESEARCH_FIELDS.items():
-            count = 0
-            query = field_info.get("query", "")
-            for paper in papers:
-                if paper.search_query and query in paper.search_query:
-                    count += 1
-                elif not paper.search_query:
-                    pass
-            if count > 0:
-                query_counts[field_key] = count
+        category_counter = Counter()
+        for paper in papers:
+            if paper.categories:
+                for cat in paper.categories.split(", "):
+                    if cat:
+                        category_counter[cat] += 1
 
     fields_data = []
-    for field_key, field_info in RESEARCH_FIELDS.items():
+    for field_id, field_info in all_cats.items():
+        count = category_counter.get(field_id, 0)
         fields_data.append(
             {
-                "key": field_key,
-                "name": field_info["name"],
-                "description": field_info["description"],
-                "paper_count": query_counts.get(field_key, 0),
-                "is_selected": field_key in selected_fields,
+                "key": field_id,
+                "name": field_info.get("name", field_id),
+                "name_en": field_info.get("name_en", field_id),
+                "paper_count": count,
+                "is_selected": field_id in selected_fields,
+                "recommended": field_info.get("recommended", False),
             }
         )
 

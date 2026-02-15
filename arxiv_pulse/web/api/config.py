@@ -12,6 +12,13 @@ from pydantic import BaseModel
 
 from arxiv_pulse.config import Config
 from arxiv_pulse.models import Database
+from arxiv_pulse.research_fields import (
+    ARXIV_CATEGORIES,
+    DEFAULT_FIELDS,
+    get_all_categories,
+    get_queries_for_fields,
+    get_field_display_name,
+)
 
 router = APIRouter()
 
@@ -72,8 +79,6 @@ async def get_config():
 @router.put("")
 async def update_config(config_update: ConfigUpdate):
     """更新配置"""
-    from arxiv_pulse.research_fields import RESEARCH_FIELDS
-
     db = get_db()
 
     if config_update.ai_api_key is not None and config_update.ai_api_key != "***":
@@ -92,10 +97,7 @@ async def update_config(config_update: ConfigUpdate):
         db.set_config("report_max_papers", str(config_update.report_max_papers))
     if config_update.selected_fields is not None:
         db.set_selected_fields(config_update.selected_fields)
-        search_queries = []
-        for field_key in config_update.selected_fields:
-            if field_key in RESEARCH_FIELDS:
-                search_queries.append(RESEARCH_FIELDS[field_key]["query"])
+        search_queries = get_queries_for_fields(config_update.selected_fields)
         if search_queries:
             db.set_search_queries(search_queries)
     if config_update.ui_language is not None:
@@ -104,6 +106,16 @@ async def update_config(config_update: ConfigUpdate):
         db.set_config("translate_language", config_update.translate_language)
 
     return {"success": True, "message": "配置已更新"}
+
+
+@router.get("/categories")
+async def get_categories():
+    """获取 arXiv 分类树"""
+    return {
+        "categories": ARXIV_CATEGORIES,
+        "all_categories": get_all_categories(),
+        "default_fields": DEFAULT_FIELDS,
+    }
 
 
 @router.get("/status")
@@ -176,8 +188,6 @@ async def get_available_models():
 @router.post("/init")
 async def initialize_system(init_config: InitConfig):
     """初始化系统"""
-    from arxiv_pulse.research_fields import RESEARCH_FIELDS
-
     db = get_db()
 
     if db.is_initialized():
@@ -190,11 +200,7 @@ async def initialize_system(init_config: InitConfig):
     db.set_config("years_back", str(init_config.years_back))
     db.set_selected_fields(init_config.selected_fields)
 
-    search_queries = []
-    for field_key in init_config.selected_fields:
-        if field_key in RESEARCH_FIELDS:
-            search_queries.append(RESEARCH_FIELDS[field_key]["query"])
-
+    search_queries = get_queries_for_fields(init_config.selected_fields)
     if search_queries:
         db.set_search_queries(search_queries)
 
@@ -218,8 +224,9 @@ async def initial_sync():
         await asyncio.sleep(0.1)
 
         search_queries = db.get_search_queries()
-        years_back = int(db.get_config("years_back", "5"))
-        arxiv_max_results = int(db.get_config("arxiv_max_results", "10000"))
+        selected_fields = db.get_selected_fields()
+        years_back = int(db.get_config("years_back", "5") or "5")
+        arxiv_max_results = int(db.get_config("arxiv_max_results", "10000") or "10000")
 
         if not search_queries:
             yield f"data: {json.dumps({'type': 'error', 'message': '未设置搜索查询'}, ensure_ascii=False)}\n\n"
@@ -233,8 +240,11 @@ async def initial_sync():
         crawler = ArXivCrawler()
 
         for i, query in enumerate(search_queries, 1):
-            query_short = query[:50] + "..." if len(query) > 50 else query
-            yield f"data: {json.dumps({'type': 'log', 'message': f'[{i}/{len(search_queries)}] {query_short}'}, ensure_ascii=False)}\n\n"
+            field_name = query
+            if i <= len(selected_fields):
+                field_name = get_field_display_name(selected_fields[i - 1], "zh")
+
+            yield f"data: {json.dumps({'type': 'log', 'message': f'[{i}/{len(search_queries)}] {field_name}'}, ensure_ascii=False)}\n\n"
             await asyncio.sleep(0.05)
 
             try:

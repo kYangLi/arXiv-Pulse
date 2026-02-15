@@ -11,21 +11,25 @@ from .config import Config
 from .models import Collection, Database, Paper, TranslationCache
 from .output_manager import OutputManager, output
 from .report_generator import ReportGenerator
-from .research_fields import DEFAULT_BANNER_FIELDS, RESEARCH_FIELDS
+from .research_fields import ARXIV_CATEGORIES, DEFAULT_FIELDS, get_all_categories, get_queries_for_fields
 from .summarizer import PaperSummarizer
 from .utils import get_workday_cutoff, parse_time_range
 
 __all__ = [
     "ArXivCrawler",
+    "ARXIV_CATEGORIES",
     "Collection",
     "Config",
     "Database",
+    "DEFAULT_FIELDS",
     "OutputManager",
     "Paper",
     "PaperSummarizer",
     "ReportGenerator",
     "TranslationCache",
     "__version__",
+    "get_all_categories",
+    "get_queries_for_fields",
     "output",
     "research_fields",
     "utils",

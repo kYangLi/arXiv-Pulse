@@ -174,6 +174,104 @@
             font-weight: 500; 
         }
         
+        /* Category Tree */
+        .category-tree {
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            background: var(--bg-card);
+            padding: 8px;
+        }
+        .category-group {
+            margin-bottom: 4px;
+        }
+        .category-header {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+        .category-header:hover {
+            background: var(--bg-subtle);
+        }
+        .category-name {
+            flex: 1;
+        }
+        .recommended-badge {
+            background: linear-gradient(135deg, #f5a623 0%, #f7b731 100%);
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .recommended-badge.small {
+            font-size: 9px;
+            padding: 1px 6px;
+        }
+        .category-children {
+            margin-left: 20px;
+        }
+        .category-subgroup {
+            margin: 4px 0;
+        }
+        .category-subheader {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .category-subheader:hover {
+            background: var(--bg-subtle);
+        }
+        .category-items {
+            margin-left: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 6px 0;
+        }
+        .category-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: var(--bg-subtle);
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .category-item:hover {
+            background: #e8f4ff;
+            color: var(--primary);
+        }
+        .category-item.selected {
+            background: #e8f4ff;
+            color: var(--primary);
+            border-color: var(--primary);
+            font-weight: 500;
+        }
+        .category-item.recommended {
+            background: #fffbeb;
+        }
+        .category-item.recommended:hover {
+            background: #fef3c7;
+        }
+        .category-item .star {
+            font-size: 12px;
+        }
+        
         /* App Container */
         .app-container { min-height: 100vh; }
         
@@ -1701,15 +1799,49 @@
 
                 <div v-if="setupStep === 2">
                     <h3 style="margin-bottom: 8px; color: var(--primary); font-size: 18px;">{{ t('setup.selectFields') }}</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">{{ t('setup.fieldsHint') }}</p>
-                    <div class="field-grid">
-                        <div v-for="(field, key) in researchFields" :key="key" 
-                             class="field-item" :class="{ selected: setupConfig.selected_fields.includes(key) }"
-                             @click="toggleSetupField(key)">
-                            <div class="name">{{ currentLang === 'zh' ? field.name : (i18n[currentLang]?.fields?.[key]?.name || field.name) }}</div>
-                            <div class="desc">{{ currentLang === 'zh' ? field.description : (i18n[currentLang]?.fields?.[key]?.desc || field.description) }}</div>
-                        </div>
+                    <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 14px;">{{ t('setup.fieldsHint') }}</p>
+                    
+                    <div class="category-tree" style="max-height: 400px; overflow-y: auto;">
+                        <template v-for="(group, groupKey) in arxivCategories" :key="groupKey">
+                            <div class="category-group">
+                                <div class="category-header" @click="toggleCategoryGroup(groupKey)">
+                                    <el-icon style="margin-right: 6px;"><component :is="expandedGroups[groupKey] ? 'ArrowDown' : 'ArrowRight'" /></el-icon>
+                                    <span class="category-name">{{ currentLang === 'zh' ? group.name : group.name_en }}</span>
+                                    <span v-if="group.recommended" class="recommended-badge">{{ t('fields.recommended') }}</span>
+                                </div>
+                                <div v-show="expandedGroups[groupKey]" class="category-children">
+                                    <template v-for="(cat, catKey) in group.children" :key="catKey">
+                                        <div v-if="cat.children" class="category-subgroup">
+                                            <div class="category-subheader" @click="toggleCategoryGroup(catKey)">
+                                                <el-icon style="margin-right: 4px;"><component :is="expandedGroups[catKey] ? 'ArrowDown' : 'ArrowRight'" /></el-icon>
+                                                <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
+                                                <span v-if="cat.recommended" class="recommended-badge small">{{ t('fields.recommended') }}</span>
+                                            </div>
+                                            <div v-show="expandedGroups[catKey]" class="category-items">
+                                                <div v-for="(subcat, subcatKey) in cat.children" :key="subcatKey"
+                                                     class="category-item"
+                                                     :class="{ selected: setupConfig.selected_fields.includes(subcat.id), recommended: subcat.recommended }"
+                                                     @click="toggleSetupField(subcat.id)">
+                                                    <el-icon v-if="setupConfig.selected_fields.includes(subcat.id)" style="color: var(--primary);"><Check /></el-icon>
+                                                    <span>{{ currentLang === 'zh' ? subcat.name : subcat.name_en }}</span>
+                                                    <span v-if="subcat.recommended" class="star">⭐</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div v-else 
+                                             class="category-item"
+                                             :class="{ selected: setupConfig.selected_fields.includes(cat.id), recommended: cat.recommended }"
+                                             @click="toggleSetupField(cat.id)">
+                                            <el-icon v-if="setupConfig.selected_fields.includes(cat.id)" style="color: var(--primary);"><Check /></el-icon>
+                                            <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
+                                            <span v-if="cat.recommended" class="star">⭐</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
                     </div>
+                    
                     <div style="margin-top: 24px; display: flex; justify-content: space-between;">
                         <el-button @click="setupStep = 1">{{ t('common.back') }}</el-button>
                         <el-button type="primary" @click="setupStep = 3" :disabled="setupConfig.selected_fields.length === 0">
@@ -2025,20 +2157,41 @@
                         <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 12px;">
                             {{ t('settings.fieldsHint') }}
                         </p>
-                        <div class="field-grid" style="max-height: 300px;">
-                            <div v-for="field in fieldStats" :key="field.key" 
-                                 class="field-item" 
-                                 :class="{ 
-                                     selected: settingsConfig.selected_fields?.includes(field.key),
-                                     'has-papers': field.paper_count > 0
-                                 }"
-                                 @click="toggleSettingsField(field.key)">
-                                <div class="name">
-                                    {{ getFieldTranslation(field.key, 'name') || field.name }}
-                                    <span v-if="field.paper_count > 0" class="paper-badge">{{ field.paper_count }} {{ t('collections.papers') }}</span>
+                        <div class="category-tree" style="max-height: 300px; overflow-y: auto;">
+                            <template v-for="(group, groupKey) in arxivCategories" :key="groupKey">
+                                <div class="category-group">
+                                    <div class="category-header" @click="toggleCategoryGroup('settings_' + groupKey)">
+                                        <el-icon style="margin-right: 6px;"><component :is="expandedGroups['settings_' + groupKey] ? 'ArrowDown' : 'ArrowRight'" /></el-icon>
+                                        <span class="category-name">{{ currentLang === 'zh' ? group.name : group.name_en }}</span>
+                                    </div>
+                                    <div v-show="expandedGroups['settings_' + groupKey]" class="category-children">
+                                        <template v-for="(cat, catKey) in group.children" :key="catKey">
+                                            <div v-if="cat.children" class="category-subgroup">
+                                                <div class="category-subheader" @click="toggleCategoryGroup('settings_' + catKey)">
+                                                    <el-icon style="margin-right: 4px;"><component :is="expandedGroups['settings_' + catKey] ? 'ArrowDown' : 'ArrowRight'" /></el-icon>
+                                                    <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
+                                                </div>
+                                                <div v-show="expandedGroups['settings_' + catKey]" class="category-items">
+                                                    <div v-for="(subcat, subcatKey) in cat.children" :key="subcatKey"
+                                                         class="category-item"
+                                                         :class="{ selected: settingsConfig.selected_fields?.includes(subcat.id) }"
+                                                         @click="toggleSettingsField(subcat.id)">
+                                                        <el-icon v-if="settingsConfig.selected_fields?.includes(subcat.id)" style="color: var(--primary);"><Check /></el-icon>
+                                                        <span>{{ currentLang === 'zh' ? subcat.name : subcat.name_en }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div v-else 
+                                                 class="category-item"
+                                                 :class="{ selected: settingsConfig.selected_fields?.includes(cat.id) }"
+                                                 @click="toggleSettingsField(cat.id)">
+                                                <el-icon v-if="settingsConfig.selected_fields?.includes(cat.id)" style="color: var(--primary);"><Check /></el-icon>
+                                                <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </div>
-                                <div class="desc">{{ getFieldTranslation(field.key, 'desc') || field.description }}</div>
-                            </div>
+                            </template>
                         </div>
                     </div>
 
@@ -2613,6 +2766,7 @@
                     pending: '等待中'
                 },
                 fields: {
+                    recommended: '推荐',
                     condensed_matter: { name: '凝聚态物理', desc: '超导、强关联电子、介观系统等' },
                     dft: { name: '密度泛函理论 (DFT)', desc: '第一性原理计算、材料设计' },
                     machine_learning: { name: '机器学习', desc: 'ML在物理和材料科学中的应用' },
@@ -2833,6 +2987,7 @@
                     pending: 'Pending'
                 },
                 fields: {
+                    recommended: 'Recommended',
                     condensed_matter: { name: 'Condensed Matter', desc: 'Superconductivity, strongly correlated electrons' },
                     dft: { name: 'DFT', desc: 'First-principles calculations, materials design' },
                     machine_learning: { name: 'Machine Learning', desc: 'ML in physics and materials science' },
@@ -2895,26 +3050,9 @@
         window.t = t;
         window.setLanguage = setLanguage;
 
-        const researchFields = {
-            "condensed_matter": { "name": "凝聚态物理", "description": "超导、强关联电子、介观系统等" },
-            "dft": { "name": "密度泛函理论 (DFT)", "description": "第一性原理计算、材料设计" },
-            "machine_learning": { "name": "机器学习", "description": "ML在物理和材料科学中的应用" },
-            "force_fields": { "name": "力场与分子动力学", "description": "力场开发、MD模拟" },
-            "first_principles": { "name": "第一性原理计算", "description": "ab initio 方法" },
-            "quantum_physics": { "name": "量子物理", "description": "量子信息、量子计算" },
-            "computational_physics": { "name": "计算物理", "description": "数值计算方法" },
-            "chemical_physics": { "name": "化学物理", "description": "化学过程的物理基础" },
-            "molecular_dynamics": { "name": "分子动力学", "description": "MD模拟技术" },
-            "computational_materials": { "name": "计算材料科学", "description": "材料计算与模拟" },
-            "astro_physics": { "name": "天体物理", "description": "天体物理学、宇宙学" },
-            "high_energy_physics": { "name": "高能物理", "description": "粒子物理理论与实验" },
-            "nuclear_physics": { "name": "核物理", "description": "核物理理论与实验" },
-            "general_relativity": { "name": "广义相对论", "description": "引力理论、宇宙学" },
-            "mathematical_physics": { "name": "数学物理", "description": "物理问题的数学方法" },
-            "statistics": { "name": "统计学", "description": "统计学理论与应用" },
-            "quantitative_biology": { "name": "定量生物学", "description": "生物信息学、系统生物学" },
-            "artificial_intelligence": { "name": "人工智能", "description": "AI、神经网络" },
-        };
+        const arxivCategories = ref({});
+        const allCategories = ref({});
+        const defaultFields = ['cond-mat.mtrl-sci', 'quant-ph', 'cs.LG'];
 
         const app = createApp({
             setup() {
@@ -2954,7 +3092,7 @@
                     ai_model: 'DeepSeek-V3.2',
                     ai_base_url: 'https://llmapi.paratera.com',
                     translate_language: 'zh',
-                    selected_fields: ['condensed_matter', 'dft', 'machine_learning'],
+                    selected_fields: [...defaultFields],
                     years_back: 5
                 });
 
@@ -2974,6 +3112,7 @@
                 const currentPage = ref('home');
                 const stats = ref(null);
                 const fieldStats = ref([]);
+                const expandedGroups = ref({});
                 const recentPapers = ref([]);
                 const loadingRecent = ref(false);
                 const updatingRecent = ref(false);
@@ -3210,8 +3349,25 @@
                         const res = await fetch(`${API_BASE}/config/status`);
                         const data = await res.json();
                         showSetup.value = !data.is_initialized;
+                        await fetchCategories();
                     } catch (e) {
                         console.error('Failed to check init status:', e);
+                    }
+                }
+
+                async function fetchCategories() {
+                    try {
+                        const res = await fetch(`${API_BASE}/config/categories`);
+                        const data = await res.json();
+                        arxivCategories.value = data.categories || {};
+                        allCategories.value = data.all_categories || {};
+                        
+                        const defaultExpanded = ['physics', 'cond-mat', 'cs'];
+                        defaultExpanded.forEach(key => {
+                            expandedGroups.value[key] = true;
+                        });
+                    } catch (e) {
+                        console.error('Failed to fetch categories:', e);
                     }
                 }
 
@@ -3234,6 +3390,10 @@
                     } finally {
                         testingAI.value = false;
                     }
+                }
+
+                function toggleCategoryGroup(key) {
+                    expandedGroups.value[key] = !expandedGroups.value[key];
                 }
 
                 function toggleSetupField(key) {
@@ -4539,14 +4699,14 @@
                     showSetup, setupStep, setupConfig, initializing, testingAI, initLogs, initProgress,
                     initCurrentQuery, initTotalQueries, waitingMessage, initComplete,
                     showSettings, settingsConfig, savingSettings,
-                    currentPage, stats, fieldStats, recentPapers, searchResults, collections,
+                    currentPage, stats, fieldStats, expandedGroups, recentPapers, searchResults, collections,
                     loadingRecent, updatingRecent, recentLogs,
                     recentDays, recentLimit, recentNeedSync, recentSyncYears, recentCategories,
                     categoryOptions, daysOptions, limitOptions, syncYearOptions, initYearOptions, syncYearsBackOptions, searchDaysOptions, aiLanguageOptions,
                     searching, searchQuery, searchDays, searchLogs,
                     syncStatus, syncing, syncLogs, syncYearsBack, syncForce,
                     syncStatusText, syncStatusClass, syncTimeClass, formatSyncTime,
-                    recentCacheStatus, researchFields,
+                    recentCacheStatus, arxivCategories, allCategories,
                     showCreateCollection, showAddToCollection, showDeleteConfirm,
                     newCollection, editingCollection, deletingCollection,
                     savingCollection, deletingCollectionInProgress,
@@ -4554,7 +4714,7 @@
                     viewingCollection, collectionPapers, loadingCollectionPapers,
                     recentSelectedIds, recentSelectAll, searchSelectedIds, searchSelectAll,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
-                    checkInitStatus, testSetupAI, toggleSetupField, startInitialSync,
+                    checkInitStatus, fetchCategories, testSetupAI, toggleSetupField, toggleCategoryGroup, startInitialSync,
                     testAIConnection, saveSettings, saveApiKey, toggleSettingsField, onLanguageChange,
                     fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers, startSearch, fetchCollections,
                     fetchSyncStatus, startSync,

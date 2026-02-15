@@ -18,8 +18,7 @@ logger = logging.getLogger(__name__)
 class ArXivCrawler:
     def __init__(self):
         self.db = Database()
-        # 配置arXiv客户端，遵守调用频率限制
-        self.client = arxiv.Client(page_size=100, delay_seconds=3.0, num_retries=3)
+        self.client = arxiv.Client(page_size=500, delay_seconds=3.0, num_retries=3)
         self.config = Config
 
         # 抑制第三方库的详细日志
