@@ -1070,6 +1070,16 @@
             to { opacity: 0; transform: translateY(20px) scale(0.95); }
         }
         
+        /* Fade transition animation */
+        .fade-enter-active,
+        .fade-leave-active {
+            transition: opacity 0.5s ease;
+        }
+        .fade-enter-from,
+        .fade-leave-to {
+            opacity: 0;
+        }
+        
         .cart-panel {
             width: 400px;
             max-height: 500px;
@@ -1730,19 +1740,19 @@
 
                 <div v-if="setupStep === 4">
                     <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary);">{{ t('setup.syncing') }}</h3>
-                    <div style="text-align: center; margin-bottom: 20px; color: var(--text-muted); font-size: 14px;">
-                        {{ waitingMessage }}
-                    </div>
-                    <div v-if="initProgress > 0" style="text-align: center; margin-bottom: 16px; color: var(--text-secondary);">
+                    <transition name="fade" mode="out-in">
+                        <div key="waiting" v-if="!initComplete" style="text-align: center; margin-bottom: 20px; color: var(--text-muted); font-size: 14px;">
+                            {{ waitingMessage }}
+                        </div>
+                        <div key="complete" v-else style="text-align: center; margin-bottom: 20px; color: #67c23a; font-size: 16px; font-weight: 500;">
+                            <el-icon style="vertical-align: middle; margin-right: 6px;"><CircleCheckFilled /></el-icon>
+                            {{ t('setup.syncComplete') }}
+                        </div>
+                    </transition>
+                    <div v-if="initProgress > 0 && !initComplete" style="text-align: center; margin-bottom: 16px; color: var(--text-secondary);">
                         {{ t('setup.processing', { current: initCurrentQuery, total: initTotalQueries }) }}
                     </div>
-                    <el-progress v-if="initProgress > 0" :percentage="initProgress" style="margin-bottom: 24px;" />
-                    <div v-if="initLogs.length > 0" class="logs-container" style="max-height: 280px;">
-                        <div v-for="(log, index) in initLogs" :key="index" 
-                             class="log-line" :class="log.type">
-                            > {{ log.message }}
-                        </div>
-                    </div>
+                    <el-progress v-if="initProgress > 0" :percentage="initProgress" :status="initComplete ? 'success' : ''" style="margin-bottom: 24px;" />
                 </div>
             </div>
             
@@ -2576,7 +2586,7 @@
                     keyFindings: '关键发现',
                     keywords: '关键词',
                     abstract: '摘要',
-                    chineseTranslation: '中文翻译',
+                    chineseTranslation: '摘要翻译',
                     expandDetail: '展开',
                     collapse: '收起',
                     arxiv: 'arXiv',
@@ -2796,7 +2806,7 @@
                     keyFindings: 'Key Findings',
                     keywords: 'Keywords',
                     abstract: 'Abstract',
-                    chineseTranslation: 'Chinese Translation',
+                    chineseTranslation: 'Translation',
                     expandDetail: 'Expand',
                     collapse: 'Collapse',
                     arxiv: 'arXiv',
@@ -2916,6 +2926,7 @@
                 const initProgress = ref(0);
                 const initCurrentQuery = ref(0);
                 const initTotalQueries = ref(0);
+                const initComplete = ref(false);
                 
                 const waitingMessages = computed(() => {
                     const isZh = currentLang.value === 'zh';
@@ -3241,13 +3252,14 @@
                     initProgress.value = 0;
                     initCurrentQuery.value = 0;
                     initTotalQueries.value = 0;
+                    initComplete.value = false;
 
                     let msgIndex = 0;
                     waitingMessage.value = waitingMessages.value[0];
                     waitingTimer = setInterval(() => {
                         msgIndex = (msgIndex + 1) % waitingMessages.value.length;
                         waitingMessage.value = waitingMessages.value[msgIndex];
-                    }, 3000);
+                    }, 4000);
 
                     try {
                         await fetch(`${API_BASE}/config/init`, {
@@ -3273,23 +3285,22 @@
                                 if (line.startsWith('data: ')) {
                                     try {
                                         const data = JSON.parse(line.slice(6));
-                                        if (data.type === 'log') {
-                                            initLogs.value.push({ type: 'info', message: data.message });
-                                        } else if (data.type === 'total') {
+                                        if (data.type === 'total') {
                                             initTotalQueries.value = data.total;
                                         } else if (data.type === 'progress') {
                                             initCurrentQuery.value = data.current;
                                             initTotalQueries.value = data.total;
                                             initProgress.value = Math.round((data.current / data.total) * 100);
                                         } else if (data.type === 'done') {
-                                            initLogs.value.push({ type: 'success', message: `同步完成，共 ${data.total_papers} 篇论文` });
                                             if (waitingTimer) clearInterval(waitingTimer);
+                                            initProgress.value = 100;
+                                            initComplete.value = true;
                                             setTimeout(() => {
                                                 showSetup.value = false;
                                                 fetchStats();
                                                 fetchFieldStats();
                                                 fetchRecentCache();
-                                            }, 1500);
+                                            }, 2000);
                                         }
                                     } catch (e) {}
                                 }
@@ -4526,7 +4537,7 @@
 
                 return {
                     showSetup, setupStep, setupConfig, initializing, testingAI, initLogs, initProgress,
-                    initCurrentQuery, initTotalQueries, waitingMessage,
+                    initCurrentQuery, initTotalQueries, waitingMessage, initComplete,
                     showSettings, settingsConfig, savingSettings,
                     currentPage, stats, fieldStats, recentPapers, searchResults, collections,
                     loadingRecent, updatingRecent, recentLogs,
@@ -4800,7 +4811,7 @@
                     y += 12 * scale;
                     
                     if (props.paper.abstract_translation) {
-                        elements.push({ type: 'section-title', text: '中文翻译', y: y });
+                        elements.push({ type: 'section-title', text: t('paper.chineseTranslation'), y: y });
                         y += 28 * scale;
                         const transAbstractLines = wrapText(props.paper.abstract_translation, width - padding * 2, 14);
                         transAbstractLines.forEach(line => {

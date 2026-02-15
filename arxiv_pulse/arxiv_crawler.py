@@ -362,59 +362,6 @@ class ArXivCrawler:
             "arxiv_max_results": arxiv_max_results,
         }
 
-    def sync_important_papers(self) -> dict[str, Any]:
-        """Ensure important papers are in database"""
-        important_file = Config.IMPORTANT_PAPERS_FILE
-        if not os.path.exists(important_file):
-            output.warn(f"重要论文文件未找到: {important_file}")
-            return {"total_processed": 0, "added": 0, "errors": []}
-
-        added = 0
-        errors = []
-
-        with open(important_file) as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-
-                # Extract arXiv ID (format: 1234.56789v1 or 1234.56789)
-                arxiv_id = line.split()[0] if " " in line else line
-
-                # Remove version suffix if present
-                if "v" in arxiv_id:
-                    arxiv_id = arxiv_id.split("v")[0]
-
-                # Check if paper already exists
-                if self.db.paper_exists(arxiv_id):
-                    output.debug(f"重要论文已在数据库中: {arxiv_id}")
-                    continue
-
-                # Try to fetch paper from arXiv
-                try:
-                    search = arxiv.Search(id_list=[arxiv_id])
-                    results = list(self.client.results(search))
-
-                    if results:
-                        paper = results[0]
-                        paper_obj = Paper.from_arxiv_entry(paper, "important")
-                        self.db.add_paper(paper_obj)
-                        added += 1
-                        output.done(f"添加重要论文: {arxiv_id}")
-                    else:
-                        errors.append(f"Paper not found on arXiv: {arxiv_id}")
-
-                except Exception as e:
-                    errors.append(f"Error fetching paper {arxiv_id}: {e}")
-
-                time.sleep(0.5)  # Rate limiting
-
-        return {
-            "total_processed": added + len(errors),
-            "added": added,
-            "errors": errors,
-        }
-
     def fetch_paper_by_id(self, arxiv_id: str) -> Paper | None:
         """Fetch a single paper from arXiv by ID and save to database
 

@@ -82,7 +82,7 @@ pulse stop . --force    # Force stop (SIGKILL)
 
 ### Daily Usage
 
-- **Recent Papers**: View papers from the last N days
+- **Recent**: View papers from the last N days
 - **Search**: Natural language search with AI parsing
 - **Collections**: Create collections to organize important papers
 - **Settings**: Click the gear icon to modify configuration

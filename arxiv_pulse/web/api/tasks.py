@@ -162,17 +162,6 @@ async def start_sync_stream(
 
                 await asyncio.sleep(0.1)
 
-            yield f"data: {json.dumps({'type': 'log', 'message': '正在同步重要论文...'}, ensure_ascii=False)}\n\n"
-            await asyncio.sleep(0.1)
-
-            try:
-                important_result = crawler.sync_important_papers()
-                important_added = important_result.get("added", 0)
-                total_added += important_added
-                yield f"data: {json.dumps({'type': 'log', 'message': f'添加了 {important_added} 篇重要论文'}, ensure_ascii=False)}\n\n"
-            except Exception as e:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'同步重要论文出错: {str(e)[:100]}'}, ensure_ascii=False)}\n\n"
-
             yield f"data: {json.dumps({'type': 'log', 'message': '正在刷新最近论文缓存...'}, ensure_ascii=False)}\n\n"
             await asyncio.sleep(0.1)
 

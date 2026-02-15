@@ -99,10 +99,6 @@ class Config:
         return os.getenv("ARXIV_SORT_ORDER", "descending")
 
     @classproperty
-    def IMPORTANT_PAPERS_FILE(cls) -> str:
-        return os.getenv("IMPORTANT_PAPERS_FILE", "data/important_papers.txt")
-
-    @classproperty
     def UI_LANGUAGE(cls) -> str:
         return cls._get("ui_language", "zh")
 
