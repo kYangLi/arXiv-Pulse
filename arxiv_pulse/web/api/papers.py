@@ -732,7 +732,7 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                     query=term,
                     search_fields=["title", "abstract"],
                     days_back=0,
-                    limit=20,
+                    limit=Config.SEARCH_LIMIT,
                     sort_by="published",
                     sort_order="desc",
                 )

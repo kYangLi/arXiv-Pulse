@@ -78,6 +78,10 @@ class Config:
         return cls._get_int("recent_papers_limit", 64)
 
     @classproperty
+    def SEARCH_LIMIT(cls) -> int:
+        return cls._get_int("search_limit", 20)
+
+    @classproperty
     def YEARS_BACK(cls) -> int:
         return cls._get_int("years_back", 5)
 

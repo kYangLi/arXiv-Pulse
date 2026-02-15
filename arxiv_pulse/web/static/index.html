@@ -2006,6 +2006,9 @@
                         <el-form-item :label="t('setup.recentPapersLimit')">
                             <el-input-number v-model="setupConfig.recent_papers_limit" :min="20" :max="200" :step="10" style="width: 100%;" />
                         </el-form-item>
+                        <el-form-item :label="t('setup.searchLimit')">
+                            <el-input-number v-model="setupConfig.search_limit" :min="5" :max="100" :step="5" style="width: 100%;" />
+                        </el-form-item>
                     </el-form>
                     <p style="color: var(--text-muted); font-size: 13px; margin-top: 12px;">
                         {{ t('setup.selectedFields', { count: setupConfig.selected_fields.length }) }}
@@ -2332,6 +2335,9 @@
                             </el-form-item>
                             <el-form-item :label="t('settings.recentPapersLimit')">
                                 <el-input-number v-model="settingsConfig.recent_papers_limit" :min="20" :max="200" :step="10" style="width: 100%;" />
+                            </el-form-item>
+                            <el-form-item :label="t('settings.searchLimit')">
+                                <el-input-number v-model="settingsConfig.search_limit" :min="5" :max="100" :step="5" style="width: 100%;" />
                             </el-form-item>
                         </el-form>
                     </div>
@@ -2972,6 +2978,7 @@
                     arxivMaxResults: '全局最大论文数',
                     maxResultsPerField: '每领域最大论文数',
                     recentPapersLimit: '近期论文默认数量',
+                    searchLimit: '搜索结果数量',
                     aiLanguage: 'AI 输出语言',
                     aiLanguageHint: 'AI 总结、翻译、对话的语言。切换后已缓存的翻译不会更新，建议谨慎切换。',
                     updateKey: '更新'
@@ -2991,6 +2998,7 @@
                     maxResultsPerField: '每领域最大论文数',
                     maxResultsGlobal: '全局最大论文数',
                     recentPapersLimit: '近期论文默认数量',
+                    searchLimit: '搜索结果数量',
                     selectedFields: '已选择: {count} 个研究领域',
                     processing: '正在处理: {current} / {total} 个研究领域',
                     syncing: '正在同步...',
@@ -3207,6 +3215,7 @@
                     arxivMaxResults: 'Global Max Papers',
                     maxResultsPerField: 'Max Papers Per Field',
                     recentPapersLimit: 'Recent Papers Limit',
+                    searchLimit: 'Search Results Limit',
                     aiLanguage: 'AI Output Language',
                     aiLanguageHint: 'Language for AI summaries, translations, and chat. Cached translations won\'t update after switching.',
                     updateKey: 'Update'
@@ -3226,6 +3235,7 @@
                     maxResultsPerField: 'Max Papers Per Field',
                     maxResultsGlobal: 'Global Max Papers',
                     recentPapersLimit: 'Recent Papers Limit',
+                    searchLimit: 'Search Results Limit',
                     selectedFields: 'Selected: {count} research fields',
                     processing: 'Processing: {current} / {total} fields',
                     syncing: 'Syncing...',
@@ -3407,7 +3417,8 @@
                     years_back: 5,
                     arxiv_max_results_per_field: 10000,
                     arxiv_max_results: 100000,
-                    recent_papers_limit: 64
+                    recent_papers_limit: 64,
+                    search_limit: 20
                 });
 
                 const showSettings = ref(false);
@@ -3422,6 +3433,7 @@
                     arxiv_max_results: 100000,
                     arxiv_max_results_per_field: 10000,
                     recent_papers_limit: 64,
+                    search_limit: 20,
                     ui_language: 'zh',
                     translate_language: 'zh'
                 });
@@ -3813,6 +3825,7 @@
                             arxiv_max_results: data.arxiv_max_results || 100000,
                             arxiv_max_results_per_field: data.arxiv_max_results_per_field || 10000,
                             recent_papers_limit: data.recent_papers_limit || 64,
+                            search_limit: data.search_limit || 20,
                             ui_language: data.ui_language || 'zh',
                             translate_language: data.translate_language || 'zh'
                         };
@@ -4100,7 +4113,7 @@
                 let settingsInitialized = false;
                 watch(settingsConfig, (newVal, oldVal) => {
                     if (!settingsInitialized) return;
-                    const keysToWatch = ['ai_base_url', 'ai_model', 'translate_language', 'years_back', 'arxiv_max_results', 'arxiv_max_results_per_field', 'recent_papers_limit', 'selected_fields', 'search_queries', 'ui_language'];
+                    const keysToWatch = ['ai_base_url', 'ai_model', 'translate_language', 'years_back', 'arxiv_max_results', 'arxiv_max_results_per_field', 'recent_papers_limit', 'search_limit', 'selected_fields', 'search_queries', 'ui_language'];
                     for (const key of keysToWatch) {
                         if (JSON.stringify(newVal[key]) !== JSON.stringify(oldVal?.[key])) {
                             debouncedSave();
