@@ -99,8 +99,10 @@ class PaperSummarizer:
 
     def get_summary_prompt(self, paper: Paper, lang: str = "zh") -> tuple[str, str]:
         """Get summary prompt and system message based on language"""
-        if lang == "zh":
-            prompt = f"""
+
+        prompts = {
+            "zh": {
+                "prompt": f"""
 请用结构化的格式总结以下研究论文：
 
 标题: {paper.title}
@@ -119,10 +121,11 @@ class PaperSummarizer:
 - relevance: 字符串
 - impact: 字符串
 - keywords: 相关关键词数组（5-10个）
-"""
-            system_msg = "你是一个总结物理学和计算科学论文的研究助手。"
-        else:
-            prompt = f"""
+""",
+                "system": "你是一个总结物理学和计算科学论文的研究助手。",
+            },
+            "en": {
+                "prompt": f"""
 Please summarize the following research paper in a structured format:
 
 Title: {paper.title}
@@ -141,12 +144,128 @@ Please format your response as a JSON object with the following fields:
 - relevance: string
 - impact: string
 - keywords: array of relevant keywords (5-10)
-"""
-            system_msg = (
-                "You are a research assistant specializing in summarizing physics and computational science papers."
-            )
+""",
+                "system": "You are a research assistant specializing in summarizing physics and computational science papers.",
+            },
+            "ru": {
+                "prompt": f"""
+Пожалуйста, обобщите следующую научную статью в структурированном формате:
 
-        return prompt, system_msg
+Название: {paper.title}
+
+Аннотация: {paper.abstract}
+
+Пожалуйста, предоставьте:
+1. Ключевые выводы/вклад (список)
+2. Используемая методология/подход
+3. Отношение к физике конденсированного состояния, DFT, машинному обучению или силовым полям
+4. Потенциальное влияние/значимость
+
+Пожалуйста, отформатируйте ответ как JSON-объект со следующими полями:
+- key_findings: массив строк
+- methodology: строка
+- relevance: строка
+- impact: строка
+- keywords: массив релевантных ключевых слов (5-10)
+""",
+                "system": "Вы - научный ассистент, специализирующийся на обобщении статей по физике и вычислительным наукам.",
+            },
+            "fr": {
+                "prompt": f"""
+Veuillez résumer l'article de recherche suivant dans un format structuré:
+
+Titre: {paper.title}
+
+Résumé: {paper.abstract}
+
+Veuillez fournir:
+1. Conclusions/contributions clés (liste à puces)
+2. Méthodologie/approche utilisée
+3. Pertinence pour la physique de la matière condensée, DFT, l'apprentissage automatique ou les champs de force
+4. Impact/signification potentielle
+
+Veuillez formater votre réponse sous forme d'objet JSON avec les champs suivants:
+- key_findings: tableau de chaînes
+- methodology: chaîne
+- relevance: chaîne
+- impact: chaîne
+- keywords: tableau de mots-clés pertinents (5-10)
+""",
+                "system": "Vous êtes un assistant de recherche spécialisé dans la synthèse d'articles de physique et de sciences computationnelles.",
+            },
+            "de": {
+                "prompt": f"""
+Bitte fassen Sie den folgenden Forschungsartikel in einem strukturierten Format zusammen:
+
+Titel: {paper.title}
+
+Zusammenfassung: {paper.abstract}
+
+Bitte geben Sie:
+1. Wichtigste Erkenntnisse/Beiträge (Aufzählung)
+2. Verwendete Methodik/Ansatz
+3. Relevanz für kondensierte Materie, DFT, maschinelles Lernen oder Kraftfelder
+4. Potenzielle Auswirkungen/Bedeutung
+
+Bitte formatieren Sie Ihre Antwort als JSON-Objekt mit folgenden Feldern:
+- key_findings: Array von Strings
+- methodology: String
+- relevance: String
+- impact: String
+- keywords: Array relevanter Schlüsselwörter (5-10)
+""",
+                "system": "Sie sind ein Forschungsassistent, der sich auf die Zusammenfassung von Physik- und Computerwissenschaftsartikeln spezialisiert hat.",
+            },
+            "es": {
+                "prompt": f"""
+Por favor, resuma el siguiente artículo de investigación en un formato estructurado:
+
+Título: {paper.title}
+
+Resumen: {paper.abstract}
+
+Por favor proporcione:
+1. Hallazgos/contribuciones clave (lista con viñetas)
+2. Metodología/enfoque utilizado
+3. Relevancia para la física de la materia condensada, DFT, aprendizaje automático o campos de fuerza
+4. Impacto/significancia potencial
+
+Por favor formate su respuesta como un objeto JSON con los siguientes campos:
+- key_findings: array de cadenas
+- methodology: cadena
+- relevance: cadena
+- impact: cadena
+- keywords: array de palabras clave relevantes (5-10)
+""",
+                "system": "Eres un asistente de investigación especializado en resumir artículos de física y ciencias computacionales.",
+            },
+            "ar": {
+                "prompt": f"""
+يرجى تلخيص ورقة البحث التالية بتنسيق منظم:
+
+العنوان: {paper.title}
+
+الملخص: {paper.abstract}
+
+يرجى تقديم:
+1. النتائج/المساهمات الرئيسية (قائمة نقطية)
+2. المنهجية/النهج المستخدم
+3. الصلة بفيزياء المادة المكثفة أو DFT أو التعلم الآلي أو مجالات القوة
+4. التأثير/الأهمية المحتملة
+
+يرجى تنسيق ردك ككائن JSON بالحقول التالية:
+- key_findings: مصفوفة من السلاسل
+- methodology: سلسلة
+- relevance: سلسلة
+- impact: سلسلة
+- keywords: مصفوفة من الكلمات المفتاحية ذات الصلة (5-10)
+""",
+                "system": "أنت مساعد بحث متخصص في تلخيص أوراق الفيزياء والعلوم الحاسوبية.",
+            },
+        }
+
+        lang_prompt = prompts.get(lang, prompts["en"])
+        return lang_prompt["prompt"], lang_prompt["system"]
 
     def deepseek_summary(self, paper: Paper) -> str | None:
         """Generate summary using DeepSeek"""
