@@ -265,6 +265,10 @@ async def initial_sync():
 
         db.set_initialized(True)
 
+        from arxiv_pulse.web.api.stats import update_stats_cache
+
+        update_stats_cache()
+
         with db.get_session() as session:
             from arxiv_pulse.models import Paper
 
