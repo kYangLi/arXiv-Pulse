@@ -3873,7 +3873,6 @@
                 }
 
                 function openFieldSelector(source) {
-                    console.log('openFieldSelector called with source:', source);
                     fieldSelectorSource.value = source;
                     fieldAdvancedMode.value = false;
                     syncingFromCode = true; // 防止 watch 触发
@@ -3907,7 +3906,6 @@
                     });
                     
                     showFieldSelector.value = true;
-                    console.log('showFieldSelector set to true');
                 }
 
                 function toggleFieldSelectorGroup(key) {
