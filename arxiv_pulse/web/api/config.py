@@ -240,14 +240,14 @@ async def initial_sync():
         search_queries = db.get_search_queries()
         selected_fields = db.get_selected_fields()
         years_back = int(db.get_config("years_back", "5") or "5")
-        arxiv_max_results = int(db.get_config("arxiv_max_results", "10000") or "10000")
+        arxiv_max_results = int(db.get_config("arxiv_max_results", "100000") or "100000")
 
         if not search_queries:
             yield f"data: {json.dumps({'type': 'error', 'message': '未设置搜索查询'}, ensure_ascii=False)}\n\n"
             return
 
         yield f"data: {json.dumps({'type': 'total', 'total': len(search_queries)}, ensure_ascii=False)}\n\n"
-        yield f"data: {json.dumps({'type': 'log', 'message': f'回溯 {years_back} 年，{len(search_queries)} 个研究领域'}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'type': 'log', 'message': f'回溯 {years_back} 年，{len(search_queries)} 个研究领域，最大 {arxiv_max_results} 篇论文'}, ensure_ascii=False)}\n\n"
         await asyncio.sleep(0.1)
 
         total_added = 0
@@ -262,7 +262,9 @@ async def initial_sync():
             await asyncio.sleep(0.05)
 
             try:
-                result = crawler.sync_query(query=query, years_back=years_back, force=False)
+                result = crawler.sync_query(
+                    query=query, years_back=years_back, force=False, arxiv_max_results=arxiv_max_results
+                )
                 print(f"[DEBUG] sync_query result: {result.get('error', 'no error')}")
                 if "error" in result:
                     error_msg = result["error"][:200] if len(result["error"]) > 200 else result["error"]
