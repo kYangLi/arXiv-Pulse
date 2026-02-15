@@ -52,6 +52,8 @@ class InitConfig(BaseModel):
     selected_fields: list[str] = []
     years_back: int = 5
     arxiv_max_results_per_field: int = 10000
+    arxiv_max_results: int = 100000
+    recent_papers_limit: int = 64
 
 
 def get_db():
@@ -208,6 +210,8 @@ async def initialize_system(init_config: InitConfig):
     db.set_config("translate_language", init_config.translate_language)
     db.set_config("years_back", str(init_config.years_back))
     db.set_config("arxiv_max_results_per_field", str(init_config.arxiv_max_results_per_field))
+    db.set_config("arxiv_max_results", str(init_config.arxiv_max_results))
+    db.set_config("recent_papers_limit", str(init_config.recent_papers_limit))
     db.set_selected_fields(init_config.selected_fields)
 
     search_queries = get_queries_for_fields(init_config.selected_fields)

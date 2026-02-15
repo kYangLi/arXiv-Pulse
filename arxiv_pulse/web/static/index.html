@@ -2000,6 +2000,12 @@
                         <el-form-item :label="t('setup.maxResultsPerField')">
                             <el-input-number v-model="setupConfig.arxiv_max_results_per_field" :min="1000" :max="50000" :step="1000" style="width: 100%;" />
                         </el-form-item>
+                        <el-form-item :label="t('setup.maxResultsGlobal')">
+                            <el-input-number v-model="setupConfig.arxiv_max_results" :min="10000" :max="200000" :step="10000" style="width: 100%;" />
+                        </el-form-item>
+                        <el-form-item :label="t('setup.recentPapersLimit')">
+                            <el-input-number v-model="setupConfig.recent_papers_limit" :min="20" :max="200" :step="10" style="width: 100%;" />
+                        </el-form-item>
                     </el-form>
                     <p style="color: var(--text-muted); font-size: 13px; margin-top: 12px;">
                         {{ t('setup.selectedFields', { count: setupConfig.selected_fields.length }) }}
@@ -2983,6 +2989,8 @@
                     syncBtn: '开始同步',
                     yearsBack: '默认同步年份',
                     maxResultsPerField: '每领域最大论文数',
+                    maxResultsGlobal: '全局最大论文数',
+                    recentPapersLimit: '近期论文默认数量',
                     selectedFields: '已选择: {count} 个研究领域',
                     processing: '正在处理: {current} / {total} 个研究领域',
                     syncing: '正在同步...',
@@ -3216,6 +3224,8 @@
                     syncBtn: 'Start Sync',
                     yearsBack: 'Default Years Back',
                     maxResultsPerField: 'Max Papers Per Field',
+                    maxResultsGlobal: 'Global Max Papers',
+                    recentPapersLimit: 'Recent Papers Limit',
                     selectedFields: 'Selected: {count} research fields',
                     processing: 'Processing: {current} / {total} fields',
                     syncing: 'Syncing...',
@@ -3395,7 +3405,9 @@
                     selected_fields: [...defaultFields],
                     search_queries: [],
                     years_back: 5,
-                    arxiv_max_results_per_field: 10000
+                    arxiv_max_results_per_field: 10000,
+                    arxiv_max_results: 100000,
+                    recent_papers_limit: 64
                 });
 
                 const showSettings = ref(false);
