@@ -29,6 +29,8 @@ class ConfigUpdate(BaseModel):
     ai_base_url: str | None = None
     search_queries: list[str] | None = None
     arxiv_max_results: int | None = None
+    arxiv_max_results_per_field: int | None = None
+    recent_papers_limit: int | None = None
     years_back: int | None = None
     report_max_papers: int | None = None
     selected_fields: list[str] | None = None
@@ -49,6 +51,7 @@ class InitConfig(BaseModel):
     translate_language: str = "zh"
     selected_fields: list[str] = []
     years_back: int = 5
+    arxiv_max_results_per_field: int = 10000
 
 
 def get_db():
@@ -66,7 +69,9 @@ async def get_config():
         "ai_model": config.get("ai_model", "DeepSeek-V3.2"),
         "ai_base_url": config.get("ai_base_url", "https://llmapi.paratera.com"),
         "search_queries": db.get_search_queries(),
-        "arxiv_max_results": int(config.get("arxiv_max_results", 10000)),
+        "arxiv_max_results": int(config.get("arxiv_max_results", 100000)),
+        "arxiv_max_results_per_field": int(config.get("arxiv_max_results_per_field", 10000)),
+        "recent_papers_limit": int(config.get("recent_papers_limit", 64)),
         "years_back": int(config.get("years_back", 5)),
         "report_max_papers": int(config.get("report_max_papers", 64)),
         "selected_fields": db.get_selected_fields(),
@@ -91,6 +96,10 @@ async def update_config(config_update: ConfigUpdate):
         db.set_search_queries(config_update.search_queries)
     if config_update.arxiv_max_results is not None:
         db.set_config("arxiv_max_results", str(config_update.arxiv_max_results))
+    if config_update.arxiv_max_results_per_field is not None:
+        db.set_config("arxiv_max_results_per_field", str(config_update.arxiv_max_results_per_field))
+    if config_update.recent_papers_limit is not None:
+        db.set_config("recent_papers_limit", str(config_update.recent_papers_limit))
     if config_update.years_back is not None:
         db.set_config("years_back", str(config_update.years_back))
     if config_update.report_max_papers is not None:
@@ -198,6 +207,7 @@ async def initialize_system(init_config: InitConfig):
     db.set_config("ai_base_url", init_config.ai_base_url)
     db.set_config("translate_language", init_config.translate_language)
     db.set_config("years_back", str(init_config.years_back))
+    db.set_config("arxiv_max_results_per_field", str(init_config.arxiv_max_results_per_field))
     db.set_selected_fields(init_config.selected_fields)
 
     search_queries = get_queries_for_fields(init_config.selected_fields)

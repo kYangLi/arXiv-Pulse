@@ -365,9 +365,7 @@ async def get_recent_cache_status():
 @router.post("/recent/update")
 async def update_recent_papers(
     days: int = Query(7, ge=1, le=30),
-    limit: int = Query(64, ge=1, le=200),
     need_sync: bool = Query(True),
-    sync_years: int = Query(5, ge=1, le=20),
     categories: str | None = Query(None, description="Comma-separated category codes"),
 ):
     """SSE endpoint: sync -> query -> cache recent papers"""
@@ -382,6 +380,8 @@ async def update_recent_papers(
         task_id = str(uuid.uuid4())
 
         category_list = [c.strip() for c in categories.split(",")] if categories else []
+        limit = Config.RECENT_PAPERS_LIMIT
+        sync_years = Config.YEARS_BACK
 
         with db.get_session() as session:
             task = SyncTask(

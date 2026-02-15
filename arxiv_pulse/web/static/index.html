@@ -1738,6 +1738,198 @@
             flex: 1;
         }
 
+        /* Field Selector Dialog */
+        .field-selector-dialog .el-dialog__body {
+            padding: 0;
+        }
+        .field-selector {
+            display: flex;
+            height: 500px;
+            border: 1px solid var(--border-light);
+            border-radius: 0 0 8px 8px;
+        }
+        .field-selector-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-light);
+        }
+        .field-selector-right {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-subtle);
+        }
+        .field-selector-search {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .field-selector-search .el-input__wrapper {
+            border-radius: 8px;
+        }
+        .field-selector-header {
+            padding: 12px 16px;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .field-selector-header .toggle-btn {
+            font-size: 12px;
+            color: var(--primary);
+            cursor: pointer;
+        }
+        .field-selector-header .toggle-btn:hover {
+            text-decoration: underline;
+        }
+        .field-selector-tree {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .field-selector-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .field-group {
+            margin-bottom: 2px;
+        }
+        .field-group-header {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 13px;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+        .field-group-header:hover {
+            background: var(--bg-subtle);
+        }
+        .field-group-header .el-icon {
+            margin-right: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            transition: transform 0.2s;
+        }
+        .field-group-header.expanded .el-icon {
+            transform: rotate(90deg);
+        }
+        .field-group-header .recommended-badge {
+            font-size: 9px;
+            padding: 1px 5px;
+            margin-left: 8px;
+        }
+        .field-group-children {
+            margin-left: 16px;
+        }
+        .field-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            gap: 6px;
+        }
+        .field-item:hover {
+            background: #e8f4ff;
+            color: var(--primary);
+        }
+        .field-item.selected {
+            background: #e8f4ff;
+            color: var(--primary);
+        }
+        .field-item .star {
+            color: var(--accent);
+            font-size: 11px;
+        }
+        .field-selected-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            border: 1px solid var(--border-light);
+        }
+        .field-selected-item:hover {
+            border-color: var(--primary);
+        }
+        .field-selected-item .name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-primary);
+        }
+        .field-selected-item .star {
+            color: var(--accent);
+        }
+        .field-selected-item .remove-btn {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        .field-selected-item .remove-btn:hover {
+            background: #fee;
+            color: #f56c6c;
+        }
+        .field-selector-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+        }
+        .field-selector-footer .count {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .field-selector-empty {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        .field-selector-tabs {
+            display: flex;
+            padding: 8px 12px;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .field-selector-tab {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .field-selector-tab:hover {
+            background: var(--bg-subtle);
+        }
+        .field-selector-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        
         /* Responsive */
         @media (max-width: 1024px) {
             .stats-row { grid-template-columns: repeat(2, 1fr); }
@@ -1801,50 +1993,23 @@
                     <h3 style="margin-bottom: 8px; color: var(--primary); font-size: 18px;">{{ t('setup.selectFields') }}</h3>
                     <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 14px;">{{ t('setup.fieldsHint') }}</p>
                     
-                    <div class="category-tree" style="max-height: 400px; overflow-y: auto;">
-                        <template v-for="(group, groupKey) in arxivCategories" :key="groupKey">
-                            <div class="category-group">
-                                <div class="category-header" @click="toggleCategoryGroup(groupKey)">
-                                    <el-icon style="margin-right: 6px;"><component :is="expandedGroups[groupKey] ? 'ArrowDown' : 'ArrowRight'" /></el-icon>
-                                    <span class="category-name">{{ currentLang === 'zh' ? group.name : group.name_en }}</span>
-                                    <span v-if="group.recommended" class="recommended-badge">{{ t('fields.recommended') }}</span>
-                                </div>
-                                <div v-show="expandedGroups[groupKey]" class="category-children">
-                                    <template v-for="(cat, catKey) in group.children" :key="catKey">
-                                        <div v-if="cat.children" class="category-subgroup">
-                                            <div class="category-subheader" @click="toggleCategoryGroup(catKey)">
-                                                <el-icon style="margin-right: 4px;"><component :is="expandedGroups[catKey] ? 'ArrowDown' : 'ArrowRight'" /></el-icon>
-                                                <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
-                                                <span v-if="cat.recommended" class="recommended-badge small">{{ t('fields.recommended') }}</span>
-                                            </div>
-                                            <div v-show="expandedGroups[catKey]" class="category-items">
-                                                <div v-for="(subcat, subcatKey) in cat.children" :key="subcatKey"
-                                                     class="category-item"
-                                                     :class="{ selected: setupConfig.selected_fields.includes(subcat.id), recommended: subcat.recommended }"
-                                                     @click="toggleSetupField(subcat.id)">
-                                                    <el-icon v-if="setupConfig.selected_fields.includes(subcat.id)" style="color: var(--primary);"><Check /></el-icon>
-                                                    <span>{{ currentLang === 'zh' ? subcat.name : subcat.name_en }}</span>
-                                                    <span v-if="subcat.recommended" class="star">⭐</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div v-else 
-                                             class="category-item"
-                                             :class="{ selected: setupConfig.selected_fields.includes(cat.id), recommended: cat.recommended }"
-                                             @click="toggleSetupField(cat.id)">
-                                            <el-icon v-if="setupConfig.selected_fields.includes(cat.id)" style="color: var(--primary);"><Check /></el-icon>
-                                            <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
-                                            <span v-if="cat.recommended" class="star">⭐</span>
-                                        </div>
-                                    </template>
-                                </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--bg-subtle); border-radius: 10px; cursor: pointer; margin-bottom: 16px;" @click.stop="openFieldSelector('init')">
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                                {{ currentLang === 'zh' ? '已选择' : 'Selected' }}: {{ setupConfig.selected_fields.length }} {{ currentLang === 'zh' ? '个研究领域' : 'research fields' }}
                             </div>
-                        </template>
+                            <div style="font-size: 12px; color: var(--text-muted);">
+                                {{ setupConfig.selected_fields.slice(0, 3).map(id => allCategories[id]?.name || id).join(', ') }}{{ setupConfig.selected_fields.length > 3 ? '...' : '' }}
+                            </div>
+                        </div>
+                        <div style="padding: 6px 12px; background: var(--primary); color: white; border-radius: 4px; font-size: 13px;">
+                            {{ currentLang === 'zh' ? '选择领域' : 'Select Fields' }}
+                        </div>
                     </div>
                     
                     <div style="margin-top: 24px; display: flex; justify-content: space-between;">
                         <el-button @click="setupStep = 1">{{ t('common.back') }}</el-button>
-                        <el-button type="primary" @click="setupStep = 3" :disabled="setupConfig.selected_fields.length === 0">
+                        <el-button type="primary" @click="setupStep = 3" :disabled="setupConfig.selected_fields.length === 0 && setupConfig.search_queries.length === 0">
                             {{ t('common.next') }}
                         </el-button>
                     </div>
@@ -1857,6 +2022,9 @@
                             <el-select v-model="setupConfig.years_back" style="width: 100%;">
                                 <el-option v-for="item in initYearOptions" :key="item.value" :label="item.label" :value="item.value" />
                             </el-select>
+                        </el-form-item>
+                        <el-form-item :label="t('setup.maxResultsPerField')">
+                            <el-input-number v-model="setupConfig.arxiv_max_results_per_field" :min="1000" :max="50000" :step="1000" style="width: 100%;" />
                         </el-form-item>
                     </el-form>
                     <p style="color: var(--text-muted); font-size: 13px; margin-top: 12px;">
@@ -1976,16 +2144,16 @@
                             <el-select v-model="recentDays" :placeholder="t('papers.timeRange')" style="width: 120px;">
                                 <el-option v-for="item in daysOptions" :key="item.value" :label="item.label" :value="item.value" />
                             </el-select>
-                            <el-select v-model="recentLimit" :placeholder="t('papers.limit')" style="width: 120px;">
-                                <el-option v-for="item in limitOptions" :key="item.value" :label="item.label" :value="item.value" />
-                            </el-select>
-                            <el-select v-model="recentCategories" multiple collapse-tags :placeholder="t('papers.categoryFilter')" style="width: 200px;">
-                                <el-option v-for="item in categoryOptions" :key="item.value" :label="item.label" :value="item.value" />
-                            </el-select>
+                            <el-button @click="openFieldSelector('recent')" style="display: flex; align-items: center; gap: 6px;">
+                                <el-icon><Filter /></el-icon>
+                                <span v-if="recentCategories.length === 0">{{ currentLang === 'zh' ? '全部领域' : 'All Fields' }}</span>
+                                <span v-else style="display: flex; align-items: center; gap: 4px;">
+                                    <el-tag size="small" type="info" style="background: #e8f4ff; color: var(--primary); border: none;">
+                                        {{ recentCategories.length }} {{ currentLang === 'zh' ? '个领域' : 'fields' }}
+                                    </el-tag>
+                                </span>
+                            </el-button>
                             <el-checkbox v-model="recentNeedSync" style="margin: 0 10px;">{{ t('papers.syncNewPapers') }}</el-checkbox>
-                            <el-select v-if="recentNeedSync" v-model="recentSyncYears" :placeholder="t('papers.yearsBack')" style="width: 100px;">
-                                <el-option v-for="item in syncYearOptions" :key="item.value" :label="item.label" :value="item.value" />
-                            </el-select>
                             <el-button type="primary" @click="updateRecentPapers" :loading="updatingRecent">
                                 <el-icon><Refresh /></el-icon> {{ t('papers.update') }}
                             </el-button>
@@ -2041,7 +2209,7 @@
                     <div class="sync-options">
                         <h3>{{ t('sync.syncSettings') }}</h3>
                         <el-form label-position="top">
-                            <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                            <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;">
                                 <el-form-item :label="t('sync.yearsBack')">
                                     <el-select v-model="syncYearsBack" style="width: 120px;">
                                         <el-option v-for="item in syncYearsBackOptions" :key="item.value" :label="item.label" :value="item.value" />
@@ -2057,6 +2225,9 @@
                                 </el-form-item>
                             </div>
                         </el-form>
+                        <p style="color: var(--text-muted); font-size: 12px; margin-top: 8px;">
+                            {{ currentLang === 'zh' ? '同步年份覆盖默认设置。全局默认在左下角设置中配置。' : 'Sync years override default. Configure global defaults in Settings.' }}
+                        </p>
                     </div>
 
                     <div v-if="syncLogs.length > 0" class="logs-container">
@@ -2157,41 +2328,11 @@
                         <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 12px;">
                             {{ t('settings.fieldsHint') }}
                         </p>
-                        <div class="category-tree" style="max-height: 300px; overflow-y: auto;">
-                            <template v-for="(group, groupKey) in arxivCategories" :key="groupKey">
-                                <div class="category-group">
-                                    <div class="category-header" @click="toggleCategoryGroup('settings_' + groupKey)">
-                                        <el-icon style="margin-right: 6px;"><component :is="expandedGroups['settings_' + groupKey] ? 'ArrowDown' : 'ArrowRight'" /></el-icon>
-                                        <span class="category-name">{{ currentLang === 'zh' ? group.name : group.name_en }}</span>
-                                    </div>
-                                    <div v-show="expandedGroups['settings_' + groupKey]" class="category-children">
-                                        <template v-for="(cat, catKey) in group.children" :key="catKey">
-                                            <div v-if="cat.children" class="category-subgroup">
-                                                <div class="category-subheader" @click="toggleCategoryGroup('settings_' + catKey)">
-                                                    <el-icon style="margin-right: 4px;"><component :is="expandedGroups['settings_' + catKey] ? 'ArrowDown' : 'ArrowRight'" /></el-icon>
-                                                    <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
-                                                </div>
-                                                <div v-show="expandedGroups['settings_' + catKey]" class="category-items">
-                                                    <div v-for="(subcat, subcatKey) in cat.children" :key="subcatKey"
-                                                         class="category-item"
-                                                         :class="{ selected: settingsConfig.selected_fields?.includes(subcat.id) }"
-                                                         @click="toggleSettingsField(subcat.id)">
-                                                        <el-icon v-if="settingsConfig.selected_fields?.includes(subcat.id)" style="color: var(--primary);"><Check /></el-icon>
-                                                        <span>{{ currentLang === 'zh' ? subcat.name : subcat.name_en }}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div v-else 
-                                                 class="category-item"
-                                                 :class="{ selected: settingsConfig.selected_fields?.includes(cat.id) }"
-                                                 @click="toggleSettingsField(cat.id)">
-                                                <el-icon v-if="settingsConfig.selected_fields?.includes(cat.id)" style="color: var(--primary);"><Check /></el-icon>
-                                                <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </template>
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-subtle); border-radius: 8px; cursor: pointer;" @click="openFieldSelector('settings')">
+                            <span style="font-size: 13px; color: var(--text-primary);">
+                                {{ currentLang === 'zh' ? '已选择' : 'Selected' }}: {{ settingsConfig.selected_fields?.length || 0 }} {{ currentLang === 'zh' ? '个领域' : 'fields' }}
+                            </span>
+                            <el-icon><ArrowRight /></el-icon>
                         </div>
                     </div>
 
@@ -2203,8 +2344,14 @@
                                     <el-option v-for="item in initYearOptions" :key="item.value" :label="item.label" :value="item.value" />
                                 </el-select>
                             </el-form-item>
+                            <el-form-item :label="t('settings.maxResultsPerField')">
+                                <el-input-number v-model="settingsConfig.arxiv_max_results_per_field" :min="1000" :max="50000" :step="1000" style="width: 100%;" />
+                            </el-form-item>
                             <el-form-item :label="t('settings.arxivMaxResults')">
-                                <el-input-number v-model="settingsConfig.arxiv_max_results" :min="1000" :max="50000" :step="1000" style="width: 100%;" />
+                                <el-input-number v-model="settingsConfig.arxiv_max_results" :min="10000" :max="200000" :step="10000" style="width: 100%;" />
+                            </el-form-item>
+                            <el-form-item :label="t('settings.recentPapersLimit')">
+                                <el-input-number v-model="settingsConfig.recent_papers_limit" :min="20" :max="200" :step="10" style="width: 100%;" />
                             </el-form-item>
                         </el-form>
                     </div>
@@ -2297,6 +2444,188 @@
                 </template>
             </el-dialog>
         </div>
+
+        <!-- Field Selector Dialog (Global - accessible from setup and main app) -->
+        <el-dialog 
+            v-model="showFieldSelector" 
+            width="800px" 
+            :close-on-click-modal="false"
+            append-to-body
+        >
+            <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">
+                    {{ t('fields.selectFields') }}
+                </div>
+                <el-tooltip :content="fieldAdvancedMode ? t('fields.switchToVisual') : t('fields.switchToCode')" placement="top">
+                    <el-button 
+                        :type="fieldAdvancedMode ? 'primary' : 'default'" 
+                        size="small" 
+                        @click="fieldAdvancedMode = !fieldAdvancedMode"
+                        style="display: flex; align-items: center; gap: 4px;"
+                    >
+                        <el-icon style="font-size: 14px;"><Document /></el-icon>
+                        <span style="font-size: 12px;">{{ fieldAdvancedMode ? t('fields.visualMode') : t('fields.codeMode') }}</span>
+                    </el-button>
+                </el-tooltip>
+            </div>
+            
+            <div class="field-selector">
+                <div class="field-selector-left">
+                    <template v-if="fieldAdvancedMode">
+                        <div style="background: #1e1e1e; border-radius: 8px 0 0 0; overflow: hidden;">
+                            <el-input
+                                v-model="advancedQueriesText"
+                                type="textarea"
+                                :rows="14"
+                                :placeholder="t('fields.advancedPlaceholder')"
+                                style="--el-input-bg-color: #1e1e1e; --el-input-text-color: #d4d4d4; --el-input-border-color: #3c3c3c; --el-input-placeholder-color: #6a6a6a;"
+                                input-style="font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 13px; line-height: 1.6; background: #1e1e1e; color: #d4d4d4;"
+                            />
+                        </div>
+                        <div style="padding: 8px 12px; background: #252526; font-size: 11px; color: #8a8a8a; border-radius: 0 0 0 8px; display: flex; justify-content: space-between;">
+                            <span>{{ advancedQueriesLines.length }} {{ currentLang === 'zh' ? '条查询' : 'queries' }}</span>
+                            <span style="color: #6a6a6a;">arXiv API</span>
+                        </div>
+                    </template>
+                    <template v-else>
+                        <div class="field-selector-search">
+                            <el-input v-model="fieldSearchQuery" :placeholder="t('fields.searchPlaceholder')" clearable>
+                                <template #prefix>
+                                    <el-icon><Search /></el-icon>
+                                </template>
+                            </el-input>
+                        </div>
+                        <div class="field-selector-tabs">
+                            <div class="field-selector-tab" :class="{ active: fieldSelectorTab === 'selected' }" @click="fieldSelectorTab = 'selected'">
+                                {{ currentLang === 'zh' ? '已选领域' : 'Selected' }} ({{ tempSelectedFields.length }})
+                            </div>
+                            <div class="field-selector-tab" :class="{ active: fieldSelectorTab === 'all' }" @click="fieldSelectorTab = 'all'">
+                                {{ currentLang === 'zh' ? '全部领域' : 'All Fields' }}
+                            </div>
+                        </div>
+                        <div class="field-selector-tree">
+                            <template v-if="fieldSelectorTab === 'selected'">
+                                <div v-if="tempSelectedFields.length === 0" class="field-selector-empty">
+                                    {{ currentLang === 'zh' ? '暂未选择任何领域' : 'No fields selected' }}
+                                </div>
+                                <div v-else>
+                                    <div v-for="fieldId in tempSelectedFields" :key="fieldId" class="field-selected-item">
+                                        <div class="name">
+                                            <span v-if="allCategories[fieldId]?.recommended" class="star">⭐</span>
+                                            <span>{{ currentLang === 'zh' ? allCategories[fieldId]?.name : allCategories[fieldId]?.name_en }}</span>
+                                            <span style="color: var(--text-muted); font-size: 11px;">{{ fieldId }}</span>
+                                        </div>
+                                        <div class="remove-btn" @click="removeFromTempSelection(fieldId)">
+                                            <el-icon><Close /></el-icon>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <template v-for="(group, groupKey) in filteredCategories" :key="groupKey">
+                                    <div class="field-group">
+                                        <div class="field-group-header" :class="{ expanded: fieldSelectorExpanded[groupKey] }" @click="toggleFieldSelectorGroup(groupKey)">
+                                            <el-icon><ArrowRight /></el-icon>
+                                            <span>{{ currentLang === 'zh' ? group.name : group.name_en }}</span>
+                                            <span v-if="group.recommended" class="recommended-badge">{{ t('fields.recommended') }}</span>
+                                        </div>
+                                        <div v-show="fieldSelectorExpanded[groupKey]" class="field-group-children">
+                                            <template v-for="(cat, catKey) in group.children" :key="catKey">
+                                                <div v-if="cat.children" class="field-group">
+                                                    <div class="field-group-header" :class="{ expanded: fieldSelectorExpanded[catKey] }" @click.stop="toggleFieldSelectorGroup(catKey)">
+                                                        <el-icon><ArrowRight /></el-icon>
+                                                        <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
+                                                    </div>
+                                                    <div v-show="fieldSelectorExpanded[catKey]" class="field-group-children">
+                                                        <div v-for="(subcat, subcatKey) in cat.children" :key="subcatKey"
+                                                             class="field-item"
+                                                             :class="{ selected: tempSelectedFields.includes(subcat.id) }"
+                                                             @click="toggleTempField(subcat.id)">
+                                                            <el-checkbox :model-value="tempSelectedFields.includes(subcat.id)" />
+                                                            <span v-if="subcat.recommended" class="star">⭐</span>
+                                                            <span>{{ currentLang === 'zh' ? subcat.name : subcat.name_en }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div v-else
+                                                     class="field-item"
+                                                     :class="{ selected: tempSelectedFields.includes(cat.id) }"
+                                                     @click="toggleTempField(cat.id)">
+                                                    <el-checkbox :model-value="tempSelectedFields.includes(cat.id)" />
+                                                    <span v-if="cat.recommended" class="star">⭐</span>
+                                                    <span>{{ currentLang === 'zh' ? cat.name : cat.name_en }}</span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+                <div class="field-selector-right">
+                    <div class="field-selector-header">
+                        <span>{{ currentLang === 'zh' ? '已选择' : 'Selected' }}</span>
+                        <span class="toggle-btn" v-if="!fieldAdvancedMode && tempSelectedFields.length > 0" @click="clearTempSelection">{{ currentLang === 'zh' ? '清空' : 'Clear' }}</span>
+                    </div>
+                    <div class="field-selector-list">
+                        <template v-if="!fieldAdvancedMode">
+                            <div v-if="tempSelectedFields.length === 0" class="field-selector-empty">
+                                {{ currentLang === 'zh' ? '点击左侧领域添加' : 'Click fields to add' }}
+                            </div>
+                            <div v-for="fieldId in tempSelectedFields" :key="fieldId" class="field-selected-item">
+                                <div class="name">
+                                    <span v-if="allCategories[fieldId]?.recommended" class="star">⭐</span>
+                                    <span>{{ currentLang === 'zh' ? allCategories[fieldId]?.name : allCategories[fieldId]?.name_en }}</span>
+                                </div>
+                                <div class="remove-btn" @click="removeFromTempSelection(fieldId)">
+                                    <el-icon><Close /></el-icon>
+                                </div>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <div v-if="advancedQueriesLines.length === 0" class="field-selector-empty">
+                                {{ currentLang === 'zh' ? '在左侧输入查询语句' : 'Enter queries on the left' }}
+                            </div>
+                            <template v-else>
+                                <div v-if="parsedCodeResult.standardFields.length > 0" style="margin-bottom: 8px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">{{ currentLang === 'zh' ? '标准分类' : 'Standard' }}</div>
+                                    <div v-for="fieldId in parsedCodeResult.standardFields" :key="fieldId" class="field-selected-item" style="background: #e8f4ff;">
+                                        <div class="name">
+                                            <span v-if="allCategories[fieldId]?.recommended" class="star">⭐</span>
+                                            <span style="color: var(--primary);">{{ currentLang === 'zh' ? allCategories[fieldId]?.name : allCategories[fieldId]?.name_en }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="parsedCodeResult.customQueries.length > 0">
+                                    <div style="font-size: 11px; color: #e6a23c; margin-bottom: 4px;">{{ currentLang === 'zh' ? '自定义规则' : 'Custom' }}</div>
+                                    <div v-for="(query, idx) in parsedCodeResult.customQueries" :key="idx" class="field-selected-item" style="background: #fdf6ec; border-color: #e6a23c;">
+                                        <div class="name" style="font-family: 'SF Mono', Monaco, monospace; font-size: 11px; color: #e6a23c;">
+                                            {{ query }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                    <div class="field-selector-footer">
+                        <span class="count">
+                            <template v-if="!fieldAdvancedMode">
+                                {{ tempSelectedFields.length }} {{ currentLang === 'zh' ? '个领域' : 'fields' }}
+                            </template>
+                            <template v-else>
+                                {{ advancedQueriesLines.length }} {{ currentLang === 'zh' ? '条查询' : 'queries' }}
+                                <span v-if="parsedCodeResult.customQueries.length > 0" style="color: #e6a23c;"> ({{ parsedCodeResult.customQueries.length }} {{ currentLang === 'zh' ? '自定义' : 'custom' }})</span>
+                            </template>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <template #footer>
+                <el-button @click="showFieldSelector = false">{{ t('common.cancel') }}</el-button>
+                <el-button type="primary" @click="confirmFieldSelection">{{ t('common.confirm') }}</el-button>
+            </template>
+        </el-dialog>
 
         <!-- Bottom Navigation Bar -->
         <div v-if="!showSetup" class="bottom-nav" @mouseenter="(e) => e.currentTarget.style.cursor='default'">
@@ -2686,8 +3015,10 @@
                     researchFields: '研究领域',
                     fieldsHint: '已有论文的领域取消后仅停止同步，不会删除已有论文',
                     syncSettings: '同步设置',
-                    yearsBack: '回溯年数',
-                    arxivMaxResults: 'arXiv 最大结果数',
+                    yearsBack: '默认同步年份',
+                    arxivMaxResults: '全局最大论文数',
+                    maxResultsPerField: '每领域最大论文数',
+                    recentPapersLimit: '近期论文默认数量',
                     aiLanguage: 'AI 输出语言',
                     aiLanguageHint: 'AI 总结、翻译、对话的语言。切换后已缓存的翻译不会更新，建议谨慎切换。',
                     updateKey: '更新'
@@ -2703,7 +3034,8 @@
                     fieldsHint: '选择您感兴趣的研究领域',
                     syncHint: '设置同步参数',
                     syncBtn: '开始同步',
-                    yearsBack: '回溯年数',
+                    yearsBack: '默认同步年份',
+                    maxResultsPerField: '每领域最大论文数',
                     selectedFields: '已选择: {count} 个研究领域',
                     processing: '正在处理: {current} / {total} 个研究领域',
                     syncing: '正在同步...',
@@ -2767,6 +3099,15 @@
                 },
                 fields: {
                     recommended: '推荐',
+                    selectFields: '选择研究领域',
+                    searchPlaceholder: '搜索领域...',
+                    advancedMode: '高级模式',
+                    advancedHint: '直接编辑 arXiv 查询语句，每行一条。支持 cat: 分类、ti: 标题、au: 作者等。例：cat:cond-mat.mtrl-sci OR ti:neural network',
+                    advancedPlaceholder: 'cat:cond-mat.mtrl-sci\ncat:quant-ph\nti:machine learning AND cat:cs.LG\n...',
+                    switchToCode: '切换到源码模式编辑',
+                    switchToVisual: '切换到可视化选择',
+                    codeMode: '源码',
+                    visualMode: '可视化',
                     condensed_matter: { name: '凝聚态物理', desc: '超导、强关联电子、介观系统等' },
                     dft: { name: '密度泛函理论 (DFT)', desc: '第一性原理计算、材料设计' },
                     machine_learning: { name: '机器学习', desc: 'ML在物理和材料科学中的应用' },
@@ -2907,8 +3248,10 @@
                     researchFields: 'Research Fields',
                     fieldsHint: 'Unchecking fields with papers only stops syncing, papers are preserved',
                     syncSettings: 'Sync Settings',
-                    yearsBack: 'Years Back',
-                    arxivMaxResults: 'arXiv Max Results',
+                    yearsBack: 'Default Years Back',
+                    arxivMaxResults: 'Global Max Papers',
+                    maxResultsPerField: 'Max Papers Per Field',
+                    recentPapersLimit: 'Recent Papers Limit',
                     aiLanguage: 'AI Output Language',
                     aiLanguageHint: 'Language for AI summaries, translations, and chat. Cached translations won\'t update after switching.',
                     updateKey: 'Update'
@@ -2924,7 +3267,8 @@
                     fieldsHint: 'Select your research fields of interest',
                     syncHint: 'Set sync parameters',
                     syncBtn: 'Start Sync',
-                    yearsBack: 'Years Back',
+                    yearsBack: 'Default Years Back',
+                    maxResultsPerField: 'Max Papers Per Field',
                     selectedFields: 'Selected: {count} research fields',
                     processing: 'Processing: {current} / {total} fields',
                     syncing: 'Syncing...',
@@ -2988,6 +3332,15 @@
                 },
                 fields: {
                     recommended: 'Recommended',
+                    selectFields: 'Select Research Fields',
+                    searchPlaceholder: 'Search fields...',
+                    advancedMode: 'Advanced Mode',
+                    advancedHint: 'Edit arXiv queries directly, one per line. Supports cat: category, ti: title, au: author, etc. E.g.: cat:cond-mat.mtrl-sci OR ti:neural network',
+                    advancedPlaceholder: 'cat:cond-mat.mtrl-sci\ncat:quant-ph\nti:machine learning AND cat:cs.LG\n...',
+                    switchToCode: 'Switch to code editor',
+                    switchToVisual: 'Switch to visual selector',
+                    codeMode: 'Code',
+                    visualMode: 'Visual',
                     condensed_matter: { name: 'Condensed Matter', desc: 'Superconductivity, strongly correlated electrons' },
                     dft: { name: 'DFT', desc: 'First-principles calculations, materials design' },
                     machine_learning: { name: 'Machine Learning', desc: 'ML in physics and materials science' },
@@ -3093,7 +3446,9 @@
                     ai_base_url: 'https://llmapi.paratera.com',
                     translate_language: 'zh',
                     selected_fields: [...defaultFields],
-                    years_back: 5
+                    search_queries: [],
+                    years_back: 5,
+                    arxiv_max_results_per_field: 10000
                 });
 
                 const showSettings = ref(false);
@@ -3103,11 +3458,25 @@
                     ai_model: 'DeepSeek-V3.2',
                     ai_base_url: 'https://llmapi.paratera.com',
                     selected_fields: [],
+                    search_queries: [],
                     years_back: 5,
-                    arxiv_max_results: 10000,
+                    arxiv_max_results: 100000,
+                    arxiv_max_results_per_field: 10000,
+                    recent_papers_limit: 64,
                     ui_language: 'zh',
                     translate_language: 'zh'
                 });
+
+                // Field Selector
+                const showFieldSelector = ref(false);
+                const fieldSelectorSource = ref('settings');
+                const tempSelectedFields = ref([]);
+                const fieldSearchQuery = ref('');
+                const fieldSelectorTab = ref('selected');
+                const fieldSelectorExpanded = ref({});
+                const recentCategories = ref([]);
+                const fieldAdvancedMode = ref(false);
+                const advancedQueriesText = ref('');
 
                 const currentPage = ref('home');
                 const stats = ref(null);
@@ -3118,10 +3487,7 @@
                 const updatingRecent = ref(false);
                 const recentLogs = ref([]);
                 const recentDays = ref('7');
-                const recentLimit = ref('64');
                 const recentNeedSync = ref(true);
-                const recentSyncYears = ref('5');
-                const recentCategories = ref([]);
 
                 const homeQuery = ref('');
                 const homeSearching = ref(false);
@@ -3483,8 +3849,11 @@
                             ai_model: data.ai_model || 'DeepSeek-V3.2',
                             ai_base_url: data.ai_base_url || 'https://llmapi.paratera.com',
                             selected_fields: data.selected_fields || [],
+                            search_queries: data.search_queries || [],
                             years_back: data.years_back || 5,
-                            arxiv_max_results: data.arxiv_max_results || 10000,
+                            arxiv_max_results: data.arxiv_max_results || 100000,
+                            arxiv_max_results_per_field: data.arxiv_max_results_per_field || 10000,
+                            recent_papers_limit: data.recent_papers_limit || 64,
                             ui_language: data.ui_language || 'zh',
                             translate_language: data.translate_language || 'zh'
                         };
@@ -3557,6 +3926,196 @@
                     }
                 }
 
+                function openFieldSelector(source) {
+                    console.log('openFieldSelector called with source:', source);
+                    fieldSelectorSource.value = source;
+                    fieldAdvancedMode.value = false;
+                    syncingFromCode = true; // 防止 watch 触发
+                    
+                    if (source === 'settings') {
+                        tempSelectedFields.value = [...(settingsConfig.value.selected_fields || [])];
+                        if (settingsConfig.value.search_queries?.length > 0) {
+                            advancedQueriesText.value = settingsConfig.value.search_queries.join('\n');
+                        } else {
+                            advancedQueriesText.value = tempSelectedFields.value.map(f => `cat:${f}`).join('\n');
+                        }
+                    } else if (source === 'init') {
+                        tempSelectedFields.value = [...(setupConfig.value.selected_fields || [])];
+                        if (setupConfig.value.search_queries?.length > 0) {
+                            advancedQueriesText.value = setupConfig.value.search_queries.join('\n');
+                        } else {
+                            advancedQueriesText.value = tempSelectedFields.value.map(f => `cat:${f}`).join('\n');
+                        }
+                    } else if (source === 'recent') {
+                        tempSelectedFields.value = [...recentCategories.value];
+                        advancedQueriesText.value = '';
+                    }
+                    
+                    fieldSearchQuery.value = '';
+                    nextTick(() => { syncingFromCode = false; });
+                    
+                    if (source === 'recent') {
+                        fieldSelectorTab.value = tempSelectedFields.value.length > 0 ? 'selected' : 'all';
+                    } else {
+                        fieldSelectorTab.value = 'all';
+                    }
+                    
+                    const recommendedGroups = ['physics', 'cond-mat', 'cs', 'quant-ph'];
+                    fieldSelectorExpanded.value = {};
+                    recommendedGroups.forEach(key => {
+                        fieldSelectorExpanded.value[key] = true;
+                    });
+                    
+                    showFieldSelector.value = true;
+                    console.log('showFieldSelector set to true');
+                }
+
+                function toggleFieldSelectorGroup(key) {
+                    fieldSelectorExpanded.value[key] = !fieldSelectorExpanded.value[key];
+                }
+
+                function toggleTempField(fieldId) {
+                    const idx = tempSelectedFields.value.indexOf(fieldId);
+                    if (idx >= 0) {
+                        tempSelectedFields.value.splice(idx, 1);
+                    } else {
+                        tempSelectedFields.value.push(fieldId);
+                    }
+                    // 同步更新源码
+                    syncFieldsToCode();
+                }
+
+                function removeFromTempSelection(fieldId) {
+                    const idx = tempSelectedFields.value.indexOf(fieldId);
+                    if (idx >= 0) {
+                        tempSelectedFields.value.splice(idx, 1);
+                    }
+                    syncFieldsToCode();
+                }
+
+                function clearTempSelection() {
+                    tempSelectedFields.value = [];
+                    advancedQueriesText.value = '';
+                }
+
+                let syncingFromCode = false;
+
+                const advancedQueriesLines = computed(() => {
+                    return advancedQueriesText.value
+                        .split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0);
+                });
+
+                function syncFieldsToCode() {
+                    const queries = tempSelectedFields.value.map(f => `cat:${f}`);
+                    advancedQueriesText.value = queries.join('\n');
+                }
+
+                function parseCodeToFields() {
+                    const lines = advancedQueriesLines.value;
+                    const standardFields = [];
+                    const customQueries = [];
+                    
+                    for (const line of lines) {
+                        const catMatch = line.match(/^cat:(.+)$/);
+                        if (catMatch) {
+                            const fieldId = catMatch[1].trim();
+                            if (allCategories.value[fieldId]) {
+                                standardFields.push(fieldId);
+                            } else {
+                                customQueries.push(line);
+                            }
+                        } else {
+                            customQueries.push(line);
+                        }
+                    }
+                    
+                    return { standardFields, customQueries };
+                }
+
+                const parsedCodeResult = computed(() => {
+                    if (!fieldAdvancedMode.value) return { standardFields: [], customQueries: [] };
+                    return parseCodeToFields();
+                });
+
+                // 源码变化时同步 fields（仅在源码模式）
+                watch(advancedQueriesText, () => {
+                    if (fieldAdvancedMode.value && !syncingFromCode) {
+                        syncingFromCode = true;
+                        const { standardFields } = parseCodeToFields();
+                        tempSelectedFields.value = standardFields;
+                        nextTick(() => { syncingFromCode = false; });
+                    }
+                });
+
+                // fields 变化时同步源码（仅在可视化模式）
+                watch(tempSelectedFields, () => {
+                    if (!fieldAdvancedMode.value && !syncingFromCode) {
+                        syncingFromCode = true;
+                        syncFieldsToCode();
+                        nextTick(() => { syncingFromCode = false; });
+                    }
+                }, { deep: true });
+
+                function confirmFieldSelection() {
+                    const { standardFields, customQueries } = parseCodeToFields();
+                    
+                    if (fieldSelectorSource.value === 'settings') {
+                        // 合并标准分类和自定义查询
+                        settingsConfig.value.selected_fields = [...tempSelectedFields.value];
+                        settingsConfig.value.search_queries = [...advancedQueriesLines.value];
+                    } else if (fieldSelectorSource.value === 'init') {
+                        setupConfig.value.selected_fields = [...tempSelectedFields.value];
+                        setupConfig.value.search_queries = [...advancedQueriesLines.value];
+                    } else if (fieldSelectorSource.value === 'recent') {
+                        recentCategories.value = [...tempSelectedFields.value];
+                    }
+                    showFieldSelector.value = false;
+                }
+
+                const filteredCategories = computed(() => {
+                    if (!fieldSearchQuery.value) return arxivCategories.value;
+                    const query = fieldSearchQuery.value.toLowerCase();
+                    const result = {};
+                    for (const [groupKey, group] of Object.entries(arxivCategories.value)) {
+                        const filteredGroup = { ...group, children: {} };
+                        let hasMatch = false;
+                        if (group.name?.toLowerCase().includes(query) || group.name_en?.toLowerCase().includes(query)) {
+                            hasMatch = true;
+                        }
+                        if (group.children) {
+                            for (const [catKey, cat] of Object.entries(group.children)) {
+                                let catMatch = false;
+                                if (cat.name?.toLowerCase().includes(query) || cat.name_en?.toLowerCase().includes(query) || cat.id?.toLowerCase().includes(query)) {
+                                    catMatch = true;
+                                }
+                                if (cat.children) {
+                                    const filteredChildren = {};
+                                    for (const [subcatKey, subcat] of Object.entries(cat.children)) {
+                                        if (subcat.name?.toLowerCase().includes(query) || subcat.name_en?.toLowerCase().includes(query) || subcat.id?.toLowerCase().includes(query)) {
+                                            filteredChildren[subcatKey] = subcat;
+                                            catMatch = true;
+                                        }
+                                    }
+                                    if (catMatch) {
+                                        filteredGroup.children[catKey] = { ...cat, children: filteredChildren };
+                                        hasMatch = true;
+                                    }
+                                } else if (catMatch) {
+                                    filteredGroup.children[catKey] = cat;
+                                    hasMatch = true;
+                                }
+                            }
+                        }
+                        if (hasMatch) {
+                            result[groupKey] = filteredGroup;
+                            fieldSelectorExpanded.value[groupKey] = true;
+                        }
+                    }
+                    return result;
+                });
+
                 let saveTimeout = null;
                 async function saveSettings() {
                     savingSettings.value = true;
@@ -3590,8 +4149,7 @@
                 let settingsInitialized = false;
                 watch(settingsConfig, (newVal, oldVal) => {
                     if (!settingsInitialized) return;
-                    // Don't auto-save api_key
-                    const keysToWatch = ['ai_base_url', 'ai_model', 'translate_language', 'years_back', 'arxiv_max_results', 'selected_fields', 'ui_language'];
+                    const keysToWatch = ['ai_base_url', 'ai_model', 'translate_language', 'years_back', 'arxiv_max_results', 'arxiv_max_results_per_field', 'recent_papers_limit', 'selected_fields', 'search_queries', 'ui_language'];
                     for (const key of keysToWatch) {
                         if (JSON.stringify(newVal[key]) !== JSON.stringify(oldVal?.[key])) {
                             debouncedSave();
@@ -3674,9 +4232,7 @@
                     try {
                         const params = new URLSearchParams({
                             days: recentDays.value,
-                            limit: recentLimit.value,
-                            need_sync: recentNeedSync.value,
-                            sync_years: recentSyncYears.value
+                            need_sync: recentNeedSync.value
                         });
                         if (recentCategories.value.length > 0) {
                             params.append('categories', recentCategories.value.join(','));
@@ -4701,7 +5257,7 @@
                     showSettings, settingsConfig, savingSettings,
                     currentPage, stats, fieldStats, expandedGroups, recentPapers, searchResults, collections,
                     loadingRecent, updatingRecent, recentLogs,
-                    recentDays, recentLimit, recentNeedSync, recentSyncYears, recentCategories,
+                    recentDays, recentNeedSync, recentCategories,
                     categoryOptions, daysOptions, limitOptions, syncYearOptions, initYearOptions, syncYearsBackOptions, searchDaysOptions, aiLanguageOptions,
                     searching, searchQuery, searchDays, searchLogs,
                     syncStatus, syncing, syncLogs, syncYearsBack, syncForce,
@@ -4736,7 +5292,12 @@
                     addToCart, removeFromCart, removeFromCartByArxivId, clearCart, isInCart, exportCart,
                     addCartToCollection, copyCartLinks,
                     scrollToBottom, handleChatScroll,
-                    t, currentLang, toggleLanguage, i18n, getFieldTranslation
+                    t, currentLang, toggleLanguage, i18n, getFieldTranslation,
+                    // Field Selector
+                    showFieldSelector, fieldSelectorSource, tempSelectedFields, fieldSearchQuery, fieldSelectorTab,
+                    fieldSelectorExpanded, openFieldSelector, toggleFieldSelectorGroup, toggleTempField,
+                    removeFromTempSelection, clearTempSelection, confirmFieldSelection, filteredCategories,
+                    fieldAdvancedMode, advancedQueriesText, advancedQueriesLines, parsedCodeResult
                 };
             }
         });

@@ -67,7 +67,15 @@ class Config:
 
     @classproperty
     def ARXIV_MAX_RESULTS(cls) -> int:
-        return cls._get_int("arxiv_max_results", 10000)
+        return cls._get_int("arxiv_max_results", 100000)
+
+    @classproperty
+    def ARXIV_MAX_RESULTS_PER_FIELD(cls) -> int:
+        return cls._get_int("arxiv_max_results_per_field", 10000)
+
+    @classproperty
+    def RECENT_PAPERS_LIMIT(cls) -> int:
+        return cls._get_int("recent_papers_limit", 64)
 
     @classproperty
     def YEARS_BACK(cls) -> int:

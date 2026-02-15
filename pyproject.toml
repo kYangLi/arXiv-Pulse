@@ -81,3 +81,8 @@ line-length = 120
 line-length = 120
 select = []
 ignore = []
+
+[dependency-groups]
+dev = [
+    "playwright>=1.58.0",
+]
