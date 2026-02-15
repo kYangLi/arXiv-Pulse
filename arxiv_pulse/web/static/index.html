@@ -117,22 +117,24 @@
         
         .field-grid { 
             display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 12px; 
+            grid-template-columns: repeat(2, minmax(0, 1fr)); 
+            gap: 10px; 
             max-height: 400px; 
             overflow-y: auto; 
-            padding: 12px; 
+            padding: 10px; 
             border: 1px solid var(--border-light); 
             border-radius: var(--radius-md); 
             background: var(--bg-subtle);
         }
         .field-item { 
-            padding: 12px 14px; 
+            padding: 10px 12px; 
             border-radius: var(--radius-sm); 
             cursor: pointer; 
             transition: all 0.2s ease; 
             border: 2px solid transparent; 
             background: var(--bg-card);
+            min-width: 0;
+            overflow: hidden;
         }
         .field-item:hover { 
             border-color: var(--border-medium);
@@ -415,6 +417,9 @@
             background: linear-gradient(135deg, #5a6c7d 0%, #3d4f5f 100%) !important;
             border: none !important;
             color: white !important;
+        }
+        .settings-btn .el-icon {
+            font-size: 26px !important;
         }
         .cart-fab-btn {
             background: linear-gradient(135deg, #e67e22 0%, #d35400 100%) !important;
@@ -1048,10 +1053,24 @@
             justify-content: center;
             padding: 0 6px;
         }
+        
+        /* Panel transition animation */
+        .panel-enter-active {
+            animation: panelSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .panel-leave-active {
+            animation: panelSlideDown 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes panelSlideUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes panelSlideDown {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(20px) scale(0.95); }
+        }
+        
         .cart-panel {
-            position: absolute;
-            bottom: 70px;
-            right: 0;
             width: 400px;
             max-height: 500px;
             background: white;
@@ -1060,11 +1079,14 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            animation: panelSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            cursor: move;
         }
-        @keyframes panelSlideUp {
-            from { opacity: 0; transform: translateY(20px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+        .cart-panel .cart-header {
+            cursor: move;
+        }
+        .cart-panel .cart-body,
+        .cart-panel .cart-footer {
+            cursor: default;
         }
         .cart-header {
             display: flex;
@@ -1209,7 +1231,14 @@
             flex-direction: column;
             overflow: hidden;
             resize: both;
-            animation: panelSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            cursor: move;
+        }
+        .chat-window .chat-header {
+            cursor: move;
+        }
+        .chat-window .chat-body,
+        .chat-window .chat-input-area {
+            cursor: default;
         }
         .chat-header {
             display: flex;
@@ -1940,6 +1969,19 @@
             <!-- Settings Drawer -->
             <el-drawer v-model="showSettings" :title="t('settings.title')" size="480px" class="settings-drawer">
                 <div style="padding: 24px;">
+                    <!-- UI Language -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 12px 16px; background: var(--bg-subtle); border-radius: 10px;">
+                        <span>
+                            <span :style="{ fontWeight: currentLang === 'zh' ? 600 : 400, opacity: currentLang === 'zh' ? 1 : 0.5 }">界面语言</span>
+                            <span style="margin: 0 6px; opacity: 0.3;">/</span>
+                            <span :style="{ fontWeight: currentLang === 'en' ? 600 : 400, opacity: currentLang === 'en' ? 1 : 0.5 }">UI Language</span>
+                        </span>
+                        <el-radio-group v-model="currentLang" size="small" @change="onLanguageChange">
+                            <el-radio-button label="zh">中文</el-radio-button>
+                            <el-radio-button label="en">EN</el-radio-button>
+                        </el-radio-group>
+                    </div>
+                    
                     <div class="settings-section">
                         <h3>{{ t('settings.aiConfig') }}</h3>
                         <el-form label-position="top">
@@ -1947,7 +1989,11 @@
                                 <el-input v-model="settingsConfig.ai_base_url" />
                             </el-form-item>
                             <el-form-item :label="t('settings.apiKey')">
-                                <el-input v-model="settingsConfig.ai_api_key" type="password" show-password />
+                                <el-input v-model="settingsConfig.ai_api_key" type="password" show-password>
+                                    <template #append>
+                                        <el-button type="primary" @click="saveApiKey" :loading="savingSettings">{{ t('settings.updateKey') }}</el-button>
+                                    </template>
+                                </el-input>
                             </el-form-item>
                             <el-form-item :label="t('settings.modelName')">
                                 <el-input v-model="settingsConfig.ai_model" />
@@ -1978,10 +2024,10 @@
                                  }"
                                  @click="toggleSettingsField(field.key)">
                                 <div class="name">
-                                    {{ currentLang === 'zh' ? field.name : (i18n[currentLang]?.fields?.[field.key]?.name || field.name) }}
+                                    {{ getFieldTranslation(field.key, 'name') || field.name }}
                                     <span v-if="field.paper_count > 0" class="paper-badge">{{ field.paper_count }} {{ t('collections.papers') }}</span>
                                 </div>
-                                <div class="desc">{{ currentLang === 'zh' ? field.description : (i18n[currentLang]?.fields?.[field.key]?.desc || field.description) }}</div>
+                                <div class="desc">{{ getFieldTranslation(field.key, 'desc') || field.description }}</div>
                             </div>
                         </div>
                     </div>
@@ -1998,11 +2044,6 @@
                                 <el-input-number v-model="settingsConfig.arxiv_max_results" :min="1000" :max="50000" :step="1000" style="width: 100%;" />
                             </el-form-item>
                         </el-form>
-                    </div>
-
-                    <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                        <el-button @click="showSettings = false">{{ t('common.cancel') }}</el-button>
-                        <el-button type="primary" @click="saveSettings" :loading="savingSettings">{{ t('settings.saveSettings') }}</el-button>
                     </div>
                 </div>
             </el-drawer>
@@ -2126,7 +2167,11 @@
 
         <!-- Paper Basket Panel -->
         <transition name="panel">
-            <div v-if="!showSetup && showCart" class="cart-panel" style="position: fixed; bottom: 100px; right: 16px; z-index: 1000;">
+            <div v-if="!showSetup && showCart" 
+                 class="cart-panel" 
+                 ref="cartPanelRef"
+                 :style="{ position: 'fixed', left: cartPosition.x + 'px', top: cartPosition.y + 'px', zIndex: 1000 }"
+                 @mousedown="startDragCart">
                 <div class="cart-header">
                     <h3>
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
@@ -2135,9 +2180,9 @@
                         {{ t('basket.title') }}
                         <span v-if="paperCart.length > 0" style="opacity: 0.7; font-weight: 400;">({{ paperCart.length }})</span>
                     </h3>
-                    <div class="collapse-btn" @click="showCart = false" :title="currentLang === 'zh' ? '收起' : 'Collapse'">
+                    <div class="collapse-btn" @click.stop="showCart = false" :title="currentLang === 'zh' ? '收起' : 'Collapse'">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                            <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
+                            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
                         </svg>
                     </div>
                 </div>
@@ -2221,7 +2266,11 @@
 
         <!-- AI Chat Window -->
         <transition name="panel">
-            <div v-if="!showSetup && chatExpanded" class="chat-window" style="position: fixed; bottom: 100px; right: 16px; z-index: 999;">
+            <div v-if="!showSetup && chatExpanded" 
+                 class="chat-window" 
+                 ref="chatPanelRef"
+                 :style="{ position: 'fixed', left: chatPosition.x + 'px', top: chatPosition.y + 'px', zIndex: 999 }"
+                 @mousedown="startDragChat">
                 <div class="chat-header">
                     <span class="chat-title">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
@@ -2230,14 +2279,14 @@
                         {{ t('chat.title') }}
                     </span>
                     <div class="chat-header-actions">
-                        <el-button text @click="createNewChat" :title="t('chat.newChat')">
+                        <el-button text @click.stop="createNewChat" :title="t('chat.newChat')">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                                 <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
                             </svg>
                         </el-button>
-                        <div class="collapse-btn" @click="chatExpanded = false" :title="currentLang === 'zh' ? '收起' : 'Collapse'">
+                        <div class="collapse-btn" @click.stop="chatExpanded = false" :title="currentLang === 'zh' ? '收起' : 'Collapse'">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                                <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
+                                <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
                             </svg>
                         </div>
                     </div>
@@ -2372,7 +2421,7 @@
             zh: {
                 nav: {
                     home: '首页',
-                    recent: '最近论文',
+                    recent: '近期论文',
                     sync: '同步管理',
                     collections: '论文集',
                     settings: '设置'
@@ -2398,10 +2447,10 @@
                 home: {
                     title: 'arXiv Pulse',
                     subtitle: '智能学术文献追踪与分析系统',
-                    searchPlaceholder: '输入关键词或自然语言描述搜索论文...',
+                    searchPlaceholder: '输入 arXiv ID、关键词或自然语言描述搜索论文...',
                     searchBtn: '搜索',
-                    hints: '支持自然语言搜索，如"机器学习在材料设计中的应用"',
-                    recentPapers: '最近论文',
+                    hints: '支持 arXiv ID 或 URL 精准搜索；支持自然语言搜索，如"机器学习在材料设计中的应用"',
+                    recentPapers: '近期论文',
                     syncManage: '同步管理',
                     paperCollections: '论文集',
                     totalPapers: '篇论文',
@@ -2409,7 +2458,7 @@
                     summarizedPapers: '篇已总结'
                 },
                 papers: {
-                    recentPapers: '最近论文',
+                    recentPapers: '近期论文',
                     update: '更新',
                     startSync: '开始同步',
                     never: '从未',
@@ -2465,6 +2514,7 @@
                 },
                 settings: {
                     title: '系统设置',
+                    uiLanguage: '界面语言',
                     aiConfig: 'AI 设置',
                     apiBaseUrl: 'API Base URL',
                     apiKey: 'API Key',
@@ -2477,7 +2527,7 @@
                     arxivMaxResults: 'arXiv 最大结果数',
                     aiLanguage: 'AI 输出语言',
                     aiLanguageHint: 'AI 总结、翻译、对话的语言。切换后已缓存的翻译不会更新，建议谨慎切换。',
-                    saveSettings: '保存设置'
+                    updateKey: '更新'
                 },
                 setup: {
                     welcome: '欢迎使用 arXiv Pulse',
@@ -2570,13 +2620,27 @@
                     mathematical_physics: { name: '数学物理', desc: '物理问题的数学方法' },
                     statistics: { name: '统计学', desc: '统计学理论与应用' },
                     quantitative_biology: { name: '定量生物学', desc: '生物信息学、系统生物学' },
-                    artificial_intelligence: { name: '人工智能', desc: 'AI、神经网络' }
+                    artificial_intelligence: { name: '人工智能', desc: 'AI、神经网络' },
+                    mathematics: { name: '数学', desc: '纯数学与应用数学' },
+                    numerical_analysis: { name: '数值分析', desc: '数值计算方法与算法' },
+                    optimization_control: { name: '优化与控制', desc: '数学优化、最优控制理论' },
+                    statistics_math: { name: '统计学（数学）', desc: '数理统计理论' },
+                    statistical_learning: { name: '统计学习', desc: '统计学习方法与应用' },
+                    computer_vision: { name: '计算机视觉', desc: '图像处理、计算机视觉' },
+                    natural_language: { name: '自然语言处理', desc: '计算语言学、NLP' },
+                    computer_science_other: { name: '计算机科学（其他）', desc: '其他计算机科学领域' },
+                    quantitative_finance: { name: '定量金融', desc: '金融数学、金融工程' },
+                    electrical_engineering: { name: '电子工程', desc: '信号处理、控制系统' },
+                    economics: { name: '经济学', desc: '经济学理论、计量经济学' },
+                    physics_other: { name: '物理学（其他）', desc: '其他物理学领域' },
+                    nonlinear_science: { name: '非线性科学', desc: '非线性动力学、复杂系统' },
+                    quantum_chemistry: { name: '量子化学', desc: '量子化学方法与计算' }
                 }
             },
             en: {
                 nav: {
                     home: 'Home',
-                    recent: 'Recent Papers',
+                    recent: 'Recent',
                     sync: 'Sync',
                     collections: 'Collections',
                     settings: 'Settings'
@@ -2603,10 +2667,10 @@
                 home: {
                     title: 'arXiv Pulse',
                     subtitle: 'Intelligent Academic Literature Tracking & Analysis System',
-                    searchPlaceholder: 'Enter keywords or natural language description...',
+                    searchPlaceholder: 'Enter arXiv ID, keywords or natural language...',
                     searchBtn: 'Search',
-                    hints: 'Supports natural language search, e.g., "machine learning for materials design"',
-                    recentPapers: 'Recent Papers',
+                    hints: 'Supports arXiv ID or URL for exact search; Natural language search, e.g., "machine learning for materials design"',
+                    recentPapers: 'Recent',
                     syncManage: 'Sync Management',
                     paperCollections: 'Collections',
                     totalPapers: 'papers',
@@ -2614,7 +2678,7 @@
                     summarizedPapers: 'summarized'
                 },
                 papers: {
-                    recentPapers: 'Recent Papers',
+                    recentPapers: 'Recent',
                     update: 'Update',
                     startSync: 'Start Sync',
                     never: 'Never',
@@ -2670,6 +2734,7 @@
                 },
                 settings: {
                     title: 'Settings',
+                    uiLanguage: 'UI Language',
                     aiConfig: 'AI Settings',
                     apiBaseUrl: 'API Base URL',
                     apiKey: 'API Key',
@@ -2682,7 +2747,7 @@
                     arxivMaxResults: 'arXiv Max Results',
                     aiLanguage: 'AI Output Language',
                     aiLanguageHint: 'Language for AI summaries, translations, and chat. Cached translations won\'t update after switching.',
-                    saveSettings: 'Save Settings'
+                    updateKey: 'Update'
                 },
                 setup: {
                     welcome: 'Welcome to arXiv Pulse',
@@ -2775,7 +2840,21 @@
                     mathematical_physics: { name: 'Mathematical Physics', desc: 'Mathematical methods for physics' },
                     statistics: { name: 'Statistics', desc: 'Statistical theory and applications' },
                     quantitative_biology: { name: 'Quantitative Biology', desc: 'Bioinformatics, systems biology' },
-                    artificial_intelligence: { name: 'Artificial Intelligence', desc: 'AI, neural networks' }
+                    artificial_intelligence: { name: 'Artificial Intelligence', desc: 'AI, neural networks' },
+                    mathematics: { name: 'Mathematics', desc: 'Pure and applied mathematics' },
+                    numerical_analysis: { name: 'Numerical Analysis', desc: 'Numerical methods and algorithms' },
+                    optimization_control: { name: 'Optimization & Control', desc: 'Mathematical optimization, optimal control' },
+                    statistics_math: { name: 'Statistics (Math)', desc: 'Mathematical statistics theory' },
+                    statistical_learning: { name: 'Statistical Learning', desc: 'Statistical learning methods' },
+                    computer_vision: { name: 'Computer Vision', desc: 'Image processing, computer vision' },
+                    natural_language: { name: 'Natural Language', desc: 'Computational linguistics, NLP' },
+                    computer_science_other: { name: 'Computer Science (Other)', desc: 'Other computer science fields' },
+                    quantitative_finance: { name: 'Quantitative Finance', desc: 'Financial mathematics, financial engineering' },
+                    electrical_engineering: { name: 'Electrical Engineering', desc: 'Signal processing, control systems' },
+                    economics: { name: 'Economics', desc: 'Economic theory, econometrics' },
+                    physics_other: { name: 'Physics (Other)', desc: 'Other physics fields' },
+                    nonlinear_science: { name: 'Nonlinear Science', desc: 'Nonlinear dynamics, complex systems' },
+                    quantum_chemistry: { name: 'Quantum Chemistry', desc: 'Quantum chemistry methods' }
                 }
             }
         };
@@ -2796,6 +2875,12 @@
         }
         function setLanguage(lang) {
             currentLang.value = lang;
+        }
+        function getFieldTranslation(fieldKey, type) {
+            if (currentLang.value === 'zh') return null;
+            const fieldTrans = i18n[currentLang.value]?.fields?.[fieldKey];
+            if (!fieldTrans) return null;
+            return type === 'name' ? fieldTrans.name : fieldTrans.desc;
         }
         window.t = t;
         window.setLanguage = setLanguage;
@@ -2897,6 +2982,8 @@
                 const paperCart = ref([]);
                 const showCart = ref(false);
                 const cartExportLoading = ref(false);
+                const cartPosition = ref({ x: window.innerWidth - 420, y: 100 });
+                const cartPanelRef = ref(null);
 
                 const chatExpanded = ref(false);
                 const chatSessions = ref([]);
@@ -2910,6 +2997,53 @@
                 const chatUnreadCount = ref(0);
                 const chatMessagesContainer = ref(null);
                 const userScrolledUp = ref(false);
+                const chatPosition = ref({ x: window.innerWidth - 500, y: 80 });
+                const chatPanelRef = ref(null);
+
+                // Drag functionality
+                let isDragging = false;
+                let dragTarget = null;
+                let dragOffset = { x: 0, y: 0 };
+
+                function startDragCart(e) {
+                    if (e.target.closest('.collapse-btn') || e.target.closest('.el-button')) return;
+                    isDragging = true;
+                    dragTarget = 'cart';
+                    dragOffset = { x: e.clientX - cartPosition.value.x, y: e.clientY - cartPosition.value.y };
+                    document.addEventListener('mousemove', onDrag);
+                    document.addEventListener('mouseup', stopDrag);
+                }
+
+                function startDragChat(e) {
+                    if (e.target.closest('.collapse-btn') || e.target.closest('.el-button')) return;
+                    isDragging = true;
+                    dragTarget = 'chat';
+                    dragOffset = { x: e.clientX - chatPosition.value.x, y: e.clientY - chatPosition.value.y };
+                    document.addEventListener('mousemove', onDrag);
+                    document.addEventListener('mouseup', stopDrag);
+                }
+
+                function onDrag(e) {
+                    if (!isDragging) return;
+                    if (dragTarget === 'cart') {
+                        cartPosition.value = { 
+                            x: Math.max(0, Math.min(window.innerWidth - 400, e.clientX - dragOffset.x)),
+                            y: Math.max(0, Math.min(window.innerHeight - 200, e.clientY - dragOffset.y))
+                        };
+                    } else if (dragTarget === 'chat') {
+                        chatPosition.value = { 
+                            x: Math.max(0, Math.min(window.innerWidth - 480, e.clientX - dragOffset.x)),
+                            y: Math.max(0, Math.min(window.innerHeight - 200, e.clientY - dragOffset.y))
+                        };
+                    }
+                }
+
+                function stopDrag() {
+                    isDragging = false;
+                    dragTarget = null;
+                    document.removeEventListener('mousemove', onDrag);
+                    document.removeEventListener('mouseup', stopDrag);
+                }
 
                 const searchQuery = ref('');
                 const searchDays = ref('');
@@ -3184,8 +3318,29 @@
                             translate_language: data.translate_language || 'zh'
                         };
                         setLanguage(settingsConfig.value.ui_language || 'zh');
+                        nextTick(() => { settingsInitialized = true; });
                     } catch (e) {
                         console.error('Failed to fetch config:', e);
+                    }
+                }
+
+                async function saveApiKey() {
+                    savingSettings.value = true;
+                    try {
+                        const res = await fetch(`${API_BASE}/config`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ai_api_key: settingsConfig.value.ai_api_key })
+                        });
+                        if (res.ok) {
+                            ElementPlus.ElMessage.success(currentLang.value === 'zh' ? 'API Key 已更新' : 'API Key updated');
+                        } else {
+                            ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '更新失败' : 'Update failed');
+                        }
+                    } catch (e) {
+                        ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '更新失败' : 'Update failed');
+                    } finally {
+                        savingSettings.value = false;
                     }
                 }
 
@@ -3231,6 +3386,7 @@
                     }
                 }
 
+                let saveTimeout = null;
                 async function saveSettings() {
                     savingSettings.value = true;
                     try {
@@ -3240,22 +3396,44 @@
                             body: JSON.stringify(settingsConfig.value)
                         });
                         if (res.ok) {
-                            ElementPlus.ElMessage.success(currentLang === 'zh' ? '设置已保存' : 'Settings saved');
-                            setLanguage(settingsConfig.value.ui_language || 'zh');
-                            showSettings.value = false;
+                            ElementPlus.ElMessage.success(currentLang.value === 'zh' ? '设置已保存' : 'Settings saved');
+                            if (settingsConfig.value.ui_language) {
+                                setLanguage(settingsConfig.value.ui_language);
+                            }
                             fetchFieldStats();
                         } else {
-                            ElementPlus.ElMessage.error(currentLang === 'zh' ? '保存失败' : 'Save failed');
+                            ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '保存失败' : 'Save failed');
                         }
                     } catch (e) {
-                        ElementPlus.ElMessage.error(currentLang === 'zh' ? '保存失败' : 'Save failed');
+                        ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '保存失败' : 'Save failed');
                     } finally {
                         savingSettings.value = false;
                     }
                 }
 
+                function debouncedSave() {
+                    if (saveTimeout) clearTimeout(saveTimeout);
+                    saveTimeout = setTimeout(() => saveSettings(), 500);
+                }
+
+                let settingsInitialized = false;
+                watch(settingsConfig, (newVal, oldVal) => {
+                    if (!settingsInitialized) return;
+                    // Don't auto-save api_key
+                    const keysToWatch = ['ai_base_url', 'ai_model', 'translate_language', 'years_back', 'arxiv_max_results', 'selected_fields', 'ui_language'];
+                    for (const key of keysToWatch) {
+                        if (JSON.stringify(newVal[key]) !== JSON.stringify(oldVal?.[key])) {
+                            debouncedSave();
+                            break;
+                        }
+                    }
+                }, { deep: true });
+
                 function onLanguageChange(lang) {
                     setLanguage(lang);
+                    if (settingsConfig.value) {
+                        settingsConfig.value.ui_language = lang;
+                    }
                 }
 
                 async function toggleLanguage() {
@@ -4366,7 +4544,7 @@
                     recentSelectedIds, recentSelectAll, searchSelectedIds, searchSelectAll,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
                     checkInitStatus, testSetupAI, toggleSetupField, startInitialSync,
-                    testAIConnection, saveSettings, toggleSettingsField, onLanguageChange,
+                    testAIConnection, saveSettings, saveApiKey, toggleSettingsField, onLanguageChange,
                     fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers, startSearch, fetchCollections,
                     fetchSyncStatus, startSync,
                     saveCollection, cancelCollectionDialog, openEditCollection,
@@ -4376,17 +4554,18 @@
                     toggleRecentSelect, toggleRecentSelectAll, toggleSearchSelect, toggleSearchSelectAll,
                     exportRecent, exportSearch, exportCollection,
                     navigateTo, navigateToHome, onTabChange, startHomeSearch, toggleHomeSelect, exportHome,
-                    chatExpanded, chatSessions, currentChatSession, chatMessages, chatInput,
+                    chatExpanded, chatSessions, currentChatSession, chatMessages, chatInput, chatPosition, chatPanelRef,
                     selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
                     chatUnreadCount, chatMessagesContainer,
                     toggleChat, fetchChatSessions, createNewChat, selectChatSession,
                     sendChatMessage, formatChatMessage, formatChatTime, formatDate,
                     togglePaperSelection, removeSelectedChatPaper, deleteChatSession, userScrolledUp,
-                    paperCart, showCart, cartExportLoading,
+                    paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef,
+                    startDragCart, startDragChat,
                     addToCart, removeFromCart, removeFromCartByArxivId, clearCart, isInCart, exportCart,
                     addCartToCollection, copyCartLinks,
                     scrollToBottom, handleChatScroll,
-                    t, currentLang, toggleLanguage, i18n
+                    t, currentLang, toggleLanguage, i18n, getFieldTranslation
                 };
             }
         });

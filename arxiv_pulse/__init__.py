@@ -4,7 +4,7 @@ arXiv Pulse: An intelligent arXiv literature crawler and analyzer for physics re
 
 from .__version__ import __version__
 
-__author__ = "arXiv Pulse Team"
+__author__ = "Yang Li, OpenCode, GLM-5"
 
 from .arxiv_crawler import ArXivCrawler
 from .config import Config

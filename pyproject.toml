@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "arxiv-pulse"
 version = "1.0.0"
 authors = [
-    {name = "Yang Li", email = "lyang.1915@gmail.com"},
+    {name = "Yang Li, OpenCode, GLM-5", email = "lyang.1915@gmail.com"},
 ]
 description = "An intelligent arXiv literature crawler and analyzer for physics research"
 readme = "README.md"
@@ -36,6 +36,7 @@ dependencies = [
     "schedule>=1.2.2",
     "python-dotenv>=1.0.1",
     "openai>=1.70.0",
+    "httpx[socks]>=0.27.0",
     "tqdm>=4.67.1",
     "markdown>=3.7",
     "click>=8.1.0",
