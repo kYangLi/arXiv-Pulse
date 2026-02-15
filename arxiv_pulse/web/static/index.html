@@ -3444,7 +3444,7 @@
                 const paperCart = ref([]);
                 const showCart = ref(false);
                 const cartExportLoading = ref(false);
-                const cartPosition = ref({ x: window.innerWidth - 420, y: 100 });
+                const cartPosition = ref({ x: window.innerWidth - 420, y: Math.max(20, window.innerHeight - 580) });
                 const cartPanelRef = ref(null);
 
                 const chatExpanded = ref(false);
