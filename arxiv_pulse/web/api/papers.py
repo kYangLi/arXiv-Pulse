@@ -937,17 +937,20 @@ async def search_papers_stream(
         figure_count = 0
 
         for i, paper in enumerate(unique_papers):
+            with db.get_session() as s:
+                fresh_paper = s.query(Paper).filter_by(arxiv_id=paper.arxiv_id).first()
+                if fresh_paper:
+                    paper = fresh_paper
+
             if not paper.summarized:
                 yield f"data: {json.dumps({'type': 'log', 'message': f'[{i + 1}/{len(unique_papers)}] 总结论文 {paper.arxiv_id}...'}, ensure_ascii=False)}\n\n"
                 await asyncio.sleep(0.05)
                 if summarize_and_cache_paper(paper):
                     summarized_count += 1
-                    paper.summarized = True
-                    # Refresh paper object to get updated summary
                     with db.get_session() as s:
                         refreshed = s.query(Paper).filter_by(arxiv_id=paper.arxiv_id).first()
                         if refreshed:
-                            paper.summary = refreshed.summary
+                            paper = refreshed
 
             with db.get_session() as s:
                 figure_url = get_figure_url_cached(paper.arxiv_id, s)
