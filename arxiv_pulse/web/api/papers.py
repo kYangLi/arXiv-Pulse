@@ -571,9 +571,11 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                     if summarize_and_cache_paper(paper):
                         with db.get_session() as s:
                             s.query(Paper).filter_by(id=paper.id).update({"summarized": True})
+                            paper = s.query(Paper).filter_by(arxiv_id=arxiv_id).first()
 
                 with db.get_session() as s:
                     figure_url = get_figure_url_cached(arxiv_id, s)
+                    paper = s.query(Paper).filter_by(arxiv_id=arxiv_id).first() or paper
                 if not figure_url:
                     yield f"data: {json.dumps({'type': 'log', 'message': '正在获取论文图片...'}, ensure_ascii=False)}\n\n"
                     await asyncio.sleep(0.1)
@@ -761,11 +763,17 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
         await asyncio.sleep(0.1)
 
         for i, paper in enumerate(papers):
+            with db.get_session() as s:
+                fresh_paper = s.query(Paper).filter_by(arxiv_id=paper.arxiv_id).first()
+                if fresh_paper:
+                    paper = fresh_paper
+
             if not paper.summarized:
                 yield f"data: {json.dumps({'type': 'log', 'message': f'[{i + 1}/{len(papers)}] 正在总结...'}, ensure_ascii=False)}\n\n"
                 await asyncio.sleep(0.05)
                 if summarize_and_cache_paper(paper):
-                    paper.summarized = True
+                    with db.get_session() as s:
+                        paper = s.query(Paper).filter_by(arxiv_id=paper.arxiv_id).first() or paper
 
             with db.get_session() as s:
                 figure_url = get_figure_url_cached(paper.arxiv_id, s)
