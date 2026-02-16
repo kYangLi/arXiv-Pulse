@@ -556,6 +556,48 @@ class Database:
             session.commit()
             return deleted_count
 
+    def clear_all_translation_cache(self) -> int:
+        """清理所有翻译缓存"""
+        with self.get_session() as session:
+            count = session.query(TranslationCache).delete()
+            session.commit()
+            return count
+
+    def clear_all_figure_cache(self) -> int:
+        """清理所有图片缓存"""
+        with self.get_session() as session:
+            count = session.query(FigureCache).delete()
+            session.commit()
+            return count
+
+    def clear_all_content_cache(self) -> int:
+        """清理所有内容缓存"""
+        with self.get_session() as session:
+            count = session.query(PaperContentCache).delete()
+            session.commit()
+            return count
+
+    def clear_all_summaries(self) -> int:
+        """清理所有 AI 总结"""
+        with self.get_session() as session:
+            papers = session.query(Paper).filter(Paper.summarized == True).all()
+            count = len(papers)
+            for paper in papers:
+                paper.summarized = False
+                paper.summary = None
+            session.commit()
+            return count
+
+    def get_cache_stats(self) -> dict:
+        """获取缓存统计"""
+        with self.get_session() as session:
+            return {
+                "translations": session.query(TranslationCache).count(),
+                "summaries": session.query(Paper).filter(Paper.summarized == True).count(),
+                "figures": session.query(FigureCache).count(),
+                "contents": session.query(PaperContentCache).count(),
+            }
+
     def get_recent_cache(self) -> dict | None:
         """获取最近论文缓存"""
         with self.get_session() as session:

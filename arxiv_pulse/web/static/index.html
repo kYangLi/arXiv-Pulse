@@ -984,6 +984,50 @@
         .log-line.success { color: #68d391; }
         .log-line.error { color: #fc8181; }
         
+        /* Cache Management */
+        .cache-management {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+        .cache-management h3 {
+            margin-bottom: 20px;
+            color: var(--primary);
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .cache-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .cache-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--bg-subtle);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-light);
+        }
+        .cache-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .cache-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .cache-count {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
         /* Collections */
         .collections-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
         .collection-card { 
@@ -2219,6 +2263,54 @@
                         </div>
                     </div>
 
+                    <!-- Cache Management Section -->
+                    <div class="cache-management">
+                        <h3>{{ t('cache.title') }}</h3>
+                        <div class="cache-grid">
+                            <div class="cache-item">
+                                <div class="cache-info">
+                                    <span class="cache-label">{{ t('cache.translations') }}</span>
+                                    <span class="cache-count">{{ cacheStats.translations }} {{ currentLang === 'zh' ? '条' : 'entries' }}</span>
+                                </div>
+                                <el-button size="small" @click="clearCache('translations')" :loading="cacheClearing === 'translations'">
+                                    {{ t('cache.clear') }}
+                                </el-button>
+                            </div>
+                            <div class="cache-item">
+                                <div class="cache-info">
+                                    <span class="cache-label">{{ t('cache.summaries') }}</span>
+                                    <span class="cache-count">{{ cacheStats.summaries }} {{ currentLang === 'zh' ? '篇' : 'papers' }}</span>
+                                </div>
+                                <el-button size="small" @click="clearCache('summaries')" :loading="cacheClearing === 'summaries'">
+                                    {{ t('cache.clear') }}
+                                </el-button>
+                            </div>
+                            <div class="cache-item">
+                                <div class="cache-info">
+                                    <span class="cache-label">{{ t('cache.figures') }}</span>
+                                    <span class="cache-count">{{ cacheStats.figures }} {{ currentLang === 'zh' ? '条' : 'entries' }}</span>
+                                </div>
+                                <el-button size="small" @click="clearCache('figures')" :loading="cacheClearing === 'figures'">
+                                    {{ t('cache.clear') }}
+                                </el-button>
+                            </div>
+                            <div class="cache-item">
+                                <div class="cache-info">
+                                    <span class="cache-label">{{ t('cache.contents') }}</span>
+                                    <span class="cache-count">{{ cacheStats.contents }} {{ currentLang === 'zh' ? '条' : 'entries' }}</span>
+                                </div>
+                                <el-button size="small" @click="clearCache('contents')" :loading="cacheClearing === 'contents'">
+                                    {{ t('cache.clear') }}
+                                </el-button>
+                            </div>
+                        </div>
+                        <div style="margin-top: 16px;">
+                            <el-button type="danger" plain @click="clearCache('all')" :loading="cacheClearing === 'all'">
+                                <el-icon><Delete /></el-icon> {{ t('cache.clearAll') }}
+                            </el-button>
+                        </div>
+                    </div>
+
                     <div class="charts-row">
                         <div class="chart-card">
                             <h3>{{ t('sync.yearDistribution') }}</h3>
@@ -2605,7 +2697,7 @@
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                         <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
                     </svg>
-                    <span>{{ t('nav.sync') }}</span>
+                    <span>{{ t('nav.data') }}</span>
                 </div>
                 <div class="nav-item" :class="{ active: currentPage === 'collections' }" @click="navigateTo('collections')">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
@@ -2873,7 +2965,7 @@
                 nav: {
                     home: '首页',
                     recent: '近期论文',
-                    sync: '同步管理',
+                    data: '数据管理',
                     collections: '论文集',
                     settings: '设置'
                 },
@@ -2940,6 +3032,19 @@
                     neverSynced: '从未同步',
                     completed: '已完成',
                     inProgress: '进行中'
+                },
+                cache: {
+                    title: '缓存管理',
+                    translations: '翻译缓存',
+                    summaries: 'AI 总结',
+                    figures: '图片缓存',
+                    contents: '内容缓存',
+                    clear: '清理',
+                    clearAll: '清理全部缓存',
+                    confirmClear: '确定要清理{type}吗？',
+                    confirmAll: '确定要清理所有缓存吗？此操作不可恢复。',
+                    cleared: '已清理 {count} 条缓存',
+                    clearFailed: '清理失败'
                 },
                 collections: {
                     title: '论文集',
@@ -3109,7 +3214,7 @@
                 nav: {
                     home: 'Home',
                     recent: 'Recent',
-                    sync: 'Sync',
+                    data: 'Data',
                     collections: 'Collections',
                     settings: 'Settings'
                 },
@@ -3177,6 +3282,19 @@
                     neverSynced: 'Never synced',
                     completed: 'Completed',
                     inProgress: 'In progress'
+                },
+                cache: {
+                    title: 'Cache Management',
+                    translations: 'Translation Cache',
+                    summaries: 'AI Summaries',
+                    figures: 'Figure Cache',
+                    contents: 'Content Cache',
+                    clear: 'Clear',
+                    clearAll: 'Clear All Cache',
+                    confirmClear: 'Clear {type}?',
+                    confirmAll: 'Clear all cache? This cannot be undone.',
+                    cleared: 'Cleared {count} entries',
+                    clearFailed: 'Clear failed'
                 },
                 collections: {
                     title: 'Collections',
@@ -3547,6 +3665,9 @@
                 const syncLogs = ref([]);
                 const syncYearsBack = ref('5');
                 const syncForce = ref(false);
+
+                const cacheStats = ref({ translations: 0, summaries: 0, figures: 0, contents: 0 });
+                const cacheClearing = ref(null);
 
                 const collections = ref([]);
                 const showCreateCollection = ref(false);
@@ -4362,6 +4483,62 @@
                     }
                 }
 
+                async function fetchCacheStats() {
+                    try {
+                        const res = await fetch(`${API_BASE}/cache/stats`);
+                        cacheStats.value = await res.json();
+                    } catch (e) {
+                        console.error('Failed to fetch cache stats:', e);
+                    }
+                }
+
+                async function clearCache(type) {
+                    const typeNames = {
+                        translations: currentLang.value === 'zh' ? '翻译缓存' : 'translation cache',
+                        summaries: currentLang.value === 'zh' ? 'AI 总结' : 'AI summaries',
+                        figures: currentLang.value === 'zh' ? '图片缓存' : 'figure cache',
+                        contents: currentLang.value === 'zh' ? '内容缓存' : 'content cache',
+                        all: currentLang.value === 'zh' ? '所有缓存' : 'all cache'
+                    };
+                    
+                    const confirmMsg = type === 'all' 
+                        ? t('cache.confirmAll')
+                        : t('cache.confirmClear').replace('{type}', typeNames[type]);
+                    
+                    try {
+                        await ElementPlus.ElMessageBox.confirm(confirmMsg, t('common.confirm'), {
+                            confirmButtonText: t('common.confirm'),
+                            cancelButtonText: t('common.cancel'),
+                            type: 'warning'
+                        });
+                    } catch {
+                        return;
+                    }
+
+                    cacheClearing.value = type;
+                    try {
+                        const res = await fetch(`${API_BASE}/cache/clear`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ cache_type: type })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            const total = Object.values(data.cleared).reduce((a, b) => a + b, 0);
+                            ElementPlus.ElMessage.success(t('cache.cleared').replace('{count}', total));
+                            fetchCacheStats();
+                            fetchStats();
+                        } else {
+                            ElementPlus.ElMessage.error(t('cache.clearFailed'));
+                        }
+                    } catch (e) {
+                        console.error('Failed to clear cache:', e);
+                        ElementPlus.ElMessage.error(t('cache.clearFailed'));
+                    } finally {
+                        cacheClearing.value = null;
+                    }
+                }
+
                 async function saveCollection() {
                     if (!newCollection.value.name.trim()) {
                         ElementPlus.ElMessage.warning('请输入论文集名称');
@@ -4615,6 +4792,9 @@
 
                 function navigateTo(page) {
                     currentPage.value = page;
+                    if (page === 'sync') {
+                        fetchCacheStats();
+                    }
                 }
 
                 function navigateToHome() {
@@ -5240,6 +5420,7 @@
                     searching, searchQuery, searchDays, searchLogs,
                     syncStatus, syncing, syncLogs, syncYearsBack, syncForce,
                     syncStatusText, syncStatusClass, syncTimeClass, formatSyncTime,
+                    cacheStats, cacheClearing, fetchCacheStats, clearCache,
                     recentCacheStatus, arxivCategories, allCategories,
                     showCreateCollection, showAddToCollection, showDeleteConfirm,
                     newCollection, editingCollection, deletingCollection,
