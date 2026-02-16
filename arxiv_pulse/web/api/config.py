@@ -16,8 +16,8 @@ from arxiv_pulse.research_fields import (
     ARXIV_CATEGORIES,
     DEFAULT_FIELDS,
     get_all_categories,
-    get_queries_for_fields,
     get_field_display_name,
+    get_queries_for_fields,
 )
 
 router = APIRouter()

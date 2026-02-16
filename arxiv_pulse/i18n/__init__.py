@@ -6,8 +6,8 @@ Provides translation support for UI messages and AI prompts.
 
 from typing import Literal
 
-from arxiv_pulse.i18n.zh import ZH_DICT
 from arxiv_pulse.i18n.en import EN_DICT
+from arxiv_pulse.i18n.zh import ZH_DICT
 
 Language = Literal["zh", "en", "ja", "ko", "fr", "ru", "de", "es"]
 

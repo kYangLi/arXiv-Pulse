@@ -29,12 +29,68 @@ def _is_port_in_use(host: str, port: int) -> bool:
         return False
 
 
+def _is_localhost(host: str) -> bool:
+    """Check if host is a localhost address"""
+    localhost_aliases = {"localhost", "127.0.0.1", "::1"}
+    if host in localhost_aliases:
+        return True
+    if host.startswith("127."):
+        return True
+    return False
+
+
+def _show_security_warning_and_confirm() -> bool:
+    """Show security warning and wait for user confirmation"""
+    click.echo(f"\n{'=' * 60}")
+    click.secho("  ⚠️  安全警告: 您正在开放非本地访问！", fg="red", bold=True)
+    click.secho("  ⚠️  Security Warning: Opening non-localhost access!", fg="red", bold=True)
+    click.echo("=" * 60)
+    click.echo("""
+    这意味着 / This means:
+    • 所有数据（包括 API Key）将以明文传输
+      All data (including API Key) will be transmitted in plaintext
+    • 同一网络中的任何人都可以访问您的服务
+      Anyone on the same network can access your service
+    • 请勿在不信任的网络中使用
+      Do not use on untrusted networks
+
+    建议使用以下方式保护连接 / Recommended ways to secure connection:
+    1. SSH 隧道 / SSH Tunnel:
+       ssh -L 8000:localhost:8000 user@server
+       然后访问 / Then visit: http://localhost:8000
+
+    2. VPN:
+       通过 OpenVPN/WireGuard 建立安全通道
+       Establish a secure tunnel via OpenVPN/WireGuard
+
+    3. 反向代理 / Reverse Proxy:
+       使用 Nginx/Caddy 配置 HTTPS
+       Configure HTTPS using Nginx/Caddy
+    """)
+    click.echo("=" * 60)
+
+    response = click.prompt("是否继续？[y/N] / Continue? [y/N]", default="n", show_default=False)
+    return response.lower() in ("y", "yes")
+
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.version_option(version=__version__, prog_name="arXiv Pulse")
 def cli():
     """arXiv Pulse - 智能 arXiv 文献追踪系统
 
-    启动 Web 服务后，访问 http://localhost:8000 进行初始化配置和使用。
+    命令:
+        serve/start   启动 Web 服务
+        stop          停止后台服务
+        restart       重启服务
+        status        查看服务状态
+
+    启动服务后访问 http://localhost:8000 进行初始化配置和使用。
+
+    示例:
+        pulse serve .              # 后台启动服务
+        pulse serve . -f           # 前台运行（可看日志）
+        pulse stop .               # 停止服务
+        pulse status .             # 查看状态
     """
     pass
 
@@ -60,49 +116,71 @@ def _signal_handler(signum, frame):
 
 @cli.command()
 @click.argument("directory", type=click.Path(exists=False, file_okay=False), default=".")
-@click.option("--host", default="127.0.0.1", help="服务监听地址")
-@click.option("--port", default=8000, type=int, help="服务监听端口")
+@click.option("--host", default="127.0.0.1", help="服务监听地址 (默认: 127.0.0.1)")
+@click.option("--port", default=8000, type=int, help="服务监听端口 (默认: 8000)")
 @click.option("--foreground", "-f", is_flag=True, help="前台运行模式（默认后台运行）")
 @click.option("--force", is_flag=True, help="强制启动（忽略已有的锁）")
-def start(directory, host, port, foreground, force):
-    """启动 Web 服务（同 serve）
+@click.option(
+    "--allow-non-localhost-access-with-plaintext-transmission-risk",
+    is_flag=True,
+    help="允许绑定非 localhost 地址（会显示安全警告）",
+)
+def start(directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk):
+    """启动 Web 服务 (同 serve)
 
-    DIRECTORY: 数据存储目录（默认为当前目录）
+    \b
+    参数:
+        DIRECTORY    数据存储目录 (默认: 当前目录)
 
-    数据库位置: <DIRECTORY>/data/arxiv_papers.db
-
+    \b
     示例:
-        pulse start                    # 后台运行（默认）
-        pulse start -f                 # 前台运行
-        pulse start --port 3000        # 使用 3000 端口
-        pulse start --force            # 强制启动（忽略已有实例）
+        pulse start                          # 后台运行，端口 8000
+        pulse start -f                       # 前台运行（可看实时日志）
+        pulse start --port 3000              # 使用 3000 端口
+        pulse start --force                  # 强制启动（忽略已有实例）
+
+    \b
+    远程访问 (有安全风险):
+        pulse start --host 0.0.0.0 \\
+          --allow-non-localhost-access-with-plaintext-transmission-risk
     """
-    _do_serve(directory, host, port, foreground, force)
+    _do_serve(directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk)
 
 
 @cli.command()
 @click.argument("directory", type=click.Path(exists=False, file_okay=False), default=".")
-@click.option("--host", default="127.0.0.1", help="服务监听地址")
-@click.option("--port", default=8000, type=int, help="服务监听端口")
+@click.option("--host", default="127.0.0.1", help="服务监听地址 (默认: 127.0.0.1)")
+@click.option("--port", default=8000, type=int, help="服务监听端口 (默认: 8000)")
 @click.option("--foreground", "-f", is_flag=True, help="前台运行模式（默认后台运行）")
 @click.option("--force", is_flag=True, help="强制启动（忽略已有的锁）")
-def serve(directory, host, port, foreground, force):
+@click.option(
+    "--allow-non-localhost-access-with-plaintext-transmission-risk",
+    is_flag=True,
+    help="允许绑定非 localhost 地址（会显示安全警告）",
+)
+def serve(directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk):
     """启动 Web 服务
 
-    DIRECTORY: 数据存储目录（默认为当前目录）
+    \b
+    参数:
+        DIRECTORY    数据存储目录 (默认: 当前目录)
 
-    数据库位置: <DIRECTORY>/data/arxiv_papers.db
-
+    \b
     示例:
-        pulse serve                    # 后台运行（默认）
-        pulse serve -f                 # 前台运行
-        pulse serve --port 3000        # 使用 3000 端口
-        pulse serve --force            # 强制启动（忽略已有实例）
+        pulse serve                          # 后台运行，端口 8000
+        pulse serve -f                       # 前台运行（可看实时日志）
+        pulse serve --port 3000              # 使用 3000 端口
+        pulse serve --force                  # 强制启动（忽略已有实例）
+
+    \b
+    远程访问 (有安全风险):
+        pulse serve --host 0.0.0.0 \\
+          --allow-non-localhost-access-with-plaintext-transmission-risk
     """
-    _do_serve(directory, host, port, foreground, force)
+    _do_serve(directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk)
 
 
-def _do_serve(directory, host, port, foreground, force):
+def _do_serve(directory, host, port, foreground, force, allow_non_localhost=False):
     global _lock_instance
 
     directory = Path(directory).resolve()
@@ -111,6 +189,33 @@ def _do_serve(directory, host, port, foreground, force):
 
     db_path = data_dir / "arxiv_papers.db"
     os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
+
+    # Check non-localhost access before anything else
+    if not _is_localhost(host):
+        if not allow_non_localhost:
+            click.echo(f"\n{'=' * 60}")
+            click.secho("  ❌ 错误: 非本地访问需要明确授权", fg="red", bold=True)
+            click.secho("  ❌ Error: Non-localhost access requires explicit authorization", fg="red", bold=True)
+            click.echo("=" * 60)
+            click.echo(f"""
+    您正在尝试绑定地址: {host}
+    You are trying to bind to address: {host}
+
+    默认情况下，服务仅允许本地访问以确保安全。
+    By default, the service only allows localhost access for security.
+
+    如需开放远程访问，请使用以下选项：
+    To allow remote access, use the following option:
+      --allow-non-localhost-access-with-plaintext-transmission-risk
+
+    注意：这将暴露您的 API Key 等敏感信息！
+    Warning: This will expose your API Key and other sensitive information!
+    """)
+            sys.exit(1)
+
+        if not _show_security_warning_and_confirm():
+            click.echo("\n已取消启动 / Startup cancelled")
+            sys.exit(0)
 
     lock = ServiceLock(directory)
     is_locked, lock_info = lock.is_locked()
@@ -215,9 +320,14 @@ def _do_serve(directory, host, port, foreground, force):
 def status(directory):
     """查看服务状态
 
-    DIRECTORY: 数据存储目录（默认为当前目录）
+    \b
+    参数:
+        DIRECTORY    数据存储目录 (默认: 当前目录)
 
-    数据库位置: <DIRECTORY>/data/arxiv_papers.db
+    \b
+    示例:
+        pulse status              # 查看当前目录的服务状态
+        pulse status /path/to     # 查看指定目录的服务状态
     """
     directory = Path(directory).resolve()
     lock = ServiceLock(directory)
@@ -239,15 +349,19 @@ def status(directory):
 
 @cli.command()
 @click.argument("directory", type=click.Path(exists=False, file_okay=False), default=".")
-@click.option("--force", is_flag=True, help="强制停止（使用 SIGKILL）")
+@click.option("--force", is_flag=True, help="强制停止 (使用 SIGKILL)")
 def stop(directory, force):
     """停止后台服务
 
-    DIRECTORY: 数据存储目录（默认为当前目录）
+    \b
+    参数:
+        DIRECTORY    数据存储目录 (默认: 当前目录)
 
+    \b
     示例:
-        pulse stop           # 停止当前目录的服务
-        pulse stop --force   # 强制停止（如果普通停止无效）
+        pulse stop               # 停止当前目录的服务
+        pulse stop --force       # 强制停止 (如果普通停止无效)
+        pulse stop /path/to      # 停止指定目录的服务
     """
     import time
 
@@ -315,12 +429,20 @@ def stop(directory, force):
 def restart(directory, foreground, force):
     """重启服务
 
-    DIRECTORY: 数据存储目录（默认为当前目录）
+    \b
+    参数:
+        DIRECTORY    数据存储目录 (默认: 当前目录)
 
+    \b
+    说明:
+        重启服务会使用之前的 host 和 port 配置。
+        如果服务未运行，则直接启动。
+
+    \b
     示例:
-        pulse restart           # 重启服务（使用之前的配置）
-        pulse restart -f        # 前台运行
-        pulse restart --force   # 强制重启
+        pulse restart             # 重启服务 (后台运行)
+        pulse restart -f          # 前台运行
+        pulse restart --force     # 强制重启 (忽略停止失败)
     """
     import time
 

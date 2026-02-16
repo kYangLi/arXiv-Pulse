@@ -689,9 +689,9 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                 yield f"data: {json.dumps({'type': 'log', 'message': f'AI 解析失败，使用原始搜索词'}, ensure_ascii=False)}\n\n"
                 await asyncio.sleep(0.1)
 
-        from arxiv_pulse.search_engine import SearchEngine, SearchFilter
-
         import arxiv as arxiv_lib
+
+        from arxiv_pulse.search_engine import SearchEngine, SearchFilter
 
         all_papers = []
         remote_total = 0

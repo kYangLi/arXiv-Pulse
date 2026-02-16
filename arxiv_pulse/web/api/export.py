@@ -265,7 +265,7 @@ def generate_bibtex(papers: list[Paper]) -> str:
 
 def generate_pdf(papers: list[Paper], include_summary: bool, session, collection_name: str | None = None) -> bytes:
     """Generate PDF content from papers with images"""
-    from weasyprint import HTML, CSS
+    from weasyprint import CSS, HTML
 
     title = collection_name if collection_name else "论文导出"
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
