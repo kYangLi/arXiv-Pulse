@@ -214,6 +214,8 @@ def enhance_paper_data(paper: Paper, session=None) -> dict[str, Any]:
     data["relevance_score"] = calculate_relevance_score(paper)
     data["category_explanation"] = get_category_explanation(paper.categories or "")
 
+    data["ai_available"] = bool(Config.AI_API_KEY)
+
     if paper.summary:
         try:
             summary_data = json.loads(paper.summary)
@@ -477,7 +479,10 @@ async def update_recent_papers(
                 await asyncio.sleep(0.05)
                 if summarize_and_cache_paper(paper):
                     summarized_count += 1
-                    paper.summarized = True
+                    with db.get_session() as s:
+                        refreshed = s.query(Paper).filter_by(arxiv_id=paper.arxiv_id).first()
+                        if refreshed:
+                            paper = refreshed
 
             with db.get_session() as s:
                 figure_url = get_figure_url_cached(paper.arxiv_id, s)

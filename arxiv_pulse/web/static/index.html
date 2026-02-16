@@ -407,12 +407,12 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 8px 16px;
+            padding: 6px 12px;
             cursor: pointer;
-            border-radius: 10px;
+            border-radius: 8px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             color: rgba(255, 255, 255, 0.7);
-            min-width: 56px;
+            min-width: 48px;
         }
         .nav-item:hover {
             background: rgba(255, 255, 255, 0.15);
@@ -427,17 +427,18 @@
         .nav-item.active::after {
             content: '';
             position: absolute;
-            bottom: 4px;
-            width: 16px;
+            bottom: 3px;
+            width: 14px;
             height: 2px;
             background: #c9a227;
             border-radius: 1px;
         }
         .nav-item svg {
             margin-bottom: 2px;
+            font-size: 14px;
         }
         .nav-item span {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 500;
             white-space: nowrap;
         }
@@ -483,10 +484,10 @@
         }
         .floating-buttons-left .el-button,
         .floating-buttons-right .el-button {
-            width: 64px !important;
-            height: 64px !important;
-            min-width: 64px !important;
-            font-size: 18px;
+            width: 52px !important;
+            height: 52px !important;
+            min-width: 52px !important;
+            font-size: 16px;
             font-weight: 600;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -886,7 +887,7 @@
             box-shadow: var(--shadow-sm);
             border: 1px solid var(--border-light);
         }
-        .search-options-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+        .search-options-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
         .search-options-row .el-input { flex: 1; min-width: 300px; }
         
         /* Recent Header */
@@ -1079,6 +1080,16 @@
         .empty-state h3 { margin-bottom: 8px; color: var(--text-secondary); font-size: 16px; }
         .empty-state p { font-size: 14px; }
         
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        .loading-state p {
+            margin-top: 16px;
+            font-size: 14px;
+        }
+        
         /* Settings Drawer */
         .settings-drawer .el-drawer__header {
             margin-bottom: 0;
@@ -1224,7 +1235,7 @@
         
         .cart-panel {
             width: 400px;
-            max-height: 500px;
+            max-height: 420px;
             background: white;
             border-radius: 16px;
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
@@ -2090,8 +2101,10 @@
         </div>
 
         <div v-else class="app-container">
-            <!-- Home Page -->
-            <div v-if="currentPage === 'home'" class="home-container">
+            <transition name="page-slide" mode="out-in">
+                <div :key="currentPage">
+                    <!-- Home Page -->
+                    <div v-if="currentPage === 'home'" class="home-container">
                 <div class="home-brand">
                     <h1>arXiv Pulse</h1>
                     <p>{{ t('home.subtitle') }}</p>
@@ -2162,25 +2175,20 @@
                 </header>
 
                 <main class="main-content" style="padding-bottom: 100px;">
-                    <transition name="page-slide" mode="out-in">
-                        <div :key="currentPage">
-                            <!-- Recent Papers Page -->
-                            <div v-if="currentPage === 'recent'" class="page-content">
+                    <!-- Recent Papers Page -->
+                    <div v-if="currentPage === 'recent'" class="page-content">
                     <div class="search-options" style="margin-bottom: 20px;">
                         <div class="search-options-row">
                             <el-select v-model="recentDays" :placeholder="t('papers.timeRange')" style="width: 120px;">
                                 <el-option v-for="item in daysOptions" :key="item.value" :label="item.label" :value="item.value" />
                             </el-select>
-                            <el-button @click="openFieldSelector('recent')" style="display: flex; align-items: center; gap: 6px;">
-                                <el-icon><Filter /></el-icon>
-                                <span v-if="recentCategories.length === 0">{{ currentLang === 'zh' ? '全部领域' : 'All Fields' }}</span>
-                                <span v-else style="display: flex; align-items: center; gap: 4px;">
-                                    <el-tag size="small" type="info" style="background: #e8f4ff; color: var(--primary); border: none;">
-                                        {{ recentCategories.length }} {{ currentLang === 'zh' ? '个领域' : 'fields' }}
-                                    </el-tag>
+                            <el-button @click="openFieldSelector('recent')" plain>
+                                <span style="display: inline-flex; align-items: center;">
+                                    <el-icon style="margin-right: 4px;"><Filter /></el-icon>
+                                    {{ recentCategories.length > 0 ? recentCategories.length : (settingsConfig.selected_fields?.length || 0) }} {{ currentLang === 'zh' ? '个领域' : 'fields' }}
                                 </span>
                             </el-button>
-                            <el-checkbox v-model="recentNeedSync" style="margin: 0 10px;">{{ t('papers.syncNewPapers') }}</el-checkbox>
+                            <el-checkbox v-model="recentNeedSync">{{ t('papers.syncNewPapers') }}</el-checkbox>
                             <el-button type="primary" @click="updateRecentPapers" :loading="updatingRecent">
                                 <el-icon><Refresh /></el-icon> {{ t('papers.update') }}
                             </el-button>
@@ -2193,7 +2201,11 @@
                         </div>
                     </div>
 
-                    <div v-if="recentPapers.length > 0">
+                    <div v-if="loadingRecent" class="loading-state">
+                        <el-icon class="is-loading" style="font-size: 32px;"><Loading /></el-icon>
+                        <p>{{ currentLang === 'zh' ? '正在加载论文数据...' : 'Loading papers...' }}</p>
+                    </div>
+                    <div v-else-if="recentPapers.length > 0">
                         <paper-card 
                             v-for="paper in recentPapers" 
                             :key="paper.id" 
@@ -2349,12 +2361,12 @@
                         <p>{{ t('collections.createHint') }}</p>
                     </div>
                 </div>
-            </div>
-        </transition>
-    </main>
-</template>
-
-            <!-- Settings Drawer -->
+                </main>
+            </template>
+        </div>
+    </transition>
+    
+    <!-- Settings Drawer -->
             <el-drawer v-model="showSettings" :title="t('settings.title')" size="480px" class="settings-drawer">
                 <div style="padding: 24px;">
                     <!-- UI Language -->
@@ -2793,14 +2805,14 @@
         <div v-if="!showSetup" class="floating-buttons-right">
             <el-badge :value="paperCart.length" :hidden="paperCart.length === 0" :max="9">
                 <el-button circle class="cart-fab-btn" @click="showCart = !showCart">
-                    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
                         <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
                     </svg>
                 </el-button>
             </el-badge>
             <el-badge :value="chatUnreadCount" :hidden="chatUnreadCount === 0" :max="9">
                 <el-button circle class="chat-fab-btn" @click="toggleChat">
-                    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
                         <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
                     </svg>
                 </el-button>
@@ -3014,7 +3026,7 @@
                     timeRange: '时间范围',
                     limit: '数量限制',
                     categoryFilter: '领域过滤',
-                    syncNewPapers: '同步新论文',
+                    syncNewPapers: '从arXiv同步',
                     yearsBack: '回溯年数'
                 },
                 sync: {
@@ -3076,6 +3088,8 @@
                     apiKey: 'API Key',
                     modelName: '模型名称',
                     testConnection: '测试连接',
+                    connectionSuccess: '连接成功',
+                    connectionFailed: '连接失败',
                     researchFields: '研究领域',
                     fieldsHint: '已有论文的领域取消后仅停止同步，不会删除已有论文',
                     syncSettings: '同步设置',
@@ -3264,7 +3278,7 @@
                     timeRange: 'Time Range',
                     limit: 'Limit',
                     categoryFilter: 'Category Filter',
-                    syncNewPapers: 'Sync New Papers',
+                    syncNewPapers: 'Sync from arXiv',
                     yearsBack: 'Years Back'
                 },
                 sync: {
@@ -3326,6 +3340,8 @@
                     apiKey: 'API Key',
                     modelName: 'Model Name',
                     testConnection: 'Test Connection',
+                    connectionSuccess: 'Connection successful',
+                    connectionFailed: 'Connection failed',
                     researchFields: 'Research Fields',
                     fieldsHint: 'Unchecking fields with papers only stops syncing, papers are preserved',
                     syncSettings: 'Sync Settings',
@@ -3571,7 +3587,7 @@
                 const fieldStats = ref([]);
                 const expandedGroups = ref({});
                 const recentPapers = ref([]);
-                const loadingRecent = ref(false);
+                const loadingRecent = ref(true);
                 const updatingRecent = ref(false);
                 const recentLogs = ref([]);
                 const recentDays = ref('7');
@@ -3586,7 +3602,7 @@
                 const paperCart = ref([]);
                 const showCart = ref(false);
                 const cartExportLoading = ref(false);
-                const cartPosition = ref({ x: window.innerWidth - 420, y: Math.max(20, window.innerHeight - 580) });
+                const cartPosition = ref({ x: window.innerWidth - 424, y: window.innerHeight - 520 });
                 const cartPanelRef = ref(null);
 
                 const chatExpanded = ref(false);
@@ -3838,12 +3854,12 @@
                         });
                         const data = await res.json();
                         if (res.ok) {
-                            ElementPlus.ElMessage.success(data.message || '连接成功');
+                            ElementPlus.ElMessage.success(data.message || t('settings.connectionSuccess'));
                         } else {
-                            ElementPlus.ElMessage.error(data.detail || '连接失败');
+                            ElementPlus.ElMessage.error(data.detail || t('settings.connectionFailed'));
                         }
                     } catch (e) {
-                        ElementPlus.ElMessage.error('连接失败');
+                        ElementPlus.ElMessage.error(t('settings.connectionFailed'));
                     } finally {
                         testingAI.value = false;
                     }
@@ -3996,12 +4012,12 @@
                         });
                         const data = await res.json();
                         if (res.ok) {
-                            ElementPlus.ElMessage.success(data.message || '连接成功');
+                            ElementPlus.ElMessage.success(data.message || t('settings.connectionSuccess'));
                         } else {
-                            ElementPlus.ElMessage.error(data.detail || '连接失败');
+                            ElementPlus.ElMessage.error(data.detail || t('settings.connectionFailed'));
                         }
                     } catch (e) {
-                        ElementPlus.ElMessage.error('连接失败');
+                        ElementPlus.ElMessage.error(t('settings.connectionFailed'));
                     } finally {
                         testingAI.value = false;
                     }
@@ -4039,8 +4055,16 @@
                             advancedQueriesText.value = tempSelectedFields.value.map(f => `cat:${f}`).join('\n');
                         }
                     } else if (source === 'recent') {
-                        tempSelectedFields.value = [...recentCategories.value];
-                        advancedQueriesText.value = '';
+                        if (recentCategories.value.length > 0) {
+                            tempSelectedFields.value = [...recentCategories.value];
+                        } else {
+                            tempSelectedFields.value = [...(settingsConfig.value.selected_fields || [])];
+                        }
+                        if (settingsConfig.value.search_queries?.length > 0) {
+                            advancedQueriesText.value = settingsConfig.value.search_queries.join('\n');
+                        } else {
+                            advancedQueriesText.value = tempSelectedFields.value.map(f => `cat:${f}`).join('\n');
+                        }
                     }
                     
                     fieldSearchQuery.value = '';
@@ -4333,8 +4357,11 @@
                             days: recentDays.value,
                             need_sync: recentNeedSync.value
                         });
-                        if (recentCategories.value.length > 0) {
-                            params.append('categories', recentCategories.value.join(','));
+                        const cats = recentCategories.value.length > 0 
+                            ? recentCategories.value 
+                            : (settingsConfig.value.selected_fields || []);
+                        if (cats.length > 0) {
+                            params.append('categories', cats.join(','));
                         }
 
                         const response = await fetch(`${API_BASE}/papers/recent/update?${params}`, { method: 'POST' });
@@ -4902,8 +4929,14 @@
                 function initCharts() {
                     const yearEl = document.getElementById('yearChart');
                     const categoryEl = document.getElementById('categoryChart');
-                    if (yearEl) yearChart = echarts.init(yearEl);
-                    if (categoryEl) categoryChart = echarts.init(categoryEl);
+                    if (yearEl) {
+                        yearChart = echarts.init(yearEl);
+                        yearChart.resize();
+                    }
+                    if (categoryEl) {
+                        categoryChart = echarts.init(categoryEl);
+                        categoryChart.resize();
+                    }
                 }
 
                 function renderYearChart(data) {
@@ -4955,21 +4988,37 @@
 
                 watch(showSetup, (val) => {
                     if (!val) {
-                        nextTick(() => {
-                            if (!yearChart) initCharts();
+                        setTimeout(() => {
+                            if (yearChart) {
+                                yearChart.dispose();
+                                yearChart = null;
+                            }
+                            if (categoryChart) {
+                                categoryChart.dispose();
+                                categoryChart = null;
+                            }
+                            initCharts();
                             renderYearChart(stats.value?.years);
                             renderCategoryChart(stats.value?.categories?.top);
-                        });
+                        }, 400);
                     }
                 });
                 
                 watch(currentPage, (newPage) => {
                     if (newPage === 'sync') {
-                        nextTick(() => {
-                            if (!yearChart) initCharts();
+                        setTimeout(() => {
+                            if (yearChart) {
+                                yearChart.dispose();
+                                yearChart = null;
+                            }
+                            if (categoryChart) {
+                                categoryChart.dispose();
+                                categoryChart = null;
+                            }
+                            initCharts();
                             renderYearChart(stats.value?.years);
                             renderCategoryChart(stats.value?.categories?.top);
-                        });
+                        }, 400);
                     }
                 });
 
@@ -5392,10 +5441,14 @@
                     checkInitStatus();
                     fetchStats();
                     fetchFieldStats();
-                    fetchRecentCache();
                     fetchCollections();
                     fetchSyncStatus();
                     fetchConfig();
+                    
+                    // Delay loading recent papers to let other content load first
+                    setTimeout(() => {
+                        fetchRecentCache();
+                    }, 100);
                     
                     window.addEventListener('analyze-paper', (e) => {
                         const paper = e.detail;
@@ -5470,6 +5523,9 @@
                         <div class="paper-title" @click="openArxiv(paper.arxiv_id)">{{ paper.title }}</div>
                     </div>
                     <div v-if="paper.title_translation" class="paper-title-cn">{{ paper.title_translation }}</div>
+                    <div v-else-if="!paper.ai_available" class="paper-title-cn" style="color: var(--text-muted); font-style: italic;">
+                        {{ isZh ? '未配置 AI API Key，无法翻译' : 'AI API Key not configured' }}
+                    </div>
                     <div class="paper-meta">
                         <span class="paper-meta-item">
                             <el-icon><Calendar /></el-icon>
@@ -5504,10 +5560,10 @@
                         <el-button size="small" text type="primary" @click="analyzePaper">
                             <el-icon><ChatDotRound /></el-icon> {{ t('paper.analyze') }}
                         </el-button>
-                        <el-button size="small" text @click="$emit('add-to-collection', paper)">
+                        <el-button size="small" text type="primary" @click="$emit('add-to-collection', paper)">
                             <el-icon><Folder /></el-icon> {{ t('paper.addToCollection') }}
                         </el-button>
-                        <el-button size="small" text type="primary" @click="expanded = !expanded">
+                        <el-button size="small" text @click="expanded = !expanded">
                             {{ expanded ? t('paper.collapse') : t('paper.expandDetail') }}
                         </el-button>
                         <el-button v-if="inCollection" size="small" text type="danger" @click="$emit('remove-from-collection', paper.id)">
@@ -5518,6 +5574,10 @@
                         <div v-if="paper.summary_text" class="ai-summary-section">
                             <h4>{{ t('paper.aiSummary') }}</h4>
                             <p class="summary-text" v-html="formatSummary(paper.summary_text)"></p>
+                        </div>
+                        <div v-else-if="!paper.ai_available" class="ai-summary-section" style="color: var(--text-muted); font-style: italic;">
+                            <h4>{{ t('paper.aiSummary') }}</h4>
+                            <p>{{ isZh ? '未配置 AI API Key，无法生成总结。请在设置中配置。' : 'AI API Key not configured. Please configure in Settings.' }}</p>
                         </div>
                         <div v-if="paper.key_findings?.length" class="key-findings">
                             <h4>{{ t('paper.keyFindings') }}</h4>
@@ -5540,6 +5600,10 @@
                             <div v-if="paper.abstract_translation" class="translation">
                                 <h4>{{ t('paper.chineseTranslation') }}</h4>
                                 <p>{{ paper.abstract_translation }}</p>
+                            </div>
+                            <div v-else-if="!paper.ai_available" class="translation" style="color: var(--text-muted); font-style: italic;">
+                                <h4>{{ t('paper.chineseTranslation') }}</h4>
+                                <p>{{ isZh ? '未配置 AI API Key，无法翻译。请在设置中配置。' : 'AI API Key not configured. Please configure in Settings.' }}</p>
                             </div>
                         </div>
                     </div>
