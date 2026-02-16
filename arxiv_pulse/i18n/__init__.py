@@ -60,13 +60,13 @@ def get_translation_prompt(lang: str = "zh") -> str:
         System prompt for translation
     """
     prompts = {
-        "zh": "你是一个专业的翻译助手。将以下英文文本翻译成中文，保持专业术语准确，语言流畅。只返回翻译结果，不要添加任何解释。",
+        "zh": "Translate the following English text to Chinese. Keep technical terms accurate and the language fluent. Return only the translation, no explanation.",
         "en": "",  # English doesn't need translation
-        "ru": "Вы профессиональный переводчик. Переведите следующий английский текст на русский язык, сохраняя точность технических терминов и беглость языка. Верните только перевод без пояснений.",
-        "fr": "Vous êtes un assistant de traduction professionnel. Traduisez le texte anglais suivant en français, en gardant les termes techniques précis et le langage fluide. Retournez uniquement la traduction sans explication.",
-        "de": "Sie sind ein professioneller Übersetzungsassistent. Übersetzen Sie den folgenden englischen Text ins Deutsche, wobei Sie die technischen Begriffe präzise und die Sprache flüssig halten. Geben Sie nur die Übersetzung ohne Erklärung zurück.",
-        "es": "Eres un asistente de traducción profesional. Traduce el siguiente texto en inglés al español, manteniendo los términos técnicos precisos y el lenguaje fluido. Devuelve solo la traducción sin explicación.",
-        "ar": "أنت مساعد ترجمة محترف. ترجم النص الإنجليزي التالي إلى اللغة العربية، مع الحفاظ على دقة المصطلحات الفنية وسلاسة اللغة. أرجع الترجمة فقط بدون شرح.",
+        "ru": "Translate the following English text to Russian. Keep technical terms accurate and the language fluent. Return only the translation, no explanation.",
+        "fr": "Translate the following English text to French. Keep technical terms accurate and the language fluent. Return only the translation, no explanation.",
+        "de": "Translate the following English text to German. Keep technical terms accurate and the language fluent. Return only the translation, no explanation.",
+        "es": "Translate the following English text to Spanish. Keep technical terms accurate and the language fluent. Return only the translation, no explanation.",
+        "ar": "Translate the following English text to Arabic. Keep technical terms accurate and the language fluent. Return only the translation, no explanation.",
     }
     return prompts.get(lang, prompts["zh"])
 
