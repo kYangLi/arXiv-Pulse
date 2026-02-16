@@ -1510,6 +1510,8 @@
             flex-direction: column;
             overflow: hidden;
             cursor: move;
+        }
+        .chat-window.animate-fullscreen {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .chat-window .chat-header {
@@ -1529,9 +1531,6 @@
             height: auto !important;
             border-radius: 20px;
             box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25), 0 0 0 1000px rgba(0, 0, 0, 0.35);
-        }
-        .chat-window.fullscreen-transition {
-            pointer-events: none;
         }
         .chat-resize-handle {
             position: absolute;
@@ -3225,7 +3224,7 @@
         <transition name="panel">
             <div v-if="!showSetup && chatExpanded" 
                  class="chat-window" 
-                 :class="{ fullscreen: chatFullscreen }"
+                 :class="{ fullscreen: chatFullscreen, 'animate-fullscreen': chatAnimating }"
                  ref="chatPanelRef"
                  :style="chatFullscreen ? { zIndex: chatZIndex } : { position: 'fixed', left: chatPosition.x + 'px', top: chatPosition.y + 'px', width: chatSize.width + 'px', height: chatSize.height + 'px', zIndex: chatZIndex }"
                  @mousedown="startDragChat"
@@ -4101,6 +4100,7 @@
                 const chatZIndex = ref(999);
                 const chatFullscreen = ref(false);
                 const chatSize = ref({ width: 480, height: 640 });
+                const chatAnimating = ref(false);
 
                 const quickPrompts = computed(() => currentLang.value === 'zh' ? [
                     { icon: '📝', text: '帮我总结这篇论文的核心内容' },
@@ -4185,7 +4185,11 @@
                 }
 
                 function toggleChatFullscreen() {
+                    chatAnimating.value = true;
                     chatFullscreen.value = !chatFullscreen.value;
+                    setTimeout(() => {
+                        chatAnimating.value = false;
+                    }, 300);
                 }
 
                 // Resize functionality
@@ -6253,7 +6257,7 @@
                     exportRecent, exportSearch, exportCollection,
                     navigateTo, navigateToHome, onTabChange, startHomeSearch, toggleHomeSelect, exportHome,
                     chatExpanded, chatSessions, currentChatSession, chatMessages, chatInput, chatPosition, chatPanelRef, chatZIndex,
-                    chatFullscreen, chatSize,
+                    chatFullscreen, chatSize, chatAnimating,
                     selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
                     chatUnreadCount, chatMessagesContainer,
                     toggleChat, fetchChatSessions, createNewChat, selectChatSession,
