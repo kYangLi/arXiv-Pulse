@@ -87,7 +87,7 @@ def _show_security_warning_and_confirm() -> bool:
     """)
     click.echo("=" * 60)
 
-    response = click.prompt("是否继续？[y/N] / Continue? [y/N]", default="n", show_default=False)
+    response = click.prompt("是否继续 / Continue? [y/N]", default="n", show_default=False)
     return response.lower() in ("y", "yes")
 
 
@@ -198,7 +198,7 @@ def serve(directory, host, port, foreground, force, allow_non_localhost_access_w
     _do_serve(directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk)
 
 
-def _do_serve(directory, host, port, foreground, force, allow_non_localhost=False):
+def _do_serve(directory, host, port, foreground, force, allow_non_localhost=False, skip_confirmation=False):
     global _lock_instance
 
     directory = Path(directory).resolve()
@@ -252,9 +252,12 @@ def _do_serve(directory, host, port, foreground, force, allow_non_localhost=Fals
     """)
             sys.exit(1)
 
-        if not _show_security_warning_and_confirm():
-            click.echo("\n已取消启动 / Startup cancelled")
-            sys.exit(0)
+        if not skip_confirmation:
+            if not _show_security_warning_and_confirm():
+                click.echo("\n已取消启动 / Startup cancelled")
+                sys.exit(0)
+        else:
+            click.secho("\n⚠️  非本地访问模式 (已确认) / Non-localhost mode (confirmed)", fg="yellow")
 
     lock = ServiceLock(directory)
     is_locked, lock_info = lock.is_locked()
@@ -285,7 +288,7 @@ def _do_serve(directory, host, port, foreground, force, allow_non_localhost=Fals
         sys.exit(1)
 
     # Acquire lock
-    acquired = lock.acquire(host, port)
+    acquired = lock.acquire(host, port, allow_non_localhost=allow_non_localhost)
     if not acquired:
         click.secho("❌ 无法获取服务锁", fg="red")
         sys.exit(1)
@@ -345,7 +348,7 @@ def _do_serve(directory, host, port, foreground, force, allow_non_localhost=Fals
 
         # Update lock with actual PID
         lock.release()
-        lock.acquire(host, port, pid=process.pid)
+        lock.acquire(host, port, pid=process.pid, allow_non_localhost=allow_non_localhost)
         _lock_instance = None  # Prevent atexit from cleaning up the lock
 
         click.echo(f"\n✅ 服务已在后台启动 (PID: {process.pid})")
@@ -498,6 +501,7 @@ def restart(directory, foreground, force):
     # Get previous config or use defaults
     prev_host = info.get("host", "127.0.0.1") if info else "127.0.0.1"
     prev_port = info.get("port", 8000) if info else 8000
+    prev_allow_non_localhost = info.get("allow_non_localhost", False) if info else False
 
     # Stop if running
     if is_locked and info:
@@ -540,7 +544,15 @@ def restart(directory, foreground, force):
 
     # Start new service
     click.echo("\n🚀 正在启动新服务...")
-    _do_serve(str(directory), prev_host, prev_port, foreground, False)
+    _do_serve(
+        str(directory),
+        prev_host,
+        prev_port,
+        foreground,
+        False,
+        prev_allow_non_localhost,
+        skip_confirmation=prev_allow_non_localhost,
+    )
 
 
 if __name__ == "__main__":

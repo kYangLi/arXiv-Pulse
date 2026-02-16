@@ -59,13 +59,14 @@ class ServiceLock:
         info = self._get_lock_info()
         return (info is not None, info)
 
-    def acquire(self, host: str, port: int, pid: int | None = None) -> bool:
+    def acquire(self, host: str, port: int, pid: int | None = None, allow_non_localhost: bool = False) -> bool:
         """Acquire lock for this instance
 
         Args:
             host: Server host address
             port: Server port
             pid: Process ID (defaults to current process)
+            allow_non_localhost: Whether non-localhost access was confirmed
 
         Returns:
             True if lock acquired, False if already locked
@@ -82,6 +83,7 @@ class ServiceLock:
             "port": port,
             "started_at": datetime.now(UTC).isoformat(),
             "hostname": socket.gethostname(),
+            "allow_non_localhost": allow_non_localhost,
         }
 
         with open(self.lock_file, "w") as f:
