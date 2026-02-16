@@ -229,9 +229,17 @@ Configuration is stored in database, managed via Web UI settings:
 
 3. **Event propagation**: Use `@click.stop` on nested clickable elements (dropdowns inside cards).
 
-4. **ECharts reinitialization**: After DOM changes, dispose old chart instance before creating new one.
+4. **ECharts reinitialization**: After DOM changes, dispose old chart instance before creating new one. Use `initChartsWithRetry()` pattern for page switches.
 
 5. **Translation cache key**: Includes target language, so different languages have independent caches.
+
+6. **Stats cache**: Call `refresh_stats_cache()` after collection CRUD operations to keep homepage stats accurate.
+
+7. **Paper cart vs selectedPaper**: When adding papers to collection, distinguish between cart (multiple papers) and single paper from card click. Clear selectedPaper on dialog close.
+
+8. **Page transitions**: All pages should be inside the same `<transition>` wrapper for consistent animations.
+
+9. **z-index for floating panels**: Use dynamic `ref` values for z-index to enable click-to-focus behavior.
 
 ## Notes for AI Agents
 
@@ -243,3 +251,26 @@ Configuration is stored in database, managed via Web UI settings:
 6. **Force refresh browser** (Ctrl+Shift+R) after frontend changes
 7. **Use i18n** for user-facing strings: `from arxiv_pulse.i18n import t`
 8. **Test database location**: Tests use `tests/data/` directory to avoid polluting production data
+9. **Pagination**: Collections use pagination (20 papers/page). Update `collectionCurrentPage`, `collectionTotalCount`, `collectionTotalPages` when fetching.
+10. **Page switch refresh**: Use `watch(currentPage, ...)` to refresh data when switching pages (home → fetchStats, collections → fetchCollections).
+
+## API Endpoints Summary
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/config` | GET/PUT | Get/update configuration |
+| `/api/config/test-ai` | POST | Test AI connection |
+| `/api/papers/recent/cache` | GET | Get cached recent papers |
+| `/api/papers/recent/update` | POST (SSE) | Update recent papers |
+| `/api/papers/search/stream` | GET (SSE) | AI-powered search |
+| `/api/collections` | GET/POST | List/create collections |
+| `/api/collections/{id}` | GET/PUT/DELETE | Collection CRUD |
+| `/api/collections/{id}/papers` | GET (paginated) | Get papers in collection |
+| `/api/collections/{id}/papers` | POST | Add paper to collection |
+| `/api/collections/{id}/papers/{paper_id}` | DELETE | Remove paper from collection |
+| `/api/tasks/sync` | POST (SSE) | Start sync with progress |
+| `/api/stats` | GET | Database statistics (cached) |
+| `/api/stats/refresh` | POST | Force refresh stats cache |
+| `/api/chat/sessions` | GET/POST | List/create chat sessions |
+| `/api/cache/stats` | GET | Get cache statistics |
+| `/api/cache/clear/{type}` | POST | Clear specific cache type |
