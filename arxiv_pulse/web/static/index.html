@@ -1356,6 +1356,32 @@
             opacity: 0;
         }
         
+        /* Message fade animation */
+        .message-fade-enter-active {
+            animation: messageFadeIn 0.6s ease;
+        }
+        .message-fade-leave-active {
+            animation: messageFadeOut 0.4s ease;
+        }
+        @keyframes messageFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes messageFadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+        
         .cart-panel {
             width: 400px;
             max-height: 420px;
@@ -2422,10 +2448,12 @@
                     <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary);">{{ t('setup.syncing') }}</h3>
                     <transition name="fade" mode="out-in">
                         <div key="waiting" v-if="!initComplete" style="text-align: center; margin-bottom: 20px; color: var(--text-muted); font-size: 14px;">
-                            {{ waitingMessage }}
+                            <transition name="message-fade" mode="out-in">
+                                <span :key="waitingMessage">{{ waitingMessage }}</span>
+                            </transition>
                         </div>
-                        <div key="complete" v-else style="text-align: center; margin-bottom: 20px; color: #67c23a; font-size: 16px; font-weight: 500;">
-                            <el-icon style="vertical-align: middle; margin-right: 6px;"><CircleCheckFilled /></el-icon>
+                        <div key="complete" v-else style="display: flex; justify-content: center; align-items: center; margin-bottom: 20px; color: #67c23a; font-size: 16px; font-weight: 500;">
+                            <el-icon style="margin-right: 6px;"><CircleCheckFilled /></el-icon>
                             {{ t('setup.syncComplete') }}
                         </div>
                     </transition>
