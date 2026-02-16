@@ -8,7 +8,7 @@ Intelligent arXiv literature crawler and analyzer for physics research. Features
 - FastAPI web interface with Vue 3 + Element Plus frontend
 - SQLite database with SQLAlchemy ORM
 - SSE (Server-Sent Events) for real-time progress streaming
-- Multilingual support (Chinese/English UI, translation to Chinese/English)
+- Multilingual support (Chinese/English UI, translation to multiple languages)
 
 Target domains: condensed matter physics, DFT, machine learning, force fields, computational materials science.
 
@@ -38,6 +38,9 @@ pytest                              # Run all tests
 pytest tests/test_module.py         # Run single test file
 pytest tests/test_module.py::test_name  # Run single test
 pytest --cov=arxiv_pulse            # With coverage
+
+# Playwright browser tests (run from tests/ directory)
+cd tests && uv run python test_field_selector.py
 
 # Web server
 pulse serve .                        # Start web server (background)
@@ -124,11 +127,45 @@ return StreamingResponse(
 ```
 
 ### Frontend (Vue 3 + Element Plus)
-Located at `arxiv_pulse/web/static/index.html`:
+Located at `arxiv_pulse/web/static/index.html` - single file application:
 - Use `v-for` with `:key` for lists
 - Use `ref()` for reactive state
 - i18n: Use `t('key.path')` for translations
-- SSE handling with buffer for incomplete lines:
+- All functions must be returned in the setup() return statement
+- Use `@click.stop` to prevent event propagation on nested clickable elements
+
+### Frontend i18n Pattern
+```javascript
+// Translation object structure
+const i18n = {
+    zh: {
+        collections: {
+            title: '论文集',
+            create: '新建论文集',
+        }
+    },
+    en: {
+        collections: {
+            title: 'Collections',
+            create: 'New Collection',
+        }
+    }
+};
+
+// Usage
+function t(key, params = {}) {
+    const keys = key.split('.');
+    let value = i18n[currentLang.value];
+    for (const k of keys) {
+        if (value && typeof value === 'object') value = value[k];
+        else return key;
+    }
+    if (typeof value !== 'string') return key;
+    return value.replace(/\{(\w+)\}/g, (_, k) => params[k] ?? `{${k}}`);
+}
+```
+
+### SSE Frontend Handling
 ```javascript
 let buffer = '';
 while (true) {
@@ -162,12 +199,13 @@ arxiv_pulse/
 │   └── en.py             # English translations
 └── web/
     ├── app.py            # FastAPI application
-    ├── static/index.html # Vue 3 frontend
+    ├── static/index.html # Vue 3 frontend (single file)
     └── api/
         ├── papers.py     # Paper endpoints + SSE search/recent
         ├── collections.py # Collection CRUD
         ├── tasks.py      # Sync task management + SSE
         ├── stats.py      # Database statistics
+        ├── cache.py      # Cache management
         ├── export.py     # Export functionality
         └── chat.py       # AI chat assistant
 ```
@@ -179,26 +217,21 @@ Configuration is stored in database, managed via Web UI settings:
 - `AI_MODEL`: Model name (default: DeepSeek-V3.2)
 - `AI_BASE_URL`: API base URL
 - `ui_language`: UI language ("zh" | "en")
-- `translate_language`: Translation target ("zh" | "en")
+- `translate_language`: Translation target
 - `years_back`: Years to sync
 - `arxiv_max_results`: Max results per query
 
-## API Endpoints Summary
+## Common Pitfalls
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/config` | GET/PUT | Get/update configuration |
-| `/api/papers/recent/cache` | GET | Get cached recent papers |
-| `/api/papers/recent/update` | POST (SSE) | Update recent papers |
-| `/api/papers/search/stream` | GET (SSE) | AI-powered search |
-| `/api/collections` | GET/POST | List/create collections |
-| `/api/collections/{id}` | GET/PUT/DELETE | Collection CRUD |
-| `/api/tasks/sync` | POST (SSE) | Start sync with progress |
-| `/api/stats` | GET | Database statistics |
-| `/api/chat/sessions` | GET/POST | List/create chat sessions |
-| `/api/chat/sessions/{id}` | GET/DELETE | Get/delete chat session |
-| `/api/chat/sessions/{id}/send` | POST (SSE) | Send message to AI |
-| `/api/chat/papers/{arxiv_id}/content` | GET | Get paper PDF content |
+1. **el-dialog in conditional render**: `el-dialog` inside `v-if/v-else` won't render when condition is false. Move dialogs outside conditional blocks or use `teleported` prop.
+
+2. **Vue ref access**: Always use `.value` when accessing refs in JavaScript functions.
+
+3. **Event propagation**: Use `@click.stop` on nested clickable elements (dropdowns inside cards).
+
+4. **ECharts reinitialization**: After DOM changes, dispose old chart instance before creating new one.
+
+5. **Translation cache key**: Includes target language, so different languages have independent caches.
 
 ## Notes for AI Agents
 
@@ -209,3 +242,4 @@ Configuration is stored in database, managed via Web UI settings:
 5. **Restart server** after Python code changes
 6. **Force refresh browser** (Ctrl+Shift+R) after frontend changes
 7. **Use i18n** for user-facing strings: `from arxiv_pulse.i18n import t`
+8. **Test database location**: Tests use `tests/data/` directory to avoid polluting production data
