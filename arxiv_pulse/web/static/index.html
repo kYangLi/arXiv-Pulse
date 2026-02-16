@@ -1525,6 +1525,58 @@
         .chat-window .chat-input-area {
             cursor: default;
         }
+        .chat-window.fullscreen {
+            position: fixed !important;
+            left: 24px !important;
+            top: 24px !important;
+            right: 24px !important;
+            bottom: 24px !important;
+            width: auto !important;
+            height: auto !important;
+            border-radius: 20px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2), 0 0 0 1000px rgba(0, 0, 0, 0.3);
+        }
+        .chat-resize-handle {
+            position: absolute;
+            background: transparent;
+        }
+        .chat-resize-handle.right {
+            right: 0;
+            top: 10px;
+            bottom: 10px;
+            width: 6px;
+            cursor: ew-resize;
+        }
+        .chat-resize-handle.bottom {
+            bottom: 0;
+            left: 10px;
+            right: 10px;
+            height: 6px;
+            cursor: ns-resize;
+        }
+        .chat-resize-handle.left {
+            left: 0;
+            top: 10px;
+            bottom: 10px;
+            width: 6px;
+            cursor: ew-resize;
+        }
+        .chat-resize-handle.top {
+            top: 0;
+            left: 10px;
+            right: 10px;
+            height: 6px;
+            cursor: ns-resize;
+        }
+        .chat-resize-handle.corner {
+            width: 14px;
+            height: 14px;
+            cursor: nwse-resize;
+        }
+        .chat-resize-handle.corner.top-left { top: 0; left: 0; cursor: nwse-resize; }
+        .chat-resize-handle.corner.top-right { top: 0; right: 0; cursor: nesw-resize; }
+        .chat-resize-handle.corner.bottom-left { bottom: 0; left: 0; cursor: nesw-resize; }
+        .chat-resize-handle.corner.bottom-right { bottom: 0; right: 0; cursor: nwse-resize; }
         .chat-header {
             display: flex;
             justify-content: space-between;
@@ -3176,8 +3228,9 @@
         <transition name="panel">
             <div v-if="!showSetup && chatExpanded" 
                  class="chat-window" 
+                 :class="{ fullscreen: chatFullscreen }"
                  ref="chatPanelRef"
-                 :style="{ position: 'fixed', left: chatPosition.x + 'px', top: chatPosition.y + 'px', zIndex: chatZIndex }"
+                 :style="chatFullscreen ? { zIndex: chatZIndex } : { position: 'fixed', left: chatPosition.x + 'px', top: chatPosition.y + 'px', width: chatSize.width + 'px', height: chatSize.height + 'px', zIndex: chatZIndex }"
                  @mousedown="startDragChat"
                  @click="bringToFront('chat')">
                 <div class="chat-header">
@@ -3187,21 +3240,29 @@
                         </svg>
                         {{ t('chat.title') }}
                     </span>
-                    <div class="chat-header-actions">
-                        <el-button text @click.stop="createNewChat" :title="t('chat.newChat')">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                            </svg>
-                        </el-button>
-                        <div class="collapse-btn" @click.stop="chatExpanded = false" :title="currentLang === 'zh' ? '收起' : 'Collapse'">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                                <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="chat-body">
+                     <div class="chat-header-actions">
+                         <el-button text @click.stop="createNewChat" :title="t('chat.newChat')">
+                             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                 <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                             </svg>
+                         </el-button>
+                         <el-button text @click.stop="toggleChatFullscreen" :title="chatFullscreen ? (currentLang === 'zh' ? '还原' : 'Restore') : (currentLang === 'zh' ? '全屏' : 'Fullscreen')">
+                             <svg v-if="chatFullscreen" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                 <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                             </svg>
+                             <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                 <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                             </svg>
+                         </el-button>
+                         <div class="collapse-btn" @click.stop="chatExpanded = false" :title="currentLang === 'zh' ? '收起' : 'Collapse'">
+                             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                 <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
+                             </svg>
+                         </div>
+                     </div>
+                 </div>
+                 
+                 <div class="chat-body">
                     <transition name="sidebar-slide">
                         <div v-if="showChatSidebar" class="chat-sidebar">
                             <div class="chat-sidebar-header">
@@ -3343,6 +3404,14 @@
                             </el-button>
                         </div>
                     </div>
+                    <div v-if="!chatFullscreen" class="chat-resize-handle right" @mousedown.stop="startResizeChat('right', $event)"></div>
+                    <div v-if="!chatFullscreen" class="chat-resize-handle bottom" @mousedown.stop="startResizeChat('bottom', $event)"></div>
+                    <div v-if="!chatFullscreen" class="chat-resize-handle left" @mousedown.stop="startResizeChat('left', $event)"></div>
+                    <div v-if="!chatFullscreen" class="chat-resize-handle top" @mousedown.stop="startResizeChat('top', $event)"></div>
+                    <div v-if="!chatFullscreen" class="chat-resize-handle corner top-left" @mousedown.stop="startResizeChat('top-left', $event)"></div>
+                    <div v-if="!chatFullscreen" class="chat-resize-handle corner top-right" @mousedown.stop="startResizeChat('top-right', $event)"></div>
+                    <div v-if="!chatFullscreen" class="chat-resize-handle corner bottom-left" @mousedown.stop="startResizeChat('bottom-left', $event)"></div>
+                    <div v-if="!chatFullscreen" class="chat-resize-handle corner bottom-right" @mousedown.stop="startResizeChat('bottom-right', $event)"></div>
                 </div>
             </div>
         </transition>
@@ -4033,6 +4102,8 @@
                 const chatPosition = ref({ x: window.innerWidth - 500, y: 80 });
                 const chatPanelRef = ref(null);
                 const chatZIndex = ref(999);
+                const chatFullscreen = ref(false);
+                const chatSize = ref({ width: 480, height: 640 });
 
                 const quickPrompts = computed(() => currentLang.value === 'zh' ? [
                     { icon: '📝', text: '帮我总结这篇论文的核心内容' },
@@ -4114,6 +4185,74 @@
                     dragTarget = null;
                     document.removeEventListener('mousemove', onDrag);
                     document.removeEventListener('mouseup', stopDrag);
+                }
+
+                function toggleChatFullscreen() {
+                    chatFullscreen.value = !chatFullscreen.value;
+                }
+
+                // Resize functionality
+                let isResizing = false;
+                let resizeDirection = null;
+                let resizeStart = { x: 0, y: 0, width: 0, height: 0, left: 0, top: 0 };
+
+                function startResizeChat(direction, e) {
+                    if (chatFullscreen.value) return;
+                    isResizing = true;
+                    resizeDirection = direction;
+                    resizeStart = {
+                        x: e.clientX,
+                        y: e.clientY,
+                        width: chatSize.value.width,
+                        height: chatSize.value.height,
+                        left: chatPosition.value.x,
+                        top: chatPosition.value.y
+                    };
+                    document.addEventListener('mousemove', onResize);
+                    document.addEventListener('mouseup', stopResize);
+                }
+
+                function onResize(e) {
+                    if (!isResizing) return;
+                    const dx = e.clientX - resizeStart.x;
+                    const dy = e.clientY - resizeStart.y;
+                    const minW = 380, minH = 420;
+                    const maxW = window.innerWidth - 40;
+                    const maxH = window.innerHeight - 40;
+
+                    let newWidth = resizeStart.width;
+                    let newHeight = resizeStart.height;
+                    let newLeft = resizeStart.left;
+                    let newTop = resizeStart.top;
+
+                    if (resizeDirection.includes('right')) {
+                        newWidth = Math.min(maxW, Math.max(minW, resizeStart.width + dx));
+                    }
+                    if (resizeDirection.includes('left')) {
+                        newWidth = Math.min(maxW, Math.max(minW, resizeStart.width - dx));
+                        if (newWidth !== resizeStart.width) {
+                            newLeft = resizeStart.left + (resizeStart.width - newWidth);
+                        }
+                    }
+                    if (resizeDirection.includes('bottom')) {
+                        newHeight = Math.min(maxH, Math.max(minH, resizeStart.height + dy));
+                    }
+                    if (resizeDirection.includes('top')) {
+                        newHeight = Math.min(maxH, Math.max(minH, resizeStart.height - dy));
+                        if (newHeight !== resizeStart.height) {
+                            newTop = resizeStart.top + (resizeStart.height - newHeight);
+                        }
+                    }
+
+                    chatSize.value = { width: newWidth, height: newHeight };
+                    chatPosition.value = { x: newLeft, y: newTop };
+                }
+
+                function stopResize() {
+                    isResizing = false;
+                    resizeDirection = null;
+                    document.removeEventListener('mousemove', onResize);
+                    document.removeEventListener('mouseup', stopResize);
                 }
 
                 const searchQuery = ref('');
@@ -6117,11 +6256,13 @@
                     exportRecent, exportSearch, exportCollection,
                     navigateTo, navigateToHome, onTabChange, startHomeSearch, toggleHomeSelect, exportHome,
                     chatExpanded, chatSessions, currentChatSession, chatMessages, chatInput, chatPosition, chatPanelRef, chatZIndex,
+                    chatFullscreen, chatSize,
                     selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
                     chatUnreadCount, chatMessagesContainer,
                     toggleChat, fetchChatSessions, createNewChat, selectChatSession,
                     sendChatMessage, sendQuickPrompt, quickPrompts, formatChatMessage, formatChatTime, formatDate,
                     togglePaperSelection, removeSelectedChatPaper, deleteChatSession, clearAllChatSessions, userScrolledUp,
+                    toggleChatFullscreen, startResizeChat,
                     paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex,
                     startDragCart, startDragChat,
                     addToCart, removeFromCart, removeFromCartByArxivId, clearCart, isInCart, exportCart,
