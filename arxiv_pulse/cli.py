@@ -49,21 +49,39 @@ def _show_security_warning_and_confirm() -> bool:
     这意味着 / This means:
     • 所有数据（包括 API Key）将以明文传输
       All data (including API Key) will be transmitted in plaintext
-    • 同一网络中的任何人都可以访问您的服务
-      Anyone on the same network can access your service
+    • 同一网络中的任何人都可以访问您的服务（无需认证）
+      Anyone on the same network can access your service (no authentication)
     • 请勿在不信任的网络中使用
       Do not use on untrusted networks
 
-    建议使用以下方式保护连接 / Recommended ways to secure connection:
-    1. SSH 隧道 / SSH Tunnel:
-       ssh -L 8000:localhost:8000 user@server
-       然后访问 / Then visit: http://localhost:8000
+    ═══════════════════════════════════════════════════════════
+    💡 推荐方式 / Recommended Approach:
+    ═══════════════════════════════════════════════════════════
 
-    2. VPN:
+    在服务器上绑定 127.0.0.1，然后通过 SSH 隧道访问：
+    Bind to 127.0.0.1 on server, then access via SSH tunnel:
+
+      # 服务器上 / On server:
+      pulse serve .
+
+      # 你的电脑上 / On your computer:
+      ssh -L 8000:localhost:8000 user@server
+
+      # 然后访问 / Then visit:
+      http://localhost:8000
+
+    这样既安全又方便，无需使用本选项！
+    This is both secure and convenient, no need for this option!
+
+    ═══════════════════════════════════════════════════════════
+    其他方式 / Other Options:
+    ═══════════════════════════════════════════════════════════
+
+    1. VPN:
        通过 OpenVPN/WireGuard 建立安全通道
        Establish a secure tunnel via OpenVPN/WireGuard
 
-    3. 反向代理 / Reverse Proxy:
+    2. 反向代理 / Reverse Proxy:
        使用 Nginx/Caddy 配置 HTTPS
        Configure HTTPS using Nginx/Caddy
     """)
@@ -204,12 +222,33 @@ def _do_serve(directory, host, port, foreground, force, allow_non_localhost=Fals
     默认情况下，服务仅允许本地访问以确保安全。
     By default, the service only allows localhost access for security.
 
-    如需开放远程访问，请使用以下选项：
-    To allow remote access, use the following option:
+    ═══════════════════════════════════════════════════════════
+    💡 推荐远程访问方式 / Recommended Remote Access Method:
+    ═══════════════════════════════════════════════════════════
+
+    在服务器上绑定 127.0.0.1，然后通过 SSH 隧道访问：
+    Bind to 127.0.0.1 on server, then access via SSH tunnel:
+
+      # 服务器上 / On server:
+      pulse serve .
+
+      # 你的电脑上 / On your computer:
+      ssh -L 8000:localhost:8000 user@server
+
+      # 然后访问 / Then visit:
+      http://localhost:8000
+
+    这样既安全又方便！
+    This is both secure and convenient!
+
+    ═══════════════════════════════════════════════════════════
+
+    如确需开放网络访问，请使用以下选项：
+    If you really need to open network access, use:
       --allow-non-localhost-access-with-plaintext-transmission-risk
 
-    注意：这将暴露您的 API Key 等敏感信息！
-    Warning: This will expose your API Key and other sensitive information!
+    注意：这将暴露您的 API Key 等敏感信息，任何人都可以访问！
+    Warning: This will expose your API Key, anyone can access!
     """)
             sys.exit(1)
 
