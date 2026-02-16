@@ -4946,7 +4946,6 @@
                     addingToCollection.value = true;
                     try {
                         // Priority: selectedPaper (from card click) > paperCart (from cart button)
-                        const fromCart = !selectedPaper.value && paperCart.value.length > 0;
                         const papersToAdd = selectedPaper.value ? [selectedPaper.value] : paperCart.value;
                         if (papersToAdd.length === 0) {
                             ElementPlus.ElMessage.warning('没有选中的论文');
@@ -4967,10 +4966,6 @@
                             ElementPlus.ElMessage.success(`成功添加 ${successCount} 篇论文`);
                             showAddToCollection.value = false;
                             fetchCollections();
-                            // Only clear cart when adding from cart
-                            if (fromCart) {
-                                paperCart.value = [];
-                            }
                         }
                     } catch (e) {
                         ElementPlus.ElMessage.error('添加失败');
