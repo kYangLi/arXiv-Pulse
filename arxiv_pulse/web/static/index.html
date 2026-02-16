@@ -5345,6 +5345,10 @@
                 watch(currentPage, (newPage) => {
                     if (newPage === 'sync') {
                         initChartsWithRetry();
+                    } else if (newPage === 'home') {
+                        fetchStats();
+                    } else if (newPage === 'collections') {
+                        fetchCollections();
                     }
                 });
 

@@ -18,6 +18,13 @@ def get_db():
     return Database()
 
 
+def refresh_stats_cache():
+    """Refresh stats cache after collection changes"""
+    from arxiv_pulse.web.api.stats import update_stats_cache
+
+    update_stats_cache()
+
+
 def enhance_paper_data(paper: Paper) -> dict:
     """增强论文数据，添加翻译、关键发现、图片等"""
     from arxiv_pulse.web.api.papers import enhance_paper_data as _enhance
@@ -83,6 +90,7 @@ async def create_collection(data: CollectionCreate):
         session.add(collection)
         session.commit()
         session.refresh(collection)
+        refresh_stats_cache()
         return collection.to_dict()
 
 
@@ -168,6 +176,7 @@ async def delete_collection(collection_id: int):
         session.query(CollectionPaper).filter_by(collection_id=collection_id).delete()
         session.delete(collection)
         session.commit()
+        refresh_stats_cache()
         return {"message": "Collection deleted"}
 
 
@@ -239,6 +248,7 @@ async def add_paper_to_collection(collection_id: int, data: AddPaperToCollection
         session.add(cp)
         collection.updated_at = datetime.now(UTC).replace(tzinfo=None)
         session.commit()
+        refresh_stats_cache()
         return {"message": "Paper added to collection"}
 
 
@@ -255,6 +265,7 @@ async def remove_paper_from_collection(collection_id: int, paper_id: int):
         if collection:
             collection.updated_at = datetime.now(UTC).replace(tzinfo=None)
         session.commit()
+        refresh_stats_cache()
         return {"message": "Paper removed from collection"}
 
 
