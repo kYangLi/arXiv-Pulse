@@ -4111,16 +4111,30 @@
                 }
 
                 let settingsInitialized = false;
-                watch(settingsConfig, (newVal, oldVal) => {
-                    if (!settingsInitialized) return;
-                    const keysToWatch = ['ai_base_url', 'ai_model', 'translate_language', 'years_back', 'arxiv_max_results', 'arxiv_max_results_per_field', 'recent_papers_limit', 'search_limit', 'selected_fields', 'search_queries', 'ui_language'];
-                    for (const key of keysToWatch) {
-                        if (JSON.stringify(newVal[key]) !== JSON.stringify(oldVal?.[key])) {
-                            debouncedSave();
-                            break;
+                // 监听具体属性，避免 newVal/oldVal 引用相同对象的问题
+                watch(
+                    () => ({
+                        ai_base_url: settingsConfig.value.ai_base_url,
+                        ai_model: settingsConfig.value.ai_model,
+                        translate_language: settingsConfig.value.translate_language,
+                        years_back: settingsConfig.value.years_back,
+                        arxiv_max_results: settingsConfig.value.arxiv_max_results,
+                        arxiv_max_results_per_field: settingsConfig.value.arxiv_max_results_per_field,
+                        recent_papers_limit: settingsConfig.value.recent_papers_limit,
+                        search_limit: settingsConfig.value.search_limit,
+                        ui_language: settingsConfig.value.ui_language,
+                    }),
+                    (newVal, oldVal) => {
+                        if (!settingsInitialized) return;
+                        for (const key of Object.keys(newVal)) {
+                            if (newVal[key] !== oldVal?.[key]) {
+                                debouncedSave();
+                                break;
+                            }
                         }
-                    }
-                }, { deep: true });
+                    },
+                    { deep: true }
+                );
 
                 function onLanguageChange(lang) {
                     setLanguage(lang);
