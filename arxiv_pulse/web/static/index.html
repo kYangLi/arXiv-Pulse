@@ -2146,7 +2146,7 @@
                 <div class="home-stats">
                     <span><el-icon><Document /></el-icon> {{ stats?.papers?.total || 0 }} {{ t('home.totalPapers') }}</span>
                     <span><el-icon><Collection /></el-icon> {{ stats?.collections?.total || 0 }} {{ t('home.totalCollections') }}</span>
-                    <span><el-icon><TrendCharts /></el-icon> {{ stats?.papers?.summarized || 0 }} {{ t('home.summarizedPapers') }}</span>
+                    <span><el-icon><MagicStick /></el-icon> {{ stats?.papers?.summarized || 0 }} {{ t('home.summarizedPapers') }}</span>
                 </div>
                 
                 <div class="home-hints">
@@ -3010,7 +3010,7 @@
                     paperCollections: '论文集',
                     totalPapers: '篇论文',
                     totalCollections: '个论文集',
-                    summarizedPapers: '篇已总结'
+                    summarizedPapers: '篇 AI 已分析'
                 },
                 papers: {
                     recentPapers: '近期论文',
@@ -3262,7 +3262,7 @@
                     paperCollections: 'Collections',
                     totalPapers: 'papers',
                     totalCollections: 'collections',
-                    summarizedPapers: 'summarized'
+                    summarizedPapers: 'AI analyzed'
                 },
                 papers: {
                     recentPapers: 'Recent',
@@ -4929,14 +4929,28 @@
                 function initCharts() {
                     const yearEl = document.getElementById('yearChart');
                     const categoryEl = document.getElementById('categoryChart');
-                    if (yearEl) {
+                    if (yearEl && categoryEl) {
+                        if (yearChart) yearChart.dispose();
+                        if (categoryChart) categoryChart.dispose();
                         yearChart = echarts.init(yearEl);
-                        yearChart.resize();
-                    }
-                    if (categoryEl) {
                         categoryChart = echarts.init(categoryEl);
-                        categoryChart.resize();
+                        return true;
                     }
+                    return false;
+                }
+
+                function initChartsWithRetry(retries = 10) {
+                    let attempts = 0;
+                    const tryInit = () => {
+                        attempts++;
+                        if (initCharts()) {
+                            renderYearChart(stats.value?.years);
+                            renderCategoryChart(stats.value?.categories?.top);
+                        } else if (attempts < retries) {
+                            requestAnimationFrame(tryInit);
+                        }
+                    };
+                    requestAnimationFrame(tryInit);
                 }
 
                 function renderYearChart(data) {
@@ -4988,37 +5002,13 @@
 
                 watch(showSetup, (val) => {
                     if (!val) {
-                        setTimeout(() => {
-                            if (yearChart) {
-                                yearChart.dispose();
-                                yearChart = null;
-                            }
-                            if (categoryChart) {
-                                categoryChart.dispose();
-                                categoryChart = null;
-                            }
-                            initCharts();
-                            renderYearChart(stats.value?.years);
-                            renderCategoryChart(stats.value?.categories?.top);
-                        }, 400);
+                        initChartsWithRetry();
                     }
                 });
                 
                 watch(currentPage, (newPage) => {
                     if (newPage === 'sync') {
-                        setTimeout(() => {
-                            if (yearChart) {
-                                yearChart.dispose();
-                                yearChart = null;
-                            }
-                            if (categoryChart) {
-                                categoryChart.dispose();
-                                categoryChart = null;
-                            }
-                            initCharts();
-                            renderYearChart(stats.value?.years);
-                            renderCategoryChart(stats.value?.categories?.top);
-                        }, 400);
+                        initChartsWithRetry();
                     }
                 });
 
@@ -5459,6 +5449,18 @@
                         if (chatSessions.value.length === 0) {
                             fetchChatSessions();
                         }
+                    });
+                    
+                    // Handle window resize - reset panel positions
+                    window.addEventListener('resize', () => {
+                        cartPosition.value = { 
+                            x: Math.min(cartPosition.value.x, window.innerWidth - 420), 
+                            y: Math.min(cartPosition.value.y, window.innerHeight - 200)
+                        };
+                        chatPosition.value = { 
+                            x: Math.min(chatPosition.value.x, window.innerWidth - 500), 
+                            y: Math.min(chatPosition.value.y, window.innerHeight - 200)
+                        };
                     });
                 });
 
