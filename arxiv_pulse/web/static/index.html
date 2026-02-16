@@ -2895,8 +2895,9 @@
             <div v-if="!showSetup && showCart" 
                  class="cart-panel" 
                  ref="cartPanelRef"
-                 :style="{ position: 'fixed', left: cartPosition.x + 'px', top: cartPosition.y + 'px', zIndex: 1000 }"
-                 @mousedown="startDragCart">
+                 :style="{ position: 'fixed', left: cartPosition.x + 'px', top: cartPosition.y + 'px', zIndex: cartZIndex }"
+                 @mousedown="startDragCart"
+                 @click="bringToFront('cart')">
                 <div class="cart-header">
                     <h3>
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
@@ -2994,8 +2995,9 @@
             <div v-if="!showSetup && chatExpanded" 
                  class="chat-window" 
                  ref="chatPanelRef"
-                 :style="{ position: 'fixed', left: chatPosition.x + 'px', top: chatPosition.y + 'px', zIndex: 999 }"
-                 @mousedown="startDragChat">
+                 :style="{ position: 'fixed', left: chatPosition.x + 'px', top: chatPosition.y + 'px', zIndex: chatZIndex }"
+                 @mousedown="startDragChat"
+                 @click="bringToFront('chat')">
                 <div class="chat-header">
                     <span class="chat-title">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
@@ -3798,6 +3800,7 @@
                 const cartExportLoading = ref(false);
                 const cartPosition = ref({ x: window.innerWidth - 424, y: window.innerHeight - 520 });
                 const cartPanelRef = ref(null);
+                const cartZIndex = ref(1000);
 
                 const chatExpanded = ref(false);
                 const chatSessions = ref([]);
@@ -3813,6 +3816,32 @@
                 const userScrolledUp = ref(false);
                 const chatPosition = ref({ x: window.innerWidth - 500, y: 80 });
                 const chatPanelRef = ref(null);
+                const chatZIndex = ref(999);
+
+                function bringToFront(panel) {
+                    if (panel === 'cart') {
+                        cartZIndex.value = Math.max(cartZIndex.value, chatZIndex.value) + 1;
+                    } else if (panel === 'chat') {
+                        chatZIndex.value = Math.max(cartZIndex.value, chatZIndex.value) + 1;
+                    }
+                }
+
+                function handleEscKey(e) {
+                    if (e.key === 'Escape') {
+                        // Close the panel with higher z-index first
+                        if (showCart.value && chatExpanded.value) {
+                            if (cartZIndex.value > chatZIndex.value) {
+                                showCart.value = false;
+                            } else {
+                                chatExpanded.value = false;
+                            }
+                        } else if (showCart.value) {
+                            showCart.value = false;
+                        } else if (chatExpanded.value) {
+                            chatExpanded.value = false;
+                        }
+                    }
+                }
 
                 // Drag functionality
                 let isDragging = false;
@@ -5745,6 +5774,9 @@
                             y: Math.min(chatPosition.value.y, window.innerHeight - 200)
                         };
                     });
+                    
+                    // Handle ESC key to close panels
+                    window.addEventListener('keydown', handleEscKey);
                 });
 
                 return {
@@ -5780,17 +5812,18 @@
                     toggleRecentSelect, toggleRecentSelectAll, toggleSearchSelect, toggleSearchSelectAll,
                     exportRecent, exportSearch, exportCollection,
                     navigateTo, navigateToHome, onTabChange, startHomeSearch, toggleHomeSelect, exportHome,
-                    chatExpanded, chatSessions, currentChatSession, chatMessages, chatInput, chatPosition, chatPanelRef,
+                    chatExpanded, chatSessions, currentChatSession, chatMessages, chatInput, chatPosition, chatPanelRef, chatZIndex,
                     selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
                     chatUnreadCount, chatMessagesContainer,
                     toggleChat, fetchChatSessions, createNewChat, selectChatSession,
                     sendChatMessage, formatChatMessage, formatChatTime, formatDate,
                     togglePaperSelection, removeSelectedChatPaper, deleteChatSession, userScrolledUp,
-                    paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef,
+                    paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex,
                     startDragCart, startDragChat,
                     addToCart, removeFromCart, removeFromCartByArxivId, clearCart, isInCart, exportCart,
                     addCartToCollection, copyCartLinks,
                     scrollToBottom, handleChatScroll,
+                    bringToFront, handleEscKey,
                     t, currentLang, toggleLanguage, i18n, getFieldTranslation,
                     // Field Selector
                     showFieldSelector, fieldSelectorSource, tempSelectedFields, fieldSearchQuery,
