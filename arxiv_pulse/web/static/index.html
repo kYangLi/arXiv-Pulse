@@ -2447,9 +2447,9 @@
                 <div v-if="setupStep === 4">
                     <transition name="fade" mode="out-in">
                         <h3 v-if="!initComplete" key="syncing" style="margin-bottom: 20px; text-align: center; color: var(--primary);">{{ t('setup.syncing') }}</h3>
-                        <h3 v-else key="complete" style="margin-bottom: 20px; text-align: center; color: #67c23a;">
-                            <el-icon style="vertical-align: middle; margin-right: 8px;"><CircleCheckFilled /></el-icon>
-                            {{ t('setup.syncComplete') }}
+                        <h3 v-else key="complete" style="margin-bottom: 20px; display: flex; justify-content: center; align-items: center; color: #67c23a;">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style="margin-right: 8px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            <span>{{ t('setup.syncComplete') }}</span>
                         </h3>
                     </transition>
                     <div v-if="!initComplete" style="text-align: center; margin-bottom: 20px; min-height: 22px;">
