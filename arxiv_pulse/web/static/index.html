@@ -2637,9 +2637,9 @@
                 </template>
             </el-dialog>
 
-            <el-dialog v-model="showAddToCollection" :title="t('collections.addToCollection')" width="400px">
+            <el-dialog v-model="showAddToCollection" :title="t('collections.addToCollection')" width="400px" @closed="selectedPaper = null">
                 <p style="margin-bottom: 12px; color: var(--text-secondary);">
-                    {{ t('collections.addPapersTo', { count: paperCart.length > 0 ? paperCart.length : 1 }) }}
+                    {{ t('collections.addPapersTo', { count: selectedPaper ? 1 : paperCart.length }) }}
                 </p>
                 <div v-if="selectedPaper?.collection_ids?.length > 0" style="margin-bottom: 12px; padding: 8px 12px; background: var(--bg-subtle); border-radius: 8px;">
                     <span style="color: var(--text-muted); font-size: 12px;">{{ t('collections.alreadyIn') }}: </span>
@@ -5664,6 +5664,7 @@
 
                 function addCartToCollection() {
                     if (paperCart.value.length === 0) return;
+                    selectedPaper.value = null;
                     selectedCollectionId.value = null;
                     showAddToCollection.value = true;
                 }
