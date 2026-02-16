@@ -2656,44 +2656,55 @@
                 </template>
             </el-dialog>
 
-            <el-dialog v-model="viewingCollection" :title="viewingCollection?.name" width="800px">
+            <el-dialog v-model="showCollectionDetail" :title="viewingCollection?.name" width="800px">
                 <div v-if="loadingCollectionPapers" style="text-align: center; padding: 40px;">
                     <el-icon class="is-loading" style="font-size: 32px;"><Loading /></el-icon>
                 </div>
-                <div v-else-if="collectionPapers.length > 0">
-                    <div class="export-bar">
-                        <span style="color: var(--text-secondary);">{{ collectionPapers.length }} {{ t('collections.papers') }}</span>
-                        <el-dropdown @command="exportCollection">
-                            <el-button type="primary" plain>
-                                <el-icon><Download /></el-icon> {{ t('collections.exportCollection') }}
-                                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                            </el-button>
-                            <template #dropdown>
-                                <el-dropdown-menu>
-                                    <el-dropdown-item command="markdown">Markdown (.md)</el-dropdown-item>
-                                    <el-dropdown-item command="pdf">{{ t('export.pdfDoc') }}</el-dropdown-item>
-                                    <el-dropdown-item command="csv">{{ t('export.csvTable') }}</el-dropdown-item>
-                                    <el-dropdown-item command="bibtex">BibTeX (.bib)</el-dropdown-item>
-                                </el-dropdown-menu>
-                            </template>
-                        </el-dropdown>
+                <template v-else>
+                    <div v-if="collectionPapers.length > 0">
+                        <div class="export-bar">
+                            <span style="color: var(--text-secondary);">{{ collectionTotalCount }} {{ t('collections.papers') }}</span>
+                            <el-dropdown @command="exportCollection">
+                                <el-button type="primary" plain>
+                                    <el-icon><Download /></el-icon> {{ t('collections.exportCollection') }}
+                                    <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                                </el-button>
+                                <template #dropdown>
+                                    <el-dropdown-menu>
+                                        <el-dropdown-item command="markdown">Markdown (.md)</el-dropdown-item>
+                                        <el-dropdown-item command="pdf">{{ t('export.pdfDoc') }}</el-dropdown-item>
+                                        <el-dropdown-item command="csv">{{ t('export.csvTable') }}</el-dropdown-item>
+                                        <el-dropdown-item command="bibtex">BibTeX (.bib)</el-dropdown-item>
+                                    </el-dropdown-menu>
+                                </template>
+                            </el-dropdown>
+                        </div>
+                        <paper-card 
+                            v-for="paper in collectionPapers" 
+                            :key="paper.id" 
+                            :paper="paper"
+                            :collections="collections"
+                            :in-collection="true"
+                            :in-cart="isInCart(paper.arxiv_id)"
+                            @add-to-collection="addToCollection"
+                            @remove-from-collection="removePaperFromCollection"
+                            @add-to-cart="addToCart"
+                            @remove-from-cart="removeFromCartByArxivId"
+                        />
                     </div>
-                    <paper-card 
-                        v-for="paper in collectionPapers" 
-                        :key="paper.id" 
-                        :paper="paper"
-                        :collections="collections"
-                        :in-collection="true"
-                        :in-cart="isInCart(paper.arxiv_id)"
-                        @add-to-collection="addToCollection"
-                        @remove-from-collection="removePaperFromCollection"
-                        @add-to-cart="addToCart"
-                        @remove-from-cart="removeFromCartByArxivId"
-                    />
-                </div>
-                <div v-else class="empty-state">
-                    <p>{{ t('collections.noPapersInCollection') }}</p>
-                </div>
+                    <div v-else class="empty-state">
+                        <p>{{ t('collections.noPapersInCollection') }}</p>
+                    </div>
+                    <div v-if="collectionTotalPages > 1" style="display: flex; justify-content: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light);">
+                        <el-pagination
+                            v-model:current-page="collectionCurrentPage"
+                            :page-size="20"
+                            :total="collectionTotalCount"
+                            layout="prev, pager, next"
+                            @current-change="loadCollectionPage"
+                        />
+                    </div>
+                </template>
             </el-dialog>
 
             <el-dialog v-model="showDeleteConfirm" :title="t('common.confirmDelete')" width="400px">
@@ -3922,8 +3933,12 @@
                 const selectedPaper = ref(null);
                 const addingToCollection = ref(false);
                 const viewingCollection = ref(null);
+                const showCollectionDetail = ref(false);
                 const collectionPapers = ref([]);
                 const loadingCollectionPapers = ref(false);
+                const collectionCurrentPage = ref(1);
+                const collectionTotalCount = ref(0);
+                const collectionTotalPages = ref(0);
 
                 const filteredCollections = computed(() => {
                     if (!collectionSearchQuery.value) return collections.value;
@@ -4895,10 +4910,20 @@
 
                 async function openCollectionDetail(collection) {
                     viewingCollection.value = collection;
+                    collectionCurrentPage.value = 1;
+                    showCollectionDetail.value = true;
+                    await loadCollectionPage();
+                }
+
+                async function loadCollectionPage() {
+                    if (!viewingCollection.value) return;
                     loadingCollectionPapers.value = true;
                     try {
-                        const res = await fetch(`${API_BASE}/collections/${collection.id}/papers`);
-                        collectionPapers.value = await res.json();
+                        const res = await fetch(`${API_BASE}/collections/${viewingCollection.value.id}/papers?page=${collectionCurrentPage.value}&page_size=20`);
+                        const data = await res.json();
+                        collectionPapers.value = data.papers || [];
+                        collectionTotalCount.value = data.total_count || 0;
+                        collectionTotalPages.value = data.total_pages || 0;
                     } catch (e) {
                         console.error('Failed to fetch collection papers:', e);
                     } finally {
@@ -4914,7 +4939,7 @@
                         );
                         if (res.ok) {
                             ElementPlus.ElMessage.success('已移除');
-                            openCollectionDetail(viewingCollection.value);
+                            loadCollectionPage();
                             fetchCollections();
                         }
                     } catch (e) {
@@ -5796,7 +5821,8 @@
                     newCollection, editingCollection, deletingCollection,
                     savingCollection, deletingCollectionInProgress,
                     selectedCollectionId, selectedPaper, addingToCollection,
-                    viewingCollection, collectionPapers, loadingCollectionPapers,
+                    viewingCollection, showCollectionDetail, collectionPapers, loadingCollectionPapers,
+                    collectionCurrentPage, collectionTotalCount, collectionTotalPages,
                     collectionSearchQuery, filteredCollections, formatRelativeTime,
                     recentSelectedIds, recentSelectAll, searchSelectedIds, searchSelectAll,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
@@ -5806,7 +5832,7 @@
                     fetchSyncStatus, startSync,
                     saveCollection, cancelCollectionDialog, openEditCollection,
                     confirmDeleteCollection, deleteCollection,
-                    openCollectionDetail, removePaperFromCollection,
+                    openCollectionDetail, loadCollectionPage, removePaperFromCollection,
                     addToCollection, confirmAddToCollection,
                     editCollection, duplicateCollection,
                     toggleRecentSelect, toggleRecentSelectAll, toggleSearchSelect, toggleSearchSelectAll,

@@ -87,17 +87,28 @@ async def create_collection(data: CollectionCreate):
 
 
 @router.get("/{collection_id}")
-async def get_collection(collection_id: int):
-    """Get collection by ID with papers"""
+async def get_collection(
+    collection_id: int,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    """Get collection by ID with papers (paginated)"""
     with get_db().get_session() as session:
         collection = session.query(Collection).filter_by(id=collection_id).first()
         if not collection:
             raise HTTPException(status_code=404, detail="Collection not found")
 
+        # Get total count
+        total_count = session.query(CollectionPaper).filter_by(collection_id=collection_id).count()
+
+        # Get paginated papers
+        offset = (page - 1) * page_size
         collection_papers = (
             session.query(CollectionPaper)
             .filter_by(collection_id=collection_id)
             .order_by(CollectionPaper.added_at.desc())
+            .offset(offset)
+            .limit(page_size)
             .all()
         )
 
@@ -111,6 +122,10 @@ async def get_collection(collection_id: int):
 
         result = collection.to_dict()
         result["papers"] = papers
+        result["total_count"] = total_count
+        result["page"] = page
+        result["page_size"] = page_size
+        result["total_pages"] = (total_count + page_size - 1) // page_size
         return result
 
 
@@ -157,17 +172,28 @@ async def delete_collection(collection_id: int):
 
 
 @router.get("/{collection_id}/papers")
-async def get_collection_papers(collection_id: int):
-    """Get papers in a collection"""
+async def get_collection_papers(
+    collection_id: int,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    """Get papers in a collection (paginated)"""
     with get_db().get_session() as session:
         collection = session.query(Collection).filter_by(id=collection_id).first()
         if not collection:
             raise HTTPException(status_code=404, detail="Collection not found")
 
+        # Get total count
+        total_count = session.query(CollectionPaper).filter_by(collection_id=collection_id).count()
+
+        # Get paginated papers
+        offset = (page - 1) * page_size
         collection_papers = (
             session.query(CollectionPaper)
             .filter_by(collection_id=collection_id)
             .order_by(CollectionPaper.added_at.desc())
+            .offset(offset)
+            .limit(page_size)
             .all()
         )
 
@@ -179,7 +205,13 @@ async def get_collection_papers(collection_id: int):
                 paper_data["collection_info"] = cp.to_dict()
                 papers.append(paper_data)
 
-        return papers
+        return {
+            "papers": papers,
+            "total_count": total_count,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total_count + page_size - 1) // page_size,
+        }
 
 
 @router.post("/{collection_id}/papers")
