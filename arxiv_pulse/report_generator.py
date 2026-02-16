@@ -436,6 +436,8 @@ class ReportGenerator:
         """使用DeepSeek API翻译文本"""
         import openai
 
+        from arxiv_pulse.i18n import get_translation_prompt
+
         # 配置DeepSeek (openai 2.x版本)
         client = openai.OpenAI(api_key=Config.AI_API_KEY, base_url=Config.AI_BASE_URL)
 
@@ -446,11 +448,7 @@ class ReportGenerator:
         else:
             text_to_translate = text
 
-        # 准备翻译提示
-        if target_lang == "zh":
-            system_prompt = "你是一个专业的翻译助手。将以下英文文本翻译成中文，保持专业术语准确，语言流畅。"
-        else:
-            system_prompt = f"你是一个专业的翻译助手。将以下文本翻译成{target_lang}，保持专业术语准确，语言流畅。"
+        system_prompt = get_translation_prompt(target_lang)
 
         try:
             response = client.chat.completions.create(
