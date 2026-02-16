@@ -2445,18 +2445,16 @@
                 </div>
 
                 <div v-if="setupStep === 4">
-                    <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary);">{{ t('setup.syncing') }}</h3>
-                    <div style="text-align: center; margin-bottom: 20px; min-height: 22px;">
-                        <transition name="fade" mode="out-in">
-                            <div key="waiting" v-if="!initComplete" style="color: var(--text-muted); font-size: 14px;">
-                                <transition name="message-fade" mode="out-in">
-                                    <span :key="waitingMessage">{{ waitingMessage }}</span>
-                                </transition>
-                            </div>
-                            <div key="complete" v-else style="color: #67c23a; font-size: 18px; font-weight: 500;">
-                                <el-icon style="vertical-align: middle; margin-right: 6px;"><CircleCheckFilled /></el-icon>
-                                {{ t('setup.syncComplete') }}
-                            </div>
+                    <transition name="fade" mode="out-in">
+                        <h3 v-if="!initComplete" key="syncing" style="margin-bottom: 20px; text-align: center; color: var(--primary);">{{ t('setup.syncing') }}</h3>
+                        <h3 v-else key="complete" style="margin-bottom: 20px; text-align: center; color: #67c23a;">
+                            <el-icon style="vertical-align: middle; margin-right: 8px;"><CircleCheckFilled /></el-icon>
+                            {{ t('setup.syncComplete') }}
+                        </h3>
+                    </transition>
+                    <div v-if="!initComplete" style="text-align: center; margin-bottom: 20px; min-height: 22px;">
+                        <transition name="message-fade" mode="out-in">
+                            <span :key="waitingMessage" style="color: var(--text-muted); font-size: 14px;">{{ waitingMessage }}</span>
                         </transition>
                     </div>
                     <div v-if="initProgress > 0 && !initComplete" style="text-align: center; margin-bottom: 16px; color: var(--text-muted); font-size: 14px;">
