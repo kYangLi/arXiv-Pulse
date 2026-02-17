@@ -2549,12 +2549,16 @@
                             <el-select v-model="recentDays" :placeholder="t('papers.timeRange')" style="width: 120px;">
                                 <el-option v-for="item in daysOptions" :key="item.value" :label="item.label" :value="item.value" />
                             </el-select>
-                            <el-button @click="openFieldSelector('recent')" plain>
-                                <span style="display: inline-flex; align-items: center;">
+                            <el-tooltip 
+                                :content="getSelectedFieldsTooltip()" 
+                                placement="bottom"
+                                :disabled="!hasSelectedFields()"
+                            >
+                                <el-button @click="openFieldSelector('recent')" plain>
                                     <el-icon style="margin-right: 4px;"><Filter /></el-icon>
-                                    {{ recentCategories.length > 0 ? recentCategories.length : (settingsConfig.selected_fields?.length || 0) }} {{ currentLang === 'zh' ? '个领域' : 'fields' }}
-                                </span>
-                            </el-button>
+                                    {{ t('papers.filterFields') }}
+                                </el-button>
+                            </el-tooltip>
                             <el-checkbox v-model="recentNeedSync">{{ t('papers.syncNewPapers') }}</el-checkbox>
                             <el-button type="primary" @click="updateRecentPapers" :loading="updatingRecent">
                                 <el-icon><Refresh /></el-icon> {{ t('papers.update') }}
@@ -3504,7 +3508,8 @@
                     limit: '数量限制',
                     categoryFilter: '领域过滤',
                     syncNewPapers: '从arXiv同步',
-                    yearsBack: '回溯年数'
+                    yearsBack: '回溯年数',
+                    filterFields: '筛选领域'
                 },
                 sync: {
                     status: '同步状态',
@@ -3769,7 +3774,8 @@
                     limit: 'Limit',
                     categoryFilter: 'Category Filter',
                     syncNewPapers: 'Sync from arXiv',
-                    yearsBack: 'Years Back'
+                    yearsBack: 'Years Back',
+                    filterFields: 'Filter Fields'
                 },
                 sync: {
                     status: 'Sync Status',
@@ -4963,6 +4969,33 @@
                     } catch (e) {
                         console.error('Failed to fetch stats:', e);
                     }
+                }
+
+                function getSelectedFieldsTooltip() {
+                    const keys = recentCategories.value.length > 0 
+                        ? recentCategories.value 
+                        : (settingsConfig.value.selected_fields || []);
+                    
+                    if (keys.length === 0) {
+                        return currentLang.value === 'zh' ? '未选择领域' : 'No fields selected';
+                    }
+                    
+                    const names = keys.map(key => {
+                        const field = fieldStats.value.find(f => f.key === key);
+                        if (field) {
+                            return currentLang.value === 'zh' ? field.name : field.name_en;
+                        }
+                        return key;
+                    });
+                    
+                    return names.join(', ');
+                }
+
+                function hasSelectedFields() {
+                    const keys = recentCategories.value.length > 0 
+                        ? recentCategories.value 
+                        : (settingsConfig.value.selected_fields || []);
+                    return keys.length > 0;
                 }
 
                 async function fetchFieldStats() {
@@ -6273,6 +6306,7 @@
                     checkInitStatus, fetchCategories, testSetupAI, toggleSetupField, toggleCategoryGroup, startInitialSync,
                     testAIConnection, saveSettings, saveApiKey, toggleSettingsField, onLanguageChange,
                     fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers, startSearch, fetchCollections,
+                    getSelectedFieldsTooltip, hasSelectedFields,
                     fetchSyncStatus, startSync,
                     saveCollection, cancelCollectionDialog, openEditCollection,
                     confirmDeleteCollection, deleteCollection,
