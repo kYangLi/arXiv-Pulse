@@ -10,9 +10,7 @@
 
 ## 📸 Screenshots
 
-| Chinese Interface | English Interface |
-|:---:|:---:|
-| ![Chinese](.image/interface_zh.png) | ![English](.image/interface_en.png) |
+![English Interface](.image/interface_en.png)
 
 ## ✨ Key Features
 

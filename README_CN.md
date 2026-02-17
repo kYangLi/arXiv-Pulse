@@ -10,9 +10,7 @@
 
 ## 📸 界面截图
 
-| 中文界面 | 英文界面 |
-|:---:|:---:|
-| ![Chinese](.image/interface_zh.png) | ![English](.image/interface_en.png) |
+![中文界面](.image/interface_zh.png)
 
 ## ✨ 主要特性
 
