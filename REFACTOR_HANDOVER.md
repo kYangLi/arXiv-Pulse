@@ -32,13 +32,28 @@
 
 **index.html 瘦身**: 6460 → 4082 行 (-37%)
 
+### Session 3
+
+**前端 API 统一层**:
+
+| 文件 | 行数 | 作用 |
+|------|------|------|
+| `js/services/api.js` | 121 | 统一 API 调用层，封装 43 处 fetch 调用 |
+
+**修改**:
+- 更新 `js/utils/export.js` - 移除重复的 API_BASE 定义
+- 更新 `index.html` - 所有 API 调用改用 API 对象
+
+**index.html 瘦身**: 4082 → 3999 行 (-2%)
+
 ### 累计成果
 
 | 指标 | 变化 |
 |------|------|
-| index.html | 7035 → 4082 行 (**-42%**) |
+| index.html | 7035 → 3999 行 (**-43%**) |
 | papers.py | 1069 → 812 行 (**-24%**) |
 | 新增服务层 | 4 个文件，321 行 |
+| 新增前端模块 | api.js (121 行) |
 
 ---
 
@@ -48,7 +63,7 @@
 
 #### 1. 提取前端 Vue 组件
 
-**问题**：`index.html` 仍有 4082 行，组件逻辑混杂
+**问题**：`index.html` 仍有 3999 行，组件逻辑混杂
 
 **建议提取的组件**：
 ```
@@ -62,29 +77,6 @@ web/static/
 │       ├── FieldSelector.js   # 领域选择器
 │       ├── CartPanel.js       # 暂存篮面板
 │       └── EmptyState.js      # 空状态组件
-```
-
-#### 2. 统一前端 API 调用层
-
-**问题**：API 调用分散在各处，有 43 处 `API_BASE` 引用
-
-**建议**：
-```javascript
-// js/services/api.js
-const API = {
-    config: {
-        get: () => fetch(`${API_BASE}/config`),
-        update: (data) => fetch(`${API_BASE}/config`, { method: 'PUT', ... }),
-    },
-    papers: {
-        recent: (params) => fetch(`${API_BASE}/papers/recent/cache/stream?${params}`),
-        search: (params) => fetch(`${API_BASE}/papers/search/stream?${params}`),
-    },
-    collections: {
-        list: () => fetch(`${API_BASE}/collections`),
-        get: (id) => fetch(`${API_BASE}/collections/${id}`),
-    }
-};
 ```
 
 ### P2 - 低优先级
@@ -121,8 +113,10 @@ arxiv_pulse/
 │       │   └── main.css    # ✅ 新增样式文件
 │       ├── js/
 │       │   ├── i18n/       # ✅ 新增 i18n 模块
+│       │   ├── services/   # ✅ 新增 API 层
+│       │   │   └── api.js  # 统一 API 调用
 │       │   └── utils/      # ✅ 新增工具模块
-│       └── index.html      # 已瘦身 (4082 行)
+│       └── index.html      # 已瘦身 (3999 行)
 ```
 
 ---
@@ -146,5 +140,4 @@ pulse serve .
 ## 下一步建议
 
 1. **提取 Vue 组件** - 进一步降低 index.html 复杂度
-2. **统一 API 层** - 减少重复的 fetch 调用
-3. **考虑 Vite 构建** - 支持 Vue SFC 和模块化
+2. **考虑 Vite 构建** - 支持 Vue SFC 和模块化

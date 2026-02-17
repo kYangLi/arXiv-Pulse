@@ -1,5 +1,3 @@
-const API_BASE = '/api';
-
 async function downloadExport(url, options, filename) {
     try {
         const res = await fetch(url, options);

@@ -1206,6 +1206,7 @@
     <script src="libs/marked/marked.min.js"></script>
     <script src="js/i18n/zh.js"></script>
     <script src="js/i18n/en.js"></script>
+    <script src="js/services/api.js"></script>
     <script src="js/utils/export.js"></script>
     <script>
         const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
@@ -1710,7 +1711,7 @@
 
                 async function checkInitStatus() {
                     try {
-                        const res = await fetch(`${API_BASE}/config/status`);
+                        const res = await API.config.status();
                         const data = await res.json();
                         showSetup.value = !data.is_initialized;
                         await fetchCategories();
@@ -1721,7 +1722,7 @@
 
                 async function fetchCategories() {
                     try {
-                        const res = await fetch(`${API_BASE}/config/categories`);
+                        const res = await API.config.categories();
                         const data = await res.json();
                         arxivCategories.value = data.categories || {};
                         allCategories.value = data.all_categories || {};
@@ -1738,11 +1739,7 @@
                 async function testSetupAI() {
                     testingAI.value = true;
                     try {
-                        const res = await fetch(`${API_BASE}/config/test-ai`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(setupConfig.value)
-                        });
+                        const res = await API.config.testAI(setupConfig.value);
                         const data = await res.json();
                         if (res.ok) {
                             ElementPlus.ElMessage.success(data.message || t('settings.connectionSuccess'));
@@ -1786,13 +1783,9 @@
                     }, 4000);
 
                     try {
-                        await fetch(`${API_BASE}/config/init`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(setupConfig.value)
-                        });
+                        await API.config.init(setupConfig.value);
 
-                        const response = await fetch(`${API_BASE}/config/init/sync`, { method: 'POST' });
+                        const response = await API.config.initSync();
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         let buffer = '';
@@ -1841,7 +1834,7 @@
 
                 async function fetchConfig() {
                     try {
-                        const res = await fetch(`${API_BASE}/config`);
+                        const res = await API.config.get();
                         const data = await res.json();
                         settingsConfig.value = {
                             ai_api_key: data.ai_api_key || '',
@@ -1867,11 +1860,7 @@
                 async function saveApiKey() {
                     savingSettings.value = true;
                     try {
-                        const res = await fetch(`${API_BASE}/config`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ai_api_key: settingsConfig.value.ai_api_key })
-                        });
+                        const res = await API.config.update({ ai_api_key: settingsConfig.value.ai_api_key });
                         if (res.ok) {
                             ElementPlus.ElMessage.success(currentLang.value === 'zh' ? 'API Key 已更新' : 'API Key updated');
                         } else {
@@ -1891,16 +1880,11 @@
                             ai_base_url: settingsConfig.value.ai_base_url,
                             ai_model: settingsConfig.value.ai_model
                         };
-                        // Only send API key if it's not masked
                         if (settingsConfig.value.ai_api_key && settingsConfig.value.ai_api_key !== '***') {
                             payload.ai_api_key = settingsConfig.value.ai_api_key;
                         }
                         
-                        const res = await fetch(`${API_BASE}/config/test-ai`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
+                        const res = await API.config.testAI(payload);
                         const data = await res.json();
                         if (res.ok) {
                             ElementPlus.ElMessage.success(data.message || t('settings.connectionSuccess'));
@@ -2120,11 +2104,7 @@
                 async function saveSettings() {
                     savingSettings.value = true;
                     try {
-                        const res = await fetch(`${API_BASE}/config`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(settingsConfig.value)
-                        });
+                        const res = await API.config.update(settingsConfig.value);
                         if (res.ok) {
                             ElementPlus.ElMessage.success(currentLang.value === 'zh' ? '设置已保存' : 'Settings saved');
                             if (settingsConfig.value.ui_language) {
@@ -2147,7 +2127,6 @@
                 }
 
                 let settingsInitialized = false;
-                // 监听具体属性，避免 newVal/oldVal 引用相同对象的问题
                 watch(
                     () => ({
                         ai_base_url: settingsConfig.value.ai_base_url,
@@ -2185,11 +2164,7 @@
                     if (settingsConfig.value) {
                         settingsConfig.value.ui_language = newLang;
                         try {
-                            await fetch(`${API_BASE}/config`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(settingsConfig.value)
-                            });
+                            await API.config.update(settingsConfig.value);
                         } catch (e) {
                             console.error('Failed to save language setting:', e);
                         }
@@ -2198,7 +2173,7 @@
 
                 async function fetchStats() {
                     try {
-                        const res = await fetch(`${API_BASE}/stats`);
+                        const res = await API.stats.get();
                         stats.value = await res.json();
                         await nextTick();
                         if (currentPage.value === 'sync') {
@@ -2238,7 +2213,7 @@
 
                 async function fetchFieldStats() {
                     try {
-                        const res = await fetch(`${API_BASE}/stats/fields`);
+                        const res = await API.stats.fields();
                         const data = await res.json();
                         fieldStats.value = data.fields || [];
                     } catch (e) {
@@ -2256,9 +2231,8 @@
                     loadingController.value = controller;
                     
                     try {
-                        const response = await fetch(`${API_BASE}/papers/recent/cache/stream`, {
-                            signal: controller.signal
-                        });
+                        const response = await API.papers.recentCacheStream('');
+                        response.body.cancel = () => controller.abort();
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         let buffer = '';
@@ -2328,7 +2302,7 @@
                             params.append('categories', cats.join(','));
                         }
 
-                        const response = await fetch(`${API_BASE}/papers/recent/update?${params}`, { method: 'POST' });
+                        const response = await API.papers.recentUpdate(params.toString());
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         let buffer = '';
@@ -2377,7 +2351,7 @@
                         const params = new URLSearchParams({ q: searchQuery.value });
                         if (searchDays.value) params.append('days', searchDays.value);
 
-                        const response = await fetch(`${API_BASE}/papers/search/stream?${params}`);
+                        const response = await API.papers.searchStream(params.toString());
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         let buffer = '';
@@ -2414,7 +2388,7 @@
 
                 async function fetchCollections() {
                     try {
-                        const res = await fetch(`${API_BASE}/collections`);
+                        const res = await API.collections.list();
                         collections.value = await res.json();
                     } catch (e) {
                         console.error('Failed to fetch collections:', e);
@@ -2423,7 +2397,7 @@
 
                 async function fetchSyncStatus() {
                     try {
-                        const res = await fetch(`${API_BASE}/tasks/status`);
+                        const res = await API.tasks.status();
                         syncStatus.value = await res.json();
                     } catch (e) {
                         console.error('Failed to fetch sync status:', e);
@@ -2439,7 +2413,7 @@
                             force: syncForce.value
                         });
 
-                        const response = await fetch(`${API_BASE}/tasks/sync?${params}`, { method: 'POST' });
+                        const response = await API.tasks.sync(params.toString());
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         let buffer = '';
@@ -2476,7 +2450,7 @@
 
                 async function fetchCacheStats() {
                     try {
-                        const res = await fetch(`${API_BASE}/cache/stats`);
+                        const res = await API.cache.stats();
                         cacheStats.value = await res.json();
                     } catch (e) {
                         console.error('Failed to fetch cache stats:', e);
@@ -2508,11 +2482,7 @@
 
                     cacheClearing.value = type;
                     try {
-                        const res = await fetch(`${API_BASE}/cache/clear`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ cache_type: type })
-                        });
+                        const res = await API.cache.clear([type]);
                         const data = await res.json();
                         if (data.success) {
                             const total = Object.values(data.cleared).reduce((a, b) => a + b, 0);
@@ -2538,11 +2508,7 @@
                     savingCollection.value = true;
                     try {
                         if (editingCollection.value) {
-                            const res = await fetch(`${API_BASE}/collections/${editingCollection.value.id}`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(newCollection.value)
-                            });
+                            const res = await API.collections.update(editingCollection.value.id, newCollection.value);
                             if (res.ok) {
                                 ElementPlus.ElMessage.success(currentLang.value === 'zh' ? '更新成功' : 'Updated');
                                 showCreateCollection.value = false;
@@ -2553,11 +2519,7 @@
                                 ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '更新失败' : 'Failed to update');
                             }
                         } else {
-                            const res = await fetch(`${API_BASE}/collections`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(newCollection.value)
-                            });
+                            const res = await API.collections.create(newCollection.value);
                             if (res.ok) {
                                 ElementPlus.ElMessage.success(currentLang.value === 'zh' ? '创建成功' : 'Created');
                                 showCreateCollection.value = false;
@@ -2593,9 +2555,7 @@
                 async function deleteCollection() {
                     deletingCollectionInProgress.value = true;
                     try {
-                        const res = await fetch(`${API_BASE}/collections/${deletingCollection.value.id}`, {
-                            method: 'DELETE'
-                        });
+                        const res = await API.collections.delete(deletingCollection.value.id);
                         if (res.ok) {
                             ElementPlus.ElMessage.success('删除成功');
                             showDeleteConfirm.value = false;
@@ -2620,11 +2580,7 @@
                     if (!mergingFromCollection.value || !mergingToCollection.value) return;
                     mergingInProgress.value = true;
                     try {
-                        const res = await fetch(`${API_BASE}/collections/${mergingFromCollection.value.id}/merge`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ target_collection_id: mergingToCollection.value.id })
-                        });
+                        const res = await API.collections.merge(mergingFromCollection.value.id, mergingToCollection.value.id);
                         if (res.ok) {
                             const data = await res.json();
                             ElementPlus.ElMessage.success(t('collections.mergeSuccess', { count: data.merged_count, name: mergingToCollection.value.name }));
@@ -2661,11 +2617,7 @@
                         aiSearching.value = true;
                         loadingCollectionPapers.value = true;
                         try {
-                            const res = await fetch(`${API_BASE}/collections/${viewingCollection.value.id}/ai-search`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ query: collectionPaperSearch.value.trim() })
-                            });
+                            const res = await API.collections.aiSearch(viewingCollection.value.id, collectionPaperSearch.value.trim());
                             const data = await res.json();
                             if (data.papers && data.papers.length > 0) {
                                 collectionPapers.value = data.papers;
@@ -2716,7 +2668,7 @@
                         if (collectionSortOrder.value) {
                             params.append('sort_order', collectionSortOrder.value);
                         }
-                        const res = await fetch(`${API_BASE}/collections/${viewingCollection.value.id}/papers?${params}`);
+                        const res = await API.collections.papers(viewingCollection.value.id, params.toString());
                         const data = await res.json();
                         collectionPapers.value = data.papers || [];
                         collectionTotalCount.value = data.total_count || 0;
@@ -2730,10 +2682,7 @@
 
                 async function removePaperFromCollection(paperId) {
                     try {
-                        const res = await fetch(
-                            `${API_BASE}/collections/${viewingCollection.value.id}/papers/${paperId}`,
-                            { method: 'DELETE' }
-                        );
+                        const res = await API.collections.removePaper(viewingCollection.value.id, paperId);
                         if (res.ok) {
                             ElementPlus.ElMessage.success('已移除');
                             loadCollectionPage();
@@ -2757,14 +2706,10 @@
                 async function duplicateCollection(collection) {
                     savingCollection.value = true;
                     try {
-                        const res = await fetch(`${API_BASE}/collections`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                name: `${collection.name} (copy)`,
-                                description: collection.description,
-                                color: collection.color
-                            })
+                        const res = await API.collections.create({
+                            name: `${collection.name} (copy)`,
+                            description: collection.description,
+                            color: collection.color
                         });
                         if (res.ok) {
                             const newCol = await res.json();
@@ -2803,11 +2748,7 @@
                         }
                         
                         const paperIds = papersToAdd.map(p => p.id);
-                        const res = await fetch(`${API_BASE}/collections/${selectedCollectionId.value}/papers/batch`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ paper_ids: paperIds })
-                        });
+                        const res = await API.collections.addPapersBatch(selectedCollectionId.value, paperIds);
                         
                         if (res.ok) {
                             const data = await res.json();
@@ -2871,14 +2812,10 @@
                 async function exportRecent(format) {
                     if (recentSelectedIds.value.length === 0) return;
                     try {
-                        const res = await fetch(`${API_BASE}/export/papers`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                paper_ids: recentSelectedIds.value,
-                                format: format,
-                                include_summary: true
-                            })
+                        const res = await API.export.papers({
+                            paper_ids: recentSelectedIds.value,
+                            format: format,
+                            include_summary: true
                         });
                         if (!res.ok) throw new Error('Export failed');
                         const blob = await res.blob();
@@ -2898,14 +2835,10 @@
                 async function exportSearch(format) {
                     if (searchSelectedIds.value.length === 0) return;
                     try {
-                        const res = await fetch(`${API_BASE}/export/papers`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                paper_ids: searchSelectedIds.value,
-                                format: format,
-                                include_summary: true
-                            })
+                        const res = await API.export.papers({
+                            paper_ids: searchSelectedIds.value,
+                            format: format,
+                            include_summary: true
                         });
                         if (!res.ok) throw new Error('Export failed');
                         const blob = await res.blob();
@@ -2925,14 +2858,10 @@
                 async function exportCollection(format) {
                     if (!viewingCollection.value) return;
                     try {
-                        const res = await fetch(`${API_BASE}/export/collection`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                collection_id: viewingCollection.value.id,
-                                format: format,
-                                include_summary: true
-                            })
+                        const res = await API.export.collection({
+                            collection_id: viewingCollection.value.id,
+                            format: format,
+                            include_summary: true
                         });
                         if (!res.ok) throw new Error('Export failed');
                         const blob = await res.blob();
@@ -2953,14 +2882,10 @@
                     const collection = collections.value.find(c => c.id === collectionId);
                     if (!collection) return;
                     try {
-                        const res = await fetch(`${API_BASE}/export/collection`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                collection_id: collectionId,
-                                format: format,
-                                include_summary: true
-                            })
+                        const res = await API.export.collection({
+                            collection_id: collectionId,
+                            format: format,
+                            include_summary: true
                         });
                         if (!res.ok) throw new Error('Export failed');
                         const blob = await res.blob();
@@ -3020,7 +2945,7 @@
                     
                     try {
                         const params = new URLSearchParams({ q: homeQuery.value });
-                        const response = await fetch(`${API_BASE}/papers/quick?${params}`);
+                        const response = await API.papers.quick(params.toString());
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         let buffer = '';
@@ -3062,14 +2987,10 @@
                 async function exportHome(format) {
                     if (homeSelectedIds.value.length === 0) return;
                     try {
-                        const res = await fetch(`${API_BASE}/export/papers`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                paper_ids: homeSelectedIds.value,
-                                format: format,
-                                include_summary: true
-                            })
+                        const res = await API.export.papers({
+                            paper_ids: homeSelectedIds.value,
+                            format: format,
+                            include_summary: true
                         });
                         if (!res.ok) throw new Error('Export failed');
                         const blob = await res.blob();
@@ -3192,7 +3113,7 @@
 
                 async function fetchChatSessions() {
                     try {
-                        const res = await fetch(`${API_BASE}/chat/sessions`);
+                        const res = await API.chat.sessions.list();
                         chatSessions.value = await res.json();
                     } catch (e) {
                         console.error('Failed to fetch chat sessions:', e);
@@ -3201,7 +3122,7 @@
 
                 async function createNewChat() {
                     try {
-                        const res = await fetch(`${API_BASE}/chat/sessions`, { method: 'POST' });
+                        const res = await API.chat.sessions.create();
                         const session = await res.json();
                         chatSessions.value.unshift(session);
                         currentChatSession.value = session;
@@ -3217,7 +3138,7 @@
                     showChatSidebar.value = false;
                     chatMessages.value = [];
                     try {
-                        const res = await fetch(`${API_BASE}/chat/sessions/${session.id}`);
+                        const res = await API.chat.sessions.get(session.id);
                         const data = await res.json();
                         chatMessages.value = data.messages || [];
                         await nextTick();
@@ -3235,7 +3156,7 @@
                             { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
                         );
                         
-                        const res = await fetch(`${API_BASE}/chat/sessions/${session.id}`, { method: 'DELETE' });
+                        const res = await API.chat.sessions.delete(session.id);
                         if (res.ok) {
                             const idx = chatSessions.value.findIndex(s => s.id === session.id);
                             if (idx >= 0) chatSessions.value.splice(idx, 1);
@@ -3266,7 +3187,7 @@
                         });
                         
                         for (const session of chatSessions.value) {
-                            await fetch(`${API_BASE}/chat/sessions/${session.id}`, { method: 'DELETE' });
+                            await API.chat.sessions.delete(session.id);
                         }
                         chatSessions.value = [];
                         currentChatSession.value = null;
@@ -3339,10 +3260,10 @@
                     const assistantIdx = chatMessages.value.length - 1;
 
                     try {
-                        const response = await fetch(`${API_BASE}/chat/sessions/${currentChatSession.value.id}/send`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ content: messageContent, paper_ids: paperIds, language: currentLang.value })
+                        const response = await API.chat.sessions.send(currentChatSession.value.id, {
+                            content: messageContent,
+                            paper_ids: paperIds,
+                            language: currentLang.value
                         });
 
                         const reader = response.body.getReader();
@@ -3523,14 +3444,10 @@
                             return;
                         }
                         try {
-                            const res = await fetch(`${API_BASE}/export/papers`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                    paper_ids: papersWithId.map(p => p.id), 
-                                    format: 'pdf',
-                                    include_summary: true 
-                                })
+                            const res = await API.export.papers({ 
+                                paper_ids: papersWithId.map(p => p.id), 
+                                format: 'pdf',
+                                include_summary: true 
                             });
                             if (res.ok) {
                                 const blob = await res.blob();
@@ -3554,7 +3471,7 @@
                         let successCount = 0;
                         for (const paper of paperCart.value) {
                             try {
-                                const res = await fetch(`${API_BASE}/papers/pdf/${paper.arxiv_id}`);
+                                const res = await API.papers.pdf(paper.arxiv_id);
                                 if (res.ok) {
                                     const blob = await res.blob();
                                     const url = URL.createObjectURL(blob);
