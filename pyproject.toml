@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arxiv-pulse"
-version = "1.0.2"
+version = "1.0.3"
 authors = [
     {name = "Yang Li, OpenCode, GLM-5", email = "lyang.1915@gmail.com"},
 ]
@@ -64,9 +64,9 @@ Documentation = "https://github.com/kYangLi/ArXiv-Pulse#readme"
 [project.scripts]
 pulse = "arxiv_pulse.cli:cli"
 
-[tool.setuptools]
-include-package-data = true
-packages = ["arxiv_pulse"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["arxiv_pulse*"]
 
 [tool.setuptools.package-data]
 arxiv_pulse = ["*.txt", "*.md", ".ENV.TEMPLATE", "web/static/**/*"]
