@@ -8,35 +8,24 @@
 
 **arXiv Pulse** is a Python package for automated crawling, summarizing, and tracking of the latest research papers from arXiv in condensed matter physics, density functional theory (DFT), machine learning, force fields, and computational materials science. It provides a modern web interface for a professional literature management experience.
 
+## 📸 Screenshots
+
+| Chinese Interface | English Interface |
+|:---:|:---:|
+| ![Chinese](.image/interface_zh.png) | ![English](.image/interface_en.png) |
+
 ## ✨ Key Features
 
-- **🌐 Web Interface**: Modern FastAPI + Vue 3 web interface with real-time SSE streaming
+- **🌐 Web Interface**: Modern FastAPI + Vue 3 + Element Plus interface with real-time SSE streaming
 - **🚀 One-Command Start**: Simply run `pulse serve` to start the service
 - **📝 Web Configuration**: First-time setup wizard, all settings stored in database
-- **📁 Paper Collections**: Create, edit, and delete collections to organize important papers
 - **🤖 AI Auto-Processing**: Automatic translation, AI summarization, and figure extraction
+- **💬 AI Chat Assistant**: Ask questions about papers with context-aware AI assistant
 - **🔍 Smart Search**: Natural language queries with AI-powered keyword parsing
-- **💾 Database Storage**: SQLite database for paper metadata and configuration
-- **⚙️ System Settings**: Web-based management of AI API, research fields, and sync options
-- **🌍 Multilingual Support**: UI in Chinese/English, translation to Chinese/English
-- **🎯 Research Focused**: Optimized for condensed matter physics, DFT, ML, force fields
-
-## 🆕 v1.0.0 Major Update
-
-### Multilingual Support
-- **UI Language**: Switch between Chinese and English in settings
-- **Translation Language**: Choose to translate papers to Chinese or keep original English
-- **Bilingual Documentation**: README in both English and Chinese
-
-### Service Management
-- **Background Mode**: Default background execution with `pulse start`
-- **Foreground Mode**: Use `-f` flag for foreground execution
-- **Service Control**: `pulse status`, `pulse stop`, `pulse restart`
-
-### Enhanced UI
-- **Larger Icons**: More prominent action buttons on paper cards
-- **Floating Widgets**: Paper basket, AI chat, and home button aligned at bottom-right
-- **Improved Animations**: Smooth transitions and feedback
+- **📁 Paper Collections**: Create, edit, and delete collections to organize important papers
+- **🛒 Paper Basket**: Select multiple papers for batch operations
+- **🔒 Secure by Default**: Localhost-only binding, explicit confirmation for remote access
+- **🌍 Multilingual Support**: UI in Chinese/English, translation to multiple languages
 
 ## 🚀 Quick Start
 
@@ -58,9 +47,11 @@ pulse serve .
 # Or specify port
 pulse serve . --port 3000
 
-# Foreground mode
+# Foreground mode (see logs in terminal)
 pulse serve . -f
 ```
+
+Then visit http://localhost:8000
 
 ### Service Management
 
@@ -71,22 +62,67 @@ pulse restart .         # Restart service
 pulse stop . --force    # Force stop (SIGKILL)
 ```
 
+### Remote Access (SSH Tunnel)
+
+By default, the service only accepts localhost connections for security. For remote access, use SSH tunnel:
+
+```bash
+# On server
+pulse serve .
+
+# On your computer
+ssh -L 8000:localhost:8000 user@server
+
+# Then visit http://localhost:8000
+```
+
+This provides encrypted connection without exposing your API keys.
+
 ### First-Time Setup
 
 1. Visit http://localhost:8000
 2. Follow the setup wizard:
-   - **Step 1**: Configure AI API (key, model, endpoint)
+   - **Step 1**: Configure AI API (OpenAI/DeepSeek key, model, endpoint)
    - **Step 2**: Select research fields
    - **Step 3**: Set sync parameters
    - **Step 4**: Start initial sync
 
-### Daily Usage
+## 🔒 Security
 
-- **Recent**: View papers from the last N days
-- **Search**: Natural language search with AI parsing
-- **Collections**: Create collections to organize important papers
-- **Settings**: Click the gear icon to modify configuration
-- **AI Chat**: Ask questions about papers with AI assistant
+arXiv Pulse is designed with security in mind:
+
+- **Localhost-only by default**: Service binds to 127.0.0.1, inaccessible from external networks
+- **No plaintext credentials**: API keys stored in local SQLite database, never transmitted
+- **Explicit remote access**: Opening to non-localhost requires a flag with security warning
+
+**For remote access**, we recommend:
+1. **SSH Tunnel** (easiest): `ssh -L 8000:localhost:8000 user@server`
+2. **VPN**: WireGuard, OpenVPN, or Tailscale
+3. **Reverse Proxy**: Nginx/Caddy with HTTPS
+
+```bash
+# If you must open to network (not recommended)
+pulse serve . --host 0.0.0.0 --allow-non-localhost-access-with-plaintext-transmission-risk
+```
+
+## 📖 Daily Usage
+
+### Pages
+
+| Page | Description |
+|------|-------------|
+| **Home** | Statistics overview, search by natural language |
+| **Recent** | Papers from last N days, filter by field |
+| **Sync** | Sync status, field management, manual sync |
+| **Collections** | Organize important papers into collections |
+
+### Features
+
+- **Search**: Use natural language like "DFT calculations for battery materials"
+- **Filter**: Click "Filter Fields" to select research areas
+- **AI Chat**: Click the chat icon (bottom-right) to ask questions
+- **Paper Basket**: Click basket icon on cards to collect papers for batch operations
+- **Settings**: Click gear icon to modify API key, language, and sync options
 
 ## 📁 Project Structure
 
@@ -98,28 +134,18 @@ arxiv_pulse/
 ├── arxiv_crawler.py           # arXiv API interactions
 ├── summarizer.py              # Paper summarizer
 ├── search_engine.py           # Enhanced search engine
-├── report_generator.py        # Report generator
-├── research_fields.py         # Research field definitions
 ├── i18n/                      # Internationalization
-│   ├── __init__.py
 │   ├── zh.py                  # Chinese translations
 │   └── en.py                  # English translations
 └── web/
     ├── app.py                 # FastAPI application
     ├── static/index.html      # Vue 3 frontend
-    └── api/
-        ├── papers.py          # Paper API + SSE
-        ├── collections.py     # Collections API
-        ├── config.py          # Config API
-        ├── tasks.py           # Sync tasks API
-        ├── stats.py           # Statistics API
-        ├── export.py          # Export API
-        └── chat.py            # AI Chat API
+    └── api/                   # API endpoints
 
 Data Directory/
 ├── data/
-│   └── arxiv_papers.db        # SQLite database (includes config)
-└── web.log                    # Background service log
+│   └── arxiv_papers.db        # SQLite database
+└── web.log                    # Service log
 ```
 
 ## 🔧 API Endpoints
@@ -128,122 +154,59 @@ Data Directory/
 |----------|--------|-------------|
 | `/api/config` | GET/PUT | Get/update configuration |
 | `/api/config/status` | GET | Get initialization status |
-| `/api/config/init` | POST | Save initial configuration |
-| `/api/config/init/sync` | POST (SSE) | Execute initial sync |
 | `/api/papers/search/stream` | GET (SSE) | AI-powered search |
 | `/api/papers/recent/update` | POST (SSE) | Update recent papers |
 | `/api/collections` | GET/POST | List/create collections |
 | `/api/stats` | GET | Database statistics |
-| `/api/chat/sessions` | GET/POST | List/create chat sessions |
 | `/api/chat/sessions/{id}/send` | POST (SSE) | Send message to AI |
 
 ## 🧪 Supported Research Fields
 
-The system supports 20+ research fields, selectable in the web setup wizard:
+20+ research fields available:
 
-| Field | Description |
-|-------|-------------|
-| Condensed Matter Physics | Superconductivity, strongly correlated electrons, mesoscopic systems |
-| Density Functional Theory (DFT) | First-principles calculations, materials design |
-| Machine Learning | ML applications in physics and materials science |
-| Force Fields & MD | Force field development, MD simulations |
-| First-Principles Calculations | Ab initio methods |
-| Quantum Physics | Quantum information, quantum computing |
-| Computational Physics | Numerical methods |
-| Chemical Physics | Physical basis of chemical processes |
-| Molecular Dynamics | MD simulation techniques |
-| Computational Materials Science | Materials computation and simulation |
-| Quantum Chemistry | Quantum chemistry methods |
-| Astrophysics | Cosmology, astronomical observations |
-| High Energy Physics | Particle physics theory and experiments |
-| Nuclear Physics | Nuclear physics theory and experiments |
-| Artificial Intelligence | AI, neural networks |
-| Numerical Analysis | Numerical methods and algorithms |
-| Statistics | Statistical theory and applications |
-| Quantitative Biology | Bioinformatics, systems biology |
-| Electrical Engineering | Signal processing, control systems |
-| Mathematical Physics | Mathematical methods for physics |
+| Category | Fields |
+|----------|--------|
+| Physics | Condensed Matter, Quantum Physics, High Energy, Nuclear, Astrophysics |
+| Computation | DFT, First-Principles, MD, Force Fields, Computational Physics |
+| AI/ML | Machine Learning, Artificial Intelligence |
+| Chemistry | Quantum Chemistry, Chemical Physics |
+| Math | Mathematical Physics, Numerical Analysis, Statistics |
+| Others | Quantitative Biology, Electrical Engineering |
 
 ## 🐛 Troubleshooting
 
-### Common Issues
-
-**Q: Forgot API key?**
-A: Click the settings icon in the top-right corner to modify your API key and other configurations.
-
-**Q: How to reinitialize?**
-A: Delete the `data/arxiv_papers.db` database file and restart the service to enter the setup wizard again.
-
 **Q: Port already in use?**
-A: Use `pulse serve . --port 3000` to specify a different port.
+```bash
+pulse serve . --port 3000
+```
 
 **Q: Service shows "not running" but port is occupied?**
-A: Check for stale lock file (`.pulse.lock`) and remove it, or use `pulse stop --force`.
-
-### Debugging
-
 ```bash
-# View detailed logs
-pulse serve . -f
-
-# Check background service log
-tail -f web.log
+pulse stop . --force
+# Or remove stale lock
+rm .pulse.lock
 ```
 
-## 🔧 Advanced Usage
-
-### Auto-Scheduling with Systemd (Linux)
-
-Create `/etc/systemd/system/arxiv-pulse.service`:
-```ini
-[Unit]
-Description=arXiv Pulse Web Service
-After=network.target
-
-[Service]
-Type=simple
-User=your_username
-WorkingDirectory=/path/to/your/papers
-ExecStart=/usr/local/bin/pulse serve .
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable the service:
+**Q: How to reinitialize?**
 ```bash
-sudo systemctl enable arxiv-pulse
-sudo systemctl start arxiv-pulse
+rm data/arxiv_papers.db
+pulse serve .
 ```
+
+**Q: AI not responding?**
+- Check API key in Settings
+- Check console for errors (F12 → Console)
+- Try foreground mode to see logs: `pulse serve . -f`
 
 ## 📄 License
 
-This project is licensed under GPL-3.0 - see the [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+GPL-3.0 - see [LICENSE](LICENSE) for details.
 
 ## 🙏 Acknowledgments
 
 - [arXiv.org](https://arxiv.org) for the API
 - [DeepSeek](https://www.deepseek.com) for AI models
 - Computational materials science community
-
-## 📞 Support
-
-For questions or suggestions:
-1. Check [GitHub Issues](https://github.com/kYangLi/ArXiv-Pulse/issues)
-2. Check the log files in your data directory
-3. Review the configuration in the web settings
 
 ---
 
