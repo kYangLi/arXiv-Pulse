@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from arxiv_pulse.models import Collection, CollectionPaper, Paper
+from arxiv_pulse.services.paper_service import enhance_paper_data
 from arxiv_pulse.web.dependencies import get_db
 
 router = APIRouter()
@@ -19,13 +20,6 @@ def refresh_stats_cache():
     from arxiv_pulse.web.api.stats import update_stats_cache
 
     update_stats_cache()
-
-
-def enhance_paper_data(paper: Paper) -> dict:
-    """增强论文数据，添加翻译、关键发现、图片等"""
-    from arxiv_pulse.web.api.papers import enhance_paper_data as _enhance
-
-    return _enhance(paper)
 
 
 class CollectionCreate(BaseModel):

@@ -5,251 +5,32 @@ Papers API Router
 import json
 import re
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
 from arxiv_pulse.config import Config
-from arxiv_pulse.models import FigureCache, Paper
-from arxiv_pulse.summarizer import PaperSummarizer
-from arxiv_pulse.utils import sse_event, sse_log, sse_response
+from arxiv_pulse.models import Paper
+from arxiv_pulse.services.paper_service import (
+    enhance_paper_data,
+    fetch_and_cache_figure,
+    get_category_explanation,
+    get_figure_url_cached,
+    summarize_and_cache_paper,
+)
+from arxiv_pulse.utils import sse_event, sse_response
 from arxiv_pulse.web.dependencies import get_db
 
 router = APIRouter()
 
-_category_explanations = {
-    "cs.AI": "人工智能 (Artificial Intelligence)",
-    "cs.CL": "计算语言学 (Computation and Language)",
-    "cs.CR": "密码学与安全 (Cryptography and Security)",
-    "cs.CV": "计算机视觉 (Computer Vision)",
-    "cs.LG": "机器学习 (Machine Learning)",
-    "cs.NE": "神经网络 (Neural and Evolutionary Computing)",
-    "cs.SE": "软件工程 (Software Engineering)",
-    "cs.PL": "编程语言 (Programming Languages)",
-    "cs.DC": "分布式计算 (Distributed, Parallel, and Cluster Computing)",
-    "cs.DS": "数据结构与算法 (Data Structures and Algorithms)",
-    "cs.IT": "信息论 (Information Theory)",
-    "cs.SY": "系统与控制 (Systems and Control)",
-    "cond-mat": "凝聚态物理 (Condensed Matter)",
-    "cond-mat.mtrl-sci": "材料科学 (Materials Science)",
-    "cond-mat.str-el": "强关联电子系统 (Strongly Correlated Electrons)",
-    "cond-mat.supr-con": "超导 (Superconductivity)",
-    "cond-mat.mes-hall": "介观系统与量子霍尔效应 (Mesoscopic Systems and Quantum Hall Effect)",
-    "cond-mat.soft": "软凝聚态物质 (Soft Condensed Matter)",
-    "cond-mat.dis-nn": "无序系统与神经网络 (Disordered Systems and Neural Networks)",
-    "cond-mat.stat-mech": "统计力学 (Statistical Mechanics)",
-    "cond-mat.quant-gas": "量子气体 (Quantum Gases)",
-    "physics": "物理学 (Physics)",
-    "physics.comp-ph": "计算物理 (Computational Physics)",
-    "physics.chem-ph": "化学物理 (Chemical Physics)",
-    "physics.data-an": "数据分析 (Data Analysis, Statistics and Probability)",
-    "physics.ins-det": "仪器与探测器 (Instrumentation and Detectors)",
-    "math": "数学 (Mathematics)",
-    "math.NA": "数值分析 (Numerical Analysis)",
-    "math.OC": "优化与控制 (Optimization and Control)",
-    "math.ST": "统计 (Statistics)",
-    "q-bio": "定量生物学 (Quantitative Biology)",
-    "q-bio.BM": "生物分子 (Biomolecules)",
-    "q-bio.QM": "定量方法 (Quantitative Methods)",
-    "q-fin": "定量金融 (Quantitative Finance)",
-    "stat": "统计学 (Statistics)",
-    "stat.ML": "机器学习 (Machine Learning)",
-    "stat.AP": "应用 (Applications)",
-    "stat.CO": "计算 (Computation)",
-    "stat.ME": "方法学 (Methodology)",
-    "stat.OT": "其他 (Other)",
-    "stat.TH": "理论 (Theory)",
-}
 
-
-def get_category_explanation(category_code: str) -> str:
-    """获取分类代码的解释"""
-    if not category_code:
-        return ""
-    categories = [c.strip() for c in category_code.split(",")]
-    explanations = []
-    for cat in categories:
-        if cat in _category_explanations:
-            explanations.append(_category_explanations[cat])
-        else:
-            main_cat = cat.split(".")[0] if "." in cat else cat
-            if main_cat in _category_explanations:
-                explanations.append(f"{cat} ({_category_explanations[main_cat].split('(')[0]})")
-            else:
-                explanations.append(cat)
-    return "; ".join(explanations)
-
-
-def calculate_relevance_score(paper) -> int:
-    """计算论文相关度评级 (1-5星)"""
-    query = (paper.search_query or "").lower()
-    categories = (paper.categories or "").lower()
-
-    core_domains = [
-        "condensed matter physics",
-        "density functional theory",
-        "first principles calculation",
-        "force fields",
-        "molecular dynamics",
-        "computational materials science",
-        "quantum chemistry",
-    ]
-    related_domains = ["machine learning"]
-    target_categories = ["cond-mat", "physics.comp-ph", "physics.chem-ph", "quant-ph"]
-    related_categories = ["cs.LG", "cs.AI", "cs.NE", "stat.ML"]
-    unrelated_categories = ["cs.CR", "cs.SE", "cs.PL", "cs.DC", "q-fin"]
-
-    score = 3
-    for domain in core_domains:
-        if domain in query:
-            score += 2
-            break
-    for domain in related_domains:
-        if domain in query:
-            score += 1
-            break
-    if any(cat in categories for cat in target_categories):
-        score += 2
-    elif any(cat in categories for cat in related_categories):
-        score += 1
-    if any(cat in categories for cat in unrelated_categories):
-        score -= 1
-    if "computational materials science" in query and any(cat in categories for cat in unrelated_categories):
-        score = max(2, score - 1)
-    return max(1, min(5, score))
-
-
-def translate_text(text: str, target_lang: str = "zh") -> str:
-    """使用AI API翻译文本，优先使用缓存"""
-    if not text or not text.strip():
-        return ""
-
-    if target_lang == "en":
-        return ""
-
-    db = get_db()
-
-    cached_translation = db.get_translation_cache(text, target_lang)
-    if cached_translation:
-        return cached_translation
-
-    if not Config.AI_API_KEY:
-        return ""
-
-    try:
-        import openai
-
-        from arxiv_pulse.i18n import get_translation_prompt
-
-        client = openai.OpenAI(api_key=Config.AI_API_KEY, base_url=Config.AI_BASE_URL)
-        max_chars = 3000
-        text_to_translate = text[:max_chars] + "... [文本过长，已截断]" if len(text) > max_chars else text
-
-        system_prompt = get_translation_prompt(target_lang)
-
-        response = client.chat.completions.create(
-            model=Config.AI_MODEL or "DeepSeek-V3.2",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text_to_translate},
-            ],
-            max_tokens=min(2000, len(text_to_translate) // 2),
-            temperature=0.3,
-        )
-
-        translated = response.choices[0].message.content or ""
-        if translated and not translated.startswith("*"):
-            db.set_translation_cache(text, translated, target_lang)
-        return translated
-    except Exception:
-        return ""
-
-
-def extract_key_findings(summary: str | None) -> list[str]:
-    """从summary JSON中提取关键发现"""
-    if not summary:
-        return []
-    try:
-        data = json.loads(summary)
-        return data.get("key_findings", [])[:5]
-    except:
-        return []
-
-
-def get_figure_url_cached(arxiv_id: str, session) -> str | None:
-    """获取缓存的图片URL"""
-    figure = session.query(FigureCache).filter_by(arxiv_id=arxiv_id).first()
-    return figure.figure_url if figure else None
-
-
-def fetch_and_cache_figure(arxiv_id: str) -> str | None:
-    """获取论文图片并缓存到数据库"""
-    try:
-        from arxiv_pulse.report_generator import ReportGenerator
-
-        report_gen = ReportGenerator()
-        return report_gen.get_first_figure_url(arxiv_id, use_cache=True)
-    except Exception:
-        return None
-
-
-def summarize_and_cache_paper(paper: Paper) -> bool:
-    """总结论文并保存到数据库"""
-    try:
-        summarizer = PaperSummarizer()
-        return summarizer.summarize_paper(paper)
-    except Exception:
-        return False
-
-
-def enhance_paper_data(paper: Paper, session=None) -> dict[str, Any]:
-    """增强论文数据，添加翻译、关键发现、图片等"""
-    from arxiv_pulse.models import Collection, CollectionPaper
-
-    data = paper.to_dict()
-
-    data["relevance_score"] = calculate_relevance_score(paper)
-    data["category_explanation"] = get_category_explanation(paper.categories or "")
-
-    data["ai_available"] = bool(Config.AI_API_KEY)
-
-    if paper.summary:
-        try:
-            summary_data = json.loads(paper.summary)
-            data["summary_data"] = summary_data
-            data["summary_text"] = summary_data.get("summary", "") or summary_data.get("methodology", "") or ""
-            data["key_findings"] = summary_data.get("key_findings", [])[:5]
-            data["keywords"] = summary_data.get("keywords", [])[:10]
-        except (json.JSONDecodeError, TypeError):
-            data["summary_data"] = None
-            data["summary_text"] = ""
-            data["key_findings"] = []
-            data["keywords"] = []
-    else:
-        data["summary_data"] = None
-        data["summary_text"] = ""
-        data["key_findings"] = []
-        data["keywords"] = []
-
-    data["title_translation"] = translate_text(paper.title, Config.TRANSLATE_LANGUAGE)
-    if paper.abstract:
-        data["abstract_translation"] = translate_text(paper.abstract, Config.TRANSLATE_LANGUAGE)
-    else:
-        data["abstract_translation"] = ""
-
-    if session:
-        figure = session.query(FigureCache).filter_by(arxiv_id=paper.arxiv_id).first()
-        data["figure_url"] = figure.figure_url if figure else None
-        collection_ids = [cp.collection_id for cp in session.query(CollectionPaper).filter_by(paper_id=paper.id).all()]
-        data["collection_ids"] = collection_ids
-    else:
-        with get_db().get_session() as s:
-            figure = s.query(FigureCache).filter_by(arxiv_id=paper.arxiv_id).first()
-            data["figure_url"] = figure.figure_url if figure else None
-            collection_ids = [cp.collection_id for cp in s.query(CollectionPaper).filter_by(paper_id=paper.id).all()]
-            data["collection_ids"] = collection_ids
-
-    return data
+def parse_arxiv_id(query: str) -> str | None:
+    """Parse arXiv ID from various formats"""
+    q = query.strip()
+    if q.startswith("arXiv:"):
+        q = q[6:]
+    arxiv_pattern = r"(\d{4}\.\d{4,5})"
+    match = re.search(arxiv_pattern, q)
+    return match.group(1) if match else None
 
 
 @router.get("")
@@ -286,7 +67,7 @@ async def get_recent_papers(
     days: int = Query(7, ge=1),
     limit: int = Query(64, ge=1, le=200),
 ):
-    """Get recent papers with enhanced data (translation, relevance, key findings)"""
+    """Get recent papers with enhanced data"""
     with get_db().get_session() as session:
         cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=days)
         papers = (
@@ -307,11 +88,7 @@ async def get_recent_cache():
     cache = db.get_recent_cache()
 
     if not cache:
-        return {
-            "cached": False,
-            "papers": [],
-            "total": 0,
-        }
+        return {"cached": False, "papers": [], "total": 0}
 
     paper_ids = cache.get("paper_ids", [])
     if not paper_ids:
@@ -327,7 +104,6 @@ async def get_recent_cache():
         papers = session.query(Paper).filter(Paper.id.in_(paper_ids)).all()
         id_to_paper = {p.id: p for p in papers}
         ordered_papers = [id_to_paper[pid] for pid in paper_ids if pid in id_to_paper]
-
         result = [enhance_paper_data(p, session) for p in ordered_papers]
 
     return {
@@ -341,7 +117,7 @@ async def get_recent_cache():
 
 @router.get("/recent/cache/stream")
 async def get_recent_cache_stream():
-    """SSE: Get cached recent papers with progress (for large databases)"""
+    """SSE: Get cached recent papers with progress"""
 
     async def event_generator():
         import asyncio
@@ -350,17 +126,19 @@ async def get_recent_cache_stream():
         cache = db.get_recent_cache()
 
         if not cache:
-            yield f"data: {json.dumps({'type': 'done', 'total': 0, 'cached': False}, ensure_ascii=False)}\n\n"
+            yield sse_event("done", {"total": 0, "cached": False})
             return
 
         paper_ids = cache.get("paper_ids", [])
         total = len(paper_ids)
 
         if not paper_ids:
-            yield f"data: {json.dumps({'type': 'done', 'total': 0, 'cached': True}, ensure_ascii=False)}\n\n"
+            yield sse_event("done", {"total": 0, "cached": True})
             return
 
-        yield f"data: {json.dumps({'type': 'start', 'total': total, 'days_back': cache.get('days_back', 7), 'updated_at': cache.get('updated_at')}, ensure_ascii=False)}\n\n"
+        yield sse_event(
+            "start", {"total": total, "days_back": cache.get("days_back", 7), "updated_at": cache.get("updated_at")}
+        )
         await asyncio.sleep(0.01)
 
         with db.get_session() as session:
@@ -371,7 +149,7 @@ async def get_recent_cache_stream():
                 if pid in id_to_paper:
                     paper = id_to_paper[pid]
                     enhanced = enhance_paper_data(paper, session)
-                    yield f"data: {json.dumps({'type': 'result', 'paper': enhanced, 'index': i, 'total': total}, ensure_ascii=False)}\n\n"
+                    yield sse_event("result", {"paper": enhanced, "index": i, "total": total})
                 else:
                     yield sse_event("progress", {"index": i, "total": total})
                 await asyncio.sleep(0.01)
@@ -388,12 +166,7 @@ async def get_recent_cache_status():
     cache = db.get_recent_cache()
 
     if not cache:
-        return {
-            "has_cache": False,
-            "days_back": 7,
-            "total_count": 0,
-            "updated_at": None,
-        }
+        return {"has_cache": False, "days_back": 7, "total_count": 0, "updated_at": None}
 
     return {
         "has_cache": True,
@@ -425,22 +198,18 @@ async def update_recent_papers(
         sync_years = Config.YEARS_BACK
 
         with db.get_session() as session:
-            task = SyncTask(
-                id=task_id,
-                task_type="recent_update",
-                status="pending",
-            )
+            task = SyncTask(id=task_id, task_type="recent_update", status="pending")
             session.add(task)
             session.commit()
 
-        yield f"data: {json.dumps({'type': 'log', 'message': '开始更新最近论文...'}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": "开始更新最近论文..."})
         await asyncio.sleep(0.1)
 
-        yield f"data: {json.dumps({'type': 'log', 'message': f'查询范围: 最近 {days} 天'}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": f"查询范围: 最近 {days} 天"})
         await asyncio.sleep(0.1)
 
         if category_list:
-            yield f"data: {json.dumps({'type': 'log', 'message': f'领域过滤: {", ".join(category_list)}'}, ensure_ascii=False)}\n\n"
+            yield sse_event("log", {"message": f"领域过滤: {', '.join(category_list)}"})
             await asyncio.sleep(0.1)
 
         total_added = 0
@@ -453,7 +222,7 @@ async def update_recent_papers(
                     task.message = "正在同步新论文..."
                     session.commit()
 
-            yield f"data: {json.dumps({'type': 'log', 'message': '正在同步新论文...'}, ensure_ascii=False)}\n\n"
+            yield sse_event("log", {"message": "正在同步新论文..."})
             await asyncio.sleep(0.1)
 
             try:
@@ -464,26 +233,25 @@ async def update_recent_papers(
 
                 for i, query in enumerate(queries, 1):
                     query_short = query[:50] + "..." if len(query) > 50 else query
-                    yield f"data: {json.dumps({'type': 'log', 'message': f'[{i}/{len(queries)}] 同步: {query_short}'}, ensure_ascii=False)}\n\n"
+                    yield sse_event("log", {"message": f"[{i}/{len(queries)}] 同步: {query_short}"})
                     await asyncio.sleep(0.05)
 
                     try:
                         result = crawler.sync_query(query=query, years_back=sync_years, force=False)
-                        added = result.get("new_papers", 0)
-                        total_added += added
+                        total_added += result.get("new_papers", 0)
                     except Exception as e:
-                        yield f"data: {json.dumps({'type': 'log', 'message': f'  同步出错: {str(e)[:80]}'}, ensure_ascii=False)}\n\n"
+                        yield sse_event("log", {"message": f"  同步出错: {str(e)[:80]}"})
 
-                yield f"data: {json.dumps({'type': 'log', 'message': f'同步完成，新增 {total_added} 篇论文'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": f"同步完成，新增 {total_added} 篇论文"})
                 await asyncio.sleep(0.1)
 
             except Exception as e:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'同步失败: {str(e)[:100]}'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": f"同步失败: {str(e)[:100]}"})
         else:
-            yield f"data: {json.dumps({'type': 'log', 'message': '跳过同步，直接查询数据库'}, ensure_ascii=False)}\n\n"
+            yield sse_event("log", {"message": "跳过同步，直接查询数据库"})
             await asyncio.sleep(0.1)
 
-        yield f"data: {json.dumps({'type': 'log', 'message': '正在查询最近论文...'}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": "正在查询最近论文..."})
         await asyncio.sleep(0.1)
 
         with db.get_session() as session:
@@ -502,11 +270,11 @@ async def update_recent_papers(
             papers = query.order_by(Paper.published.desc()).limit(limit).all()
             paper_ids = [p.id for p in papers]
 
-        yield f"data: {json.dumps({'type': 'log', 'message': f'找到 {len(papers)} 篇最近论文'}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": f"找到 {len(papers)} 篇最近论文"})
         await asyncio.sleep(0.1)
 
         db.set_recent_cache(days_back=days, paper_ids=paper_ids)
-        yield f"data: {json.dumps({'type': 'log', 'message': '缓存已更新'}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": "缓存已更新"})
         await asyncio.sleep(0.1)
 
         summarized_count = 0
@@ -514,7 +282,7 @@ async def update_recent_papers(
 
         for i, paper in enumerate(papers):
             if not paper.summarized:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'[{i + 1}/{len(papers)}] 总结论文 {paper.arxiv_id}...'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": f"[{i + 1}/{len(papers)}] 总结论文 {paper.arxiv_id}..."})
                 await asyncio.sleep(0.05)
                 if summarize_and_cache_paper(paper):
                     summarized_count += 1
@@ -526,13 +294,13 @@ async def update_recent_papers(
             with db.get_session() as s:
                 figure_url = get_figure_url_cached(paper.arxiv_id, s)
             if not figure_url:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'[{i + 1}/{len(papers)}] 获取图片 {paper.arxiv_id}...'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": f"[{i + 1}/{len(papers)}] 获取图片 {paper.arxiv_id}..."})
                 await asyncio.sleep(0.05)
                 fetch_and_cache_figure(paper.arxiv_id)
                 figure_count += 1
 
             enhanced = enhance_paper_data(paper)
-            yield f"data: {json.dumps({'type': 'result', 'paper': enhanced, 'index': i + 1, 'total': len(papers)}, ensure_ascii=False)}\n\n"
+            yield sse_event("result", {"paper": enhanced, "index": i + 1, "total": len(papers)})
             await asyncio.sleep(0.03)
 
         with db.get_session() as session:
@@ -553,34 +321,6 @@ async def update_recent_papers(
     return sse_response(event_generator)
 
 
-import re
-
-
-def parse_arxiv_id(query: str) -> str | None:
-    """Parse arXiv ID from various formats
-
-    Supports:
-    - arXiv:2602.09790
-    - https://arxiv.org/abs/2602.09790v1
-    - https://arxiv.org/pdf/2602.09790v1.pdf
-    - 2602.09790
-    - 2602.09790v1
-
-    Returns cleaned arXiv ID without version, or None if not an arXiv ID
-    """
-    q = query.strip()
-
-    if q.startswith("arXiv:"):
-        q = q[6:]
-
-    arxiv_pattern = r"(\d{4}\.\d{4,5})"
-    match = re.search(arxiv_pattern, q)
-    if match:
-        return match.group(1)
-
-    return None
-
-
 @router.get("/quick")
 async def quick_fetch(q: str = Query(..., min_length=1)):
     """SSE endpoint for quick paper fetch by arXiv ID or fuzzy search"""
@@ -594,18 +334,18 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
         arxiv_id = parse_arxiv_id(q)
 
         if arxiv_id:
-            yield f"data: {json.dumps({'type': 'log', 'message': f'识别为 arXiv ID: {arxiv_id}'}, ensure_ascii=False)}\n\n"
+            yield sse_event("log", {"message": f"识别为 arXiv ID: {arxiv_id}"})
             await asyncio.sleep(0.1)
 
             with db.get_session() as session:
                 paper = session.query(Paper).filter_by(arxiv_id=arxiv_id).first()
 
             if paper:
-                yield f"data: {json.dumps({'type': 'log', 'message': '在数据库中找到论文'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": "在数据库中找到论文"})
                 await asyncio.sleep(0.1)
 
                 if not paper.summarized:
-                    yield f"data: {json.dumps({'type': 'log', 'message': '正在生成 AI 总结...'}, ensure_ascii=False)}\n\n"
+                    yield sse_event("log", {"message": "正在生成 AI 总结..."})
                     await asyncio.sleep(0.1)
                     if summarize_and_cache_paper(paper):
                         with db.get_session() as s:
@@ -616,17 +356,17 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                     figure_url = get_figure_url_cached(arxiv_id, s)
                     paper = s.query(Paper).filter_by(arxiv_id=arxiv_id).first() or paper
                 if not figure_url:
-                    yield f"data: {json.dumps({'type': 'log', 'message': '正在获取论文图片...'}, ensure_ascii=False)}\n\n"
+                    yield sse_event("log", {"message": "正在获取论文图片..."})
                     await asyncio.sleep(0.1)
                     fetch_and_cache_figure(arxiv_id)
 
                 enhanced = enhance_paper_data(paper)
-                yield f"data: {json.dumps({'type': 'result', 'paper': enhanced, 'match_type': 'exact'}, ensure_ascii=False)}\n\n"
+                yield sse_event("result", {"paper": enhanced, "match_type": "exact"})
                 await asyncio.sleep(0.1)
-                yield f"data: {json.dumps({'type': 'done', 'total': 1}, ensure_ascii=False)}\n\n"
+                yield sse_event("done", {"total": 1})
                 return
 
-            yield f"data: {json.dumps({'type': 'log', 'message': '数据库中无此论文，正在从 arXiv 获取...'}, ensure_ascii=False)}\n\n"
+            yield sse_event("log", {"message": "数据库中无此论文，正在从 arXiv 获取..."})
             await asyncio.sleep(0.1)
 
             import arxiv as arxiv_lib
@@ -636,36 +376,38 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                 paper = crawler.fetch_paper_by_id(arxiv_id)
 
                 if paper:
-                    yield f"data: {json.dumps({'type': 'log', 'message': '成功获取论文'}, ensure_ascii=False)}\n\n"
+                    yield sse_event("log", {"message": "成功获取论文"})
                     await asyncio.sleep(0.1)
 
-                    yield f"data: {json.dumps({'type': 'log', 'message': '正在生成 AI 总结...'}, ensure_ascii=False)}\n\n"
+                    yield sse_event("log", {"message": "正在生成 AI 总结..."})
                     await asyncio.sleep(0.1)
                     summarize_and_cache_paper(paper)
 
-                    yield f"data: {json.dumps({'type': 'log', 'message': '正在获取论文图片...'}, ensure_ascii=False)}\n\n"
+                    yield sse_event("log", {"message": "正在获取论文图片..."})
                     await asyncio.sleep(0.1)
                     fetch_and_cache_figure(arxiv_id)
 
                     with db.get_session() as session:
                         paper = session.query(Paper).filter_by(arxiv_id=arxiv_id).first()
                     enhanced = enhance_paper_data(paper)
-                    yield f"data: {json.dumps({'type': 'result', 'paper': enhanced, 'match_type': 'exact'}, ensure_ascii=False)}\n\n"
+                    yield sse_event("result", {"paper": enhanced, "match_type": "exact"})
                     await asyncio.sleep(0.1)
-                    yield f"data: {json.dumps({'type': 'done', 'total': 1}, ensure_ascii=False)}\n\n"
+                    yield sse_event("done", {"total": 1})
                     return
                 else:
-                    yield f"data: {json.dumps({'type': 'error', 'message': f'未找到论文: {arxiv_id}（可能是 arXiv API 暂时不可用，请稍后重试）'}, ensure_ascii=False)}\n\n"
+                    yield sse_event(
+                        "error", {"message": f"未找到论文: {arxiv_id}（可能是 arXiv API 暂时不可用，请稍后重试）"}
+                    )
                     return
 
             except arxiv_lib.HTTPError as e:
-                yield f"data: {json.dumps({'type': 'error', 'message': f'arXiv API 请求失败 (HTTP {e.status}): 请稍后重试'}, ensure_ascii=False)}\n\n"
+                yield sse_event("error", {"message": f"arXiv API 请求失败 (HTTP {e.status}): 请稍后重试"})
                 return
             except Exception as e:
-                yield f"data: {json.dumps({'type': 'error', 'message': f'获取失败: {str(e)[:100]}'}, ensure_ascii=False)}\n\n"
+                yield sse_event("error", {"message": f"获取失败: {str(e)[:100]}"})
                 return
 
-        yield f"data: {json.dumps({'type': 'log', 'message': f'正在进行模糊搜索: {q}'}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": f"正在进行模糊搜索: {q}"})
         await asyncio.sleep(0.1)
 
         search_terms = [q]
@@ -674,7 +416,7 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
             try:
                 import openai
 
-                yield f"data: {json.dumps({'type': 'log', 'message': '正在使用 AI 解析搜索词...'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": "正在使用 AI 解析搜索词..."})
                 await asyncio.sleep(0.1)
 
                 client = openai.OpenAI(api_key=Config.AI_API_KEY, base_url=Config.AI_BASE_URL)
@@ -714,13 +456,13 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                         parsed = json.loads(ai_response)
                         if isinstance(parsed, list) and len(parsed) > 0:
                             search_terms = parsed
-                            yield f"data: {json.dumps({'type': 'log', 'message': f'AI 解析结果: {", ".join(search_terms)}'}, ensure_ascii=False)}\n\n"
+                            yield sse_event("log", {"message": f"AI 解析结果: {', '.join(search_terms)}"})
                             await asyncio.sleep(0.1)
                     except:
                         pass
 
-            except Exception as e:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'AI 解析失败，使用原始搜索词'}, ensure_ascii=False)}\n\n"
+            except Exception:
+                yield sse_event("log", {"message": "AI 解析失败，使用原始搜索词"})
                 await asyncio.sleep(0.1)
 
         import arxiv as arxiv_lib
@@ -731,13 +473,13 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
         remote_total = 0
         remote_new = 0
 
-        yield f"data: {json.dumps({'type': 'log', 'message': '正在从 arXiv 远程搜索...'}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": "正在从 arXiv 远程搜索..."})
         await asyncio.sleep(0.1)
 
         try:
             crawler = ArXivCrawler()
             for term in search_terms:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'远程搜索: {term}'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": f"远程搜索: {term}"})
                 await asyncio.sleep(0.05)
 
                 papers, total, new_count = crawler.search_and_save(term, max_results=15)
@@ -747,21 +489,21 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                 if papers:
                     all_papers.extend(papers)
                     if new_count > 0:
-                        yield f"data: {json.dumps({'type': 'log', 'message': f'找到 {total} 篇，其中 {new_count} 篇为新论文'}, ensure_ascii=False)}\n\n"
+                        yield sse_event("log", {"message": f"找到 {total} 篇，其中 {new_count} 篇为新论文"})
                     else:
-                        yield f"data: {json.dumps({'type': 'log', 'message': f'找到 {total} 篇论文（均已收录）'}, ensure_ascii=False)}\n\n"
+                        yield sse_event("log", {"message": f"找到 {total} 篇论文（均已收录）"})
                 else:
-                    yield f"data: {json.dumps({'type': 'log', 'message': f'未找到相关论文'}, ensure_ascii=False)}\n\n"
+                    yield sse_event("log", {"message": "未找到相关论文"})
                 await asyncio.sleep(0.1)
 
-        except arxiv_lib.HTTPError as e:
-            yield f"data: {json.dumps({'type': 'log', 'message': f'arXiv API 暂时不可用，仅使用本地搜索'}, ensure_ascii=False)}\n\n"
+        except arxiv_lib.HTTPError:
+            yield sse_event("log", {"message": "arXiv API 暂时不可用，仅使用本地搜索"})
             await asyncio.sleep(0.1)
         except Exception as e:
-            yield f"data: {json.dumps({'type': 'log', 'message': f'远程搜索失败: {str(e)[:50]}'}, ensure_ascii=False)}\n\n"
+            yield sse_event("log", {"message": f"远程搜索失败: {str(e)[:50]}"})
             await asyncio.sleep(0.1)
 
-        yield f"data: {json.dumps({'type': 'log', 'message': '正在搜索本地数据库...'}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": "正在搜索本地数据库..."})
         await asyncio.sleep(0.1)
 
         with db.get_session() as session:
@@ -790,15 +532,15 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
         papers = unique_papers[:25]
 
         if not papers:
-            yield f"data: {json.dumps({'type': 'log', 'message': '未找到匹配论文'}, ensure_ascii=False)}\n\n"
+            yield sse_event("log", {"message": "未找到匹配论文"})
             await asyncio.sleep(0.1)
-            yield f"data: {json.dumps({'type': 'done', 'total': 0}, ensure_ascii=False)}\n\n"
+            yield sse_event("done", {"total": 0})
             return
 
         summary_msg = f"合并结果：共 {len(papers)} 篇论文"
         if remote_new > 0:
             summary_msg += f"（远程新增 {remote_new} 篇）"
-        yield f"data: {json.dumps({'type': 'log', 'message': summary_msg}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": summary_msg})
         await asyncio.sleep(0.1)
 
         for i, paper in enumerate(papers):
@@ -808,7 +550,7 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                     paper = fresh_paper
 
             if not paper.summarized:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'[{i + 1}/{len(papers)}] 正在总结...'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": f"[{i + 1}/{len(papers)}] 正在总结..."})
                 await asyncio.sleep(0.05)
                 if summarize_and_cache_paper(paper):
                     with db.get_session() as s:
@@ -817,7 +559,7 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
             with db.get_session() as s:
                 figure_url = get_figure_url_cached(paper.arxiv_id, s)
             if not figure_url:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'[{i + 1}/{len(papers)}] 获取图片...'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": f"[{i + 1}/{len(papers)}] 获取图片..."})
                 await asyncio.sleep(0.05)
                 fetch_and_cache_figure(paper.arxiv_id)
 
@@ -875,7 +617,7 @@ async def search_papers_stream(
     async def event_generator():
         import asyncio
 
-        yield f"data: {json.dumps({'type': 'log', 'message': f"正在搜索: '{q}'"}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": f"正在搜索: '{q}'"})
         await asyncio.sleep(0.1)
 
         search_terms = [q]
@@ -884,7 +626,7 @@ async def search_papers_stream(
             try:
                 import openai
 
-                yield f"data: {json.dumps({'type': 'log', 'message': '正在使用 AI 解析搜索词...'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": "正在使用 AI 解析搜索词..."})
                 await asyncio.sleep(0.1)
 
                 client = openai.OpenAI(api_key=Config.AI_API_KEY, base_url=Config.AI_BASE_URL)
@@ -924,19 +666,19 @@ async def search_papers_stream(
                         parsed = json.loads(ai_response)
                         if isinstance(parsed, list) and len(parsed) > 0:
                             search_terms = parsed
-                            yield f"data: {json.dumps({'type': 'ai_parsed', 'terms': search_terms}, ensure_ascii=False)}\n\n"
+                            yield sse_event("ai_parsed", {"terms": search_terms})
                             await asyncio.sleep(0.1)
                     except:
                         pass
 
             except Exception as e:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'AI 解析失败: {str(e)[:100]}'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": f"AI 解析失败: {str(e)[:100]}"})
                 await asyncio.sleep(0.1)
 
-        yield f"data: {json.dumps({'type': 'log', 'message': f'搜索词: {", ".join(search_terms)}'}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": f"搜索词: {', '.join(search_terms)}"})
         await asyncio.sleep(0.1)
 
-        yield f"data: {json.dumps({'type': 'log', 'message': '正在数据库中搜索...'}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": "正在数据库中搜索..."})
         await asyncio.sleep(0.1)
 
         from arxiv_pulse.search_engine import SearchEngine, SearchFilter
@@ -968,7 +710,7 @@ async def search_papers_stream(
             unique_papers.sort(key=lambda p: p.published if p.published else datetime.min, reverse=True)
             unique_papers = unique_papers[:limit]
 
-        yield f"data: {json.dumps({'type': 'log', 'message': f'找到 {len(unique_papers)} 篇论文'}, ensure_ascii=False)}\n\n"
+        yield sse_event("log", {"message": f"找到 {len(unique_papers)} 篇论文"})
         await asyncio.sleep(0.1)
 
         db = get_db()
@@ -982,7 +724,7 @@ async def search_papers_stream(
                     paper = fresh_paper
 
             if not paper.summarized:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'[{i + 1}/{len(unique_papers)}] 总结论文 {paper.arxiv_id}...'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": f"[{i + 1}/{len(unique_papers)}] 总结论文 {paper.arxiv_id}..."})
                 await asyncio.sleep(0.05)
                 if summarize_and_cache_paper(paper):
                     summarized_count += 1
@@ -994,7 +736,7 @@ async def search_papers_stream(
             with db.get_session() as s:
                 figure_url = get_figure_url_cached(paper.arxiv_id, s)
             if not figure_url:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'[{i + 1}/{len(unique_papers)}] 获取图片 {paper.arxiv_id}...'}, ensure_ascii=False)}\n\n"
+                yield sse_event("log", {"message": f"[{i + 1}/{len(unique_papers)}] 获取图片 {paper.arxiv_id}..."})
                 await asyncio.sleep(0.05)
                 fetch_and_cache_figure(paper.arxiv_id)
                 figure_count += 1
@@ -1021,6 +763,8 @@ async def get_paper(paper_id: int):
 @router.get("/{paper_id}/translate")
 async def get_paper_translation(paper_id: int):
     """Get paper translation (title and abstract)"""
+    from arxiv_pulse.services.translation_service import translate_text
+
     with get_db().get_session() as session:
         paper = session.query(Paper).filter_by(id=paper_id).first()
         if not paper:
