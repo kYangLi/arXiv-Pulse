@@ -59,7 +59,7 @@ ZH_DICT: dict = {
             "ai_result": "找到 {count} 篇匹配论文",
             "no_search_result": "未找到匹配的论文，试试 AI 检索？",
             "lastAdded": "最近添加",
-            "mergePapers": "迁移全部论文",
+            "mergePapers": "迁移",
             "mergeTo": "迁移到",
             "mergeSuccess": "已迁移 {count} 篇论文到 {name}",
             "mergeConfirm": "确定将 {count} 篇论文迁移到「{name}」吗？",
@@ -67,6 +67,7 @@ ZH_DICT: dict = {
             "noTargetCollection": "请选择目标论文集",
             "cardView": "卡片视图",
             "listView": "列表视图",
+            "duplicate": "克隆",
         },
         "chat": {
             "thinking": "思考中...",

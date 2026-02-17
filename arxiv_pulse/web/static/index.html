@@ -2780,11 +2780,23 @@
                                                 <el-icon><Document /></el-icon> {{ t('collections.duplicate') }}
                                             </el-dropdown-item>
                                             <el-dropdown-item>
-                                                <el-dropdown placement="right-start" trigger="hover">
-                                                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                                                        <span><el-icon><Download /></el-icon> {{ t('collections.export') }}</span>
-                                                        <el-icon style="margin-left: 20px;"><ArrowRight /></el-icon>
-                                                    </div>
+                                                <el-dropdown placement="right-start" trigger="hover" style="width: 100%;">
+                                                    <span><el-icon><Promotion /></el-icon> {{ t('collections.mergePapers') }}<el-icon style="float: right;"><ArrowRight /></el-icon></span>
+                                                    <template #dropdown>
+                                                        <el-dropdown-menu>
+                                                            <el-dropdown-item v-for="c in collections.filter(x => x.id !== collection.id)" :key="c.id" @click.stop="showMergeConfirm(collection, c)">
+                                                                {{ c.name }}
+                                                            </el-dropdown-item>
+                                                            <el-dropdown-item v-if="collections.filter(x => x.id !== collection.id).length === 0" disabled>
+                                                                {{ t('collections.noCollections') }}
+                                                            </el-dropdown-item>
+                                                        </el-dropdown-menu>
+                                                    </template>
+                                                </el-dropdown>
+                                            </el-dropdown-item>
+                                            <el-dropdown-item divided>
+                                                <el-dropdown placement="right-start" trigger="hover" style="width: 100%;">
+                                                    <span><el-icon><Download /></el-icon> {{ t('collections.export') }}<el-icon style="float: right;"><ArrowRight /></el-icon></span>
                                                     <template #dropdown>
                                                         <el-dropdown-menu>
                                                             <el-dropdown-item @click.stop="exportCollectionWithId(collection.id, 'markdown')">
@@ -2798,24 +2810,6 @@
                                                             </el-dropdown-item>
                                                             <el-dropdown-item @click.stop="exportCollectionWithId(collection.id, 'bibtex')">
                                                                 BibTeX (.bib)
-                                                            </el-dropdown-item>
-                                                        </el-dropdown-menu>
-                                                    </template>
-                                                </el-dropdown>
-                                            </el-dropdown-item>
-                                            <el-dropdown-item>
-                                                <el-dropdown placement="right-start" trigger="hover">
-                                                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                                                        <span><el-icon><FolderAdd /></el-icon> {{ t('collections.mergePapers') }}</span>
-                                                        <el-icon style="margin-left: 20px;"><ArrowRight /></el-icon>
-                                                    </div>
-                                                    <template #dropdown>
-                                                        <el-dropdown-menu>
-                                                            <el-dropdown-item v-for="c in collections.filter(x => x.id !== collection.id)" :key="c.id" @click.stop="showMergeConfirm(collection, c)">
-                                                                {{ c.name }}
-                                                            </el-dropdown-item>
-                                                            <el-dropdown-item v-if="collections.filter(x => x.id !== collection.id).length === 0" disabled>
-                                                                {{ t('collections.noCollections') }}
                                                             </el-dropdown-item>
                                                         </el-dropdown-menu>
                                                     </template>
@@ -2995,7 +2989,7 @@
                                 v-model="collectionPaperSearch" 
                                 :placeholder="useAiSearch ? t('collections.aiSearchPlaceholder') : t('collections.searchPapers')" 
                                 clearable 
-                                style="width: 220px;" 
+                                style="width: 280px;" 
                                 @keyup.enter="performSearch" 
                                 @clear="performSearch"
                                 :disabled="aiSearching"
@@ -3003,15 +2997,14 @@
                                 <template #prefix><el-icon><Search /></el-icon></template>
                             </el-input>
                             <el-checkbox v-model="useAiSearch" :disabled="aiSearching">{{ t('collections.aiSearch') }}</el-checkbox>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <el-divider direction="vertical"></el-divider>
                             <el-radio-group v-model="collectionSortBy" size="small" @change="performSearch">
                                 <el-radio-button value="published">
                                     <el-icon><Calendar /></el-icon>
                                     <span style="margin-left: 4px;">{{ t('collections.sortPublished') }}</span>
                                 </el-radio-button>
                                 <el-radio-button value="added_at">
-                                    <el-icon><FolderAdd /></el-icon>
+                                    <el-icon><Clock /></el-icon>
                                     <span style="margin-left: 4px;">{{ t('collections.sortAdded') }}</span>
                                 </el-radio-button>
                             </el-radio-group>
@@ -3050,7 +3043,7 @@
                             <div v-for="paper in collectionPapers" :key="paper.id" class="collection-list-item" @click="openPaperUrl(paper.arxiv_url)">
                                 <div class="list-item-title">{{ paper.title }}</div>
                                 <div class="list-item-meta">
-                                    <span>{{ paper.authors?.slice(0, 3).join(', ') }}{{ paper.authors?.length > 3 ? '...' : '' }}</span>
+                                    <span>{{ paper.authors?.map(a => a.name).slice(0, 3).join(', ') }}{{ paper.authors?.length > 3 ? '...' : '' }}</span>
                                     <span>·</span>
                                     <span>{{ paper.published?.slice(0, 10) }}</span>
                                 </div>
@@ -3692,7 +3685,7 @@
                     export: '导出',
                     share: '分享',
                     addPapers: '添加',
-                    duplicate: '创建副本',
+                    duplicate: '克隆',
                     shareLink: '分享链接已复制',
                     lastUpdated: '最近更新',
                     searchPapers: '搜索论文...',
@@ -3706,7 +3699,14 @@
                     aiSearching: 'AI 正在检索...',
                     aiNoResult: '未找到匹配的论文',
                     aiResult: '找到 {count} 篇匹配论文',
-                    noSearchResult: '未找到匹配的论文，试试 AI 检索？'
+                    noSearchResult: '未找到匹配的论文，试试 AI 检索？',
+                    lastAdded: '最近添加',
+                    mergePapers: '迁移',
+                    mergeConfirm: '确定将 {count} 篇论文迁移到「{name}」吗？',
+                    mergeSuccess: '已迁移 {count} 篇论文到 {name}',
+                    noCollections: '暂无其他论文集',
+                    cardView: '卡片视图',
+                    listView: '列表视图'
                 },
                 export: {
                     pdfDoc: 'PDF 文档',
@@ -3970,7 +3970,7 @@
                     export: 'Export',
                     share: 'Share',
                     addPapers: 'Add',
-                    duplicate: 'Make a Copy',
+                    duplicate: 'Clone',
                     shareLink: 'Share link copied',
                     lastUpdated: 'Last updated',
                     searchPapers: 'Search papers...',
@@ -3984,7 +3984,14 @@
                     aiSearching: 'AI searching...',
                     aiNoResult: 'No matching papers found',
                     aiResult: 'Found {count} matching papers',
-                    noSearchResult: 'No matching papers. Try AI search?'
+                    noSearchResult: 'No matching papers. Try AI search?',
+                    lastAdded: 'Last added',
+                    mergePapers: 'Merge',
+                    mergeConfirm: 'Merge {count} papers to "{name}"?',
+                    mergeSuccess: 'Merged {count} papers to {name}',
+                    noCollections: 'No other collections',
+                    cardView: 'Card view',
+                    listView: 'List view'
                 },
                 export: {
                     pdfDoc: 'PDF Document',

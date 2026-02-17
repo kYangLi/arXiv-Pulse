@@ -59,7 +59,7 @@ EN_DICT: dict = {
             "ai_result": "Found {count} matching papers",
             "no_search_result": "No matching papers. Try AI search?",
             "lastAdded": "Last added",
-            "mergePapers": "Merge all papers",
+            "mergePapers": "Merge",
             "mergeTo": "Merge to",
             "mergeSuccess": "Merged {count} papers to {name}",
             "mergeConfirm": 'Merge {count} papers to "{name}"?',
@@ -67,6 +67,7 @@ EN_DICT: dict = {
             "noTargetCollection": "Please select a target collection",
             "cardView": "Card view",
             "listView": "List view",
+            "duplicate": "Clone",
         },
         "chat": {
             "thinking": "Thinking...",
