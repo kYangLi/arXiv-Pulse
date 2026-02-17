@@ -115,42 +115,47 @@ async def send_message(session_id: int, data: SendMessageRequest):
 
     lang = data.language
 
-    msgs = {
-        "zh": {
-            "start": f"开始处理 {len(data.paper_ids)} 篇论文...",
-            "paper_start": lambda i, t, a: f"处理论文 {i}/{t}: {a}",
-            "cached": lambda a, l: f"从缓存加载: {a} ({l} 字符)",
-            "downloading": lambda a: f"正在下载 PDF: {a}",
-            "downloaded": lambda s: f"下载完成 ({s:.1f} KB)",
-            "parsing": "正在解析 PDF...",
-            "parsing_progress": lambda i, t: f"解析中... ({i}/{t} 页)",
-            "parsed": lambda l, p: f"解析完成: {l} 字符, {p} 页",
-            "download_failed": lambda s: f"下载失败: HTTP {s}",
-            "process_failed": lambda e: f"处理失败: {e[:50]}",
-            "papers_ready": "论文内容已准备就绪，开始 AI 分析...",
-            "ai_thinking": "AI 正在分析...",
-            "papers_content_prefix": "\n\n以下是用户选中的论文内容：",
-        },
-        "en": {
-            "start": f"Processing {len(data.paper_ids)} papers...",
-            "paper_start": lambda i, t, a: f"Processing paper {i}/{t}: {a}",
-            "cached": lambda a, l: f"Loaded from cache: {a} ({l} chars)",
-            "downloading": lambda a: f"Downloading PDF: {a}",
-            "downloaded": lambda s: f"Download complete ({s:.1f} KB)",
-            "parsing": "Parsing PDF...",
-            "parsing_progress": lambda i, t: f"Parsing... ({i}/{t} pages)",
-            "parsed": lambda l, p: f"Parse complete: {l} chars, {p} pages",
-            "download_failed": lambda s: f"Download failed: HTTP {s}",
-            "process_failed": lambda e: f"Processing failed: {e[:50]}",
-            "papers_ready": "Paper content ready, starting AI analysis...",
-            "ai_thinking": "AI is analyzing...",
-            "papers_content_prefix": "\n\nThe following is the paper content selected by the user:",
-        },
-    }
-
-    m = msgs.get(lang, msgs["zh"])
-
     async def event_generator():
+        paper_count = len(data.paper_ids) if data.paper_ids else 0
+
+        if lang == "en":
+            msgs = {
+                "start": f"Processing {paper_count} papers..." if paper_count > 0 else "Sending message...",
+                "paper_start": lambda i, t, a: f"Processing paper {i}/{t}: {a}",
+                "cached": lambda a, l: f"Loaded from cache: {a} ({l} chars)",
+                "downloading": lambda a: f"Downloading PDF: {a}",
+                "downloaded": lambda s: f"Download complete ({s:.1f} KB)",
+                "parsing": "Parsing PDF...",
+                "parsing_progress": lambda i, t: f"Parsing... ({i}/{t} pages)",
+                "parsed": lambda l, p: f"Parse complete: {l} chars, {p} pages",
+                "download_failed": lambda s: f"Download failed: HTTP {s}",
+                "process_failed": lambda e: f"Processing failed: {e[:50]}",
+                "papers_ready": "Paper content ready, starting AI analysis...",
+                "ai_thinking": "AI is analyzing...",
+                "papers_content_prefix": "\n\nThe following is the paper content selected by the user:",
+                "api_not_configured": "AI API not configured",
+                "response_failed": lambda e: f"AI response failed: {e[:100]}",
+            }
+        else:
+            msgs = {
+                "start": f"开始处理 {paper_count} 篇论文..." if paper_count > 0 else "发送消息中...",
+                "paper_start": lambda i, t, a: f"处理论文 {i}/{t}: {a}",
+                "cached": lambda a, l: f"从缓存加载: {a} ({l} 字符)",
+                "downloading": lambda a: f"正在下载 PDF: {a}",
+                "downloaded": lambda s: f"下载完成 ({s:.1f} KB)",
+                "parsing": "正在解析 PDF...",
+                "parsing_progress": lambda i, t: f"解析中... ({i}/{t} 页)",
+                "parsed": lambda l, p: f"解析完成: {l} 字符, {p} 页",
+                "download_failed": lambda s: f"下载失败: HTTP {s}",
+                "process_failed": lambda e: f"处理失败: {e[:50]}",
+                "papers_ready": "论文内容已准备就绪，开始 AI 分析...",
+                "ai_thinking": "AI 正在分析...",
+                "papers_content_prefix": "\n\n以下是用户选中的论文内容：",
+                "api_not_configured": "AI API 未配置",
+                "response_failed": lambda e: f"AI 响应失败: {e[:100]}",
+            }
+
+        m = msgs
         with get_db().get_session() as session:
             chat_session = session.query(ChatSession).filter_by(id=session_id).first()
             if not chat_session:
@@ -361,8 +366,7 @@ IMPORTANT: Always respond in English."""
         messages_for_api = [{"role": "system", "content": system_prompt}] + history_messages
 
         if not Config.AI_API_KEY:
-            err_msg = "AI API 未配置" if lang == "zh" else "AI API not configured"
-            yield sse_event("error", {"message": err_msg})
+            yield sse_event("error", {"message": m["api_not_configured"]})
             return
 
         try:
@@ -401,8 +405,7 @@ IMPORTANT: Always respond in English."""
             yield sse_event("done", {})
 
         except Exception as e:
-            err_msg = f"AI 响应失败: {str(e)[:100]}" if lang == "zh" else f"AI response failed: {str(e)[:100]}"
-            yield sse_event("error", {"message": err_msg})
+            yield sse_event("error", {"message": m["response_failed"](str(e))})
 
     return StreamingResponse(
         event_generator(),
