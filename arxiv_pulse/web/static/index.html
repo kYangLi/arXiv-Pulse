@@ -1193,6 +1193,33 @@
             margin: 0 0 20px 0;
         }
         
+        /* Collection List View */
+        .collection-list-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .collection-list-item:hover {
+            background: var(--bg-subtle);
+        }
+        .collection-list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+        .list-item-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 8px;
+        }
+        
         /* Empty State */
         .empty-state { 
             text-align: center; 
@@ -2776,6 +2803,24 @@
                                                     </template>
                                                 </el-dropdown>
                                             </el-dropdown-item>
+                                            <el-dropdown-item>
+                                                <el-dropdown placement="right-start" trigger="hover">
+                                                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                                        <span><el-icon><FolderAdd /></el-icon> {{ t('collections.mergePapers') }}</span>
+                                                        <el-icon style="margin-left: 20px;"><ArrowRight /></el-icon>
+                                                    </div>
+                                                    <template #dropdown>
+                                                        <el-dropdown-menu>
+                                                            <el-dropdown-item v-for="c in collections.filter(x => x.id !== collection.id)" :key="c.id" @click.stop="showMergeConfirm(collection, c)">
+                                                                {{ c.name }}
+                                                            </el-dropdown-item>
+                                                            <el-dropdown-item v-if="collections.filter(x => x.id !== collection.id).length === 0" disabled>
+                                                                {{ t('collections.noCollections') }}
+                                                            </el-dropdown-item>
+                                                        </el-dropdown-menu>
+                                                    </template>
+                                                </el-dropdown>
+                                            </el-dropdown-item>
                                             <el-dropdown-item divided @click.stop="confirmDeleteCollection(collection)">
                                                 <el-icon><Delete /></el-icon> {{ t('common.delete') }}
                                             </el-dropdown-item>
@@ -2928,7 +2973,17 @@
                 </template>
             </el-dialog>
 
-            <el-dialog v-model="showCollectionDetail" :title="viewingCollection?.name" width="800px">
+            <el-dialog v-model="showCollectionDetail" width="800px">
+                <template #header>
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                        <div>
+                            <span style="font-size: 18px; font-weight: 600;">{{ viewingCollection?.name }}</span>
+                            <div v-if="viewingCollection" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                                {{ collectionTotalCount }} {{ t('collections.papers') }} · {{ t('collections.lastAdded') }}: {{ formatRelativeTime(viewingCollection.updated_at) }}
+                            </div>
+                        </div>
+                    </div>
+                </template>
                 <div v-if="loadingCollectionPapers" style="text-align: center; padding: 40px;">
                     <el-icon class="is-loading" style="font-size: 32px;"><Loading /></el-icon>
                     <p v-if="aiSearching" style="color: var(--text-secondary); margin-top: 12px;">{{ t('collections.aiSearching') }}</p>
@@ -2940,7 +2995,7 @@
                                 v-model="collectionPaperSearch" 
                                 :placeholder="useAiSearch ? t('collections.aiSearchPlaceholder') : t('collections.searchPapers')" 
                                 clearable 
-                                style="width: 260px;" 
+                                style="width: 220px;" 
                                 @keyup.enter="performSearch" 
                                 @clear="performSearch"
                                 :disabled="aiSearching"
@@ -2950,29 +3005,57 @@
                             <el-checkbox v-model="useAiSearch" :disabled="aiSearching">{{ t('collections.aiSearch') }}</el-checkbox>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="color: var(--text-secondary); font-size: 13px;">{{ collectionTotalCount }} {{ t('collections.papers') }}</span>
+                            <el-radio-group v-model="collectionSortBy" size="small" @change="performSearch">
+                                <el-radio-button value="published">
+                                    <el-icon><Calendar /></el-icon>
+                                    <span style="margin-left: 4px;">{{ t('collections.sortPublished') }}</span>
+                                </el-radio-button>
+                                <el-radio-button value="added_at">
+                                    <el-icon><FolderAdd /></el-icon>
+                                    <span style="margin-left: 4px;">{{ t('collections.sortAdded') }}</span>
+                                </el-radio-button>
+                            </el-radio-group>
+                            <el-button size="small" @click="toggleSortOrder">
+                                <el-icon>
+                                    <component :is="collectionSortOrder === 'desc' ? 'SortDown' : 'SortUp'" />
+                                </el-icon>
+                            </el-button>
                             <el-divider direction="vertical"></el-divider>
-                            <span style="color: var(--text-muted); font-size: 12px;">{{ t('collections.sortBy') }}:</span>
-                            <span style="color: var(--text-primary); font-size: 13px; cursor: pointer;" @click="collectionSortBy = 'published'; performSearch();" :style="{ fontWeight: collectionSortBy === 'published' ? '600' : '400' }">{{ t('collections.sortPublished') }}</span>
-                            <span style="color: var(--text-muted);">/</span>
-                            <span style="color: var(--text-primary); font-size: 13px; cursor: pointer;" @click="collectionSortBy = 'added_at'; performSearch();" :style="{ fontWeight: collectionSortBy === 'added_at' ? '600' : '400' }">{{ t('collections.sortAdded') }}</span>
-                            <el-divider direction="vertical"></el-divider>
-                            <span style="color: var(--text-primary); font-size: 13px; cursor: pointer;" @click="toggleSortOrder">{{ collectionSortOrder === 'desc' ? t('collections.sortDesc') : t('collections.sortAsc') }}</span>
+                            <el-button-group size="small">
+                                <el-button :type="collectionViewMode === 'card' ? 'primary' : ''" @click="collectionViewMode = 'card'">
+                                    <el-icon><Grid /></el-icon>
+                                </el-button>
+                                <el-button :type="collectionViewMode === 'list' ? 'primary' : ''" @click="collectionViewMode = 'list'">
+                                    <el-icon><List /></el-icon>
+                                </el-button>
+                            </el-button-group>
                         </div>
                     </div>
                     <div v-if="collectionPapers.length > 0">
-                        <paper-card 
-                            v-for="paper in collectionPapers" 
-                            :key="paper.id" 
-                            :paper="paper"
-                            :collections="collections"
-                            :in-collection="true"
-                            :in-cart="isInCart(paper.arxiv_id)"
-                            @add-to-collection="addToCollection"
-                            @remove-from-collection="removePaperFromCollection"
-                            @add-to-cart="addToCart"
-                            @remove-from-cart="removeFromCartByArxivId"
-                        />
+                        <template v-if="collectionViewMode === 'card'">
+                            <paper-card 
+                                v-for="paper in collectionPapers" 
+                                :key="paper.id" 
+                                :paper="paper"
+                                :collections="collections"
+                                :in-collection="true"
+                                :in-cart="isInCart(paper.arxiv_id)"
+                                @add-to-collection="addToCollection"
+                                @remove-from-collection="removePaperFromCollection"
+                                @add-to-cart="addToCart"
+                                @remove-from-cart="removeFromCartByArxivId"
+                            />
+                        </template>
+                        <template v-else>
+                            <div v-for="paper in collectionPapers" :key="paper.id" class="collection-list-item" @click="openPaperUrl(paper.arxiv_url)">
+                                <div class="list-item-title">{{ paper.title }}</div>
+                                <div class="list-item-meta">
+                                    <span>{{ paper.authors?.slice(0, 3).join(', ') }}{{ paper.authors?.length > 3 ? '...' : '' }}</span>
+                                    <span>·</span>
+                                    <span>{{ paper.published?.slice(0, 10) }}</span>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                     <div v-else class="empty-state">
                         <p v-if="useAiSearch">{{ t('collections.aiNoResult') }}</p>
@@ -2996,6 +3079,14 @@
                 <template #footer>
                     <el-button @click="showDeleteConfirm = false">{{ t('common.cancel') }}</el-button>
                     <el-button type="danger" @click="deleteCollection" :loading="deletingCollectionInProgress">{{ t('common.delete') }}</el-button>
+                </template>
+            </el-dialog>
+
+            <el-dialog v-model="showMergeConfirmDialog" :title="t('collections.mergePapers')" width="400px">
+                <p>{{ t('collections.mergeConfirm', { count: mergingFromCollection?.paper_count || 0, name: mergingToCollection?.name }) }}</p>
+                <template #footer>
+                    <el-button @click="showMergeConfirmDialog = false">{{ t('common.cancel') }}</el-button>
+                    <el-button type="primary" @click="mergePapers" :loading="mergingInProgress">{{ t('common.confirm') }}</el-button>
                 </template>
             </el-dialog>
         </div>
@@ -4377,6 +4468,10 @@
                 const deletingCollection = ref(null);
                 const savingCollection = ref(false);
                 const deletingCollectionInProgress = ref(false);
+                const showMergeConfirmDialog = ref(false);
+                const mergingFromCollection = ref(null);
+                const mergingToCollection = ref(null);
+                const mergingInProgress = ref(false);
                 const selectedCollectionId = ref(null);
                 const selectedPaper = ref(null);
                 const addingToCollection = ref(false);
@@ -4392,6 +4487,7 @@
                 const collectionSortOrder = ref('desc');
                 const useAiSearch = ref(false);
                 const aiSearching = ref(false);
+                const collectionViewMode = ref('card');
 
                 const filteredCollections = computed(() => {
                     if (!collectionSearchQuery.value) return collections.value;
@@ -5388,6 +5484,37 @@
                     }
                 }
 
+                function showMergeConfirm(fromCollection, toCollection) {
+                    mergingFromCollection.value = fromCollection;
+                    mergingToCollection.value = toCollection;
+                    showMergeConfirmDialog.value = true;
+                }
+
+                async function mergePapers() {
+                    if (!mergingFromCollection.value || !mergingToCollection.value) return;
+                    mergingInProgress.value = true;
+                    try {
+                        const res = await fetch(`${API_BASE}/collections/${mergingFromCollection.value.id}/merge`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ target_collection_id: mergingToCollection.value.id })
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            ElementPlus.ElMessage.success(t('collections.mergeSuccess', { count: data.merged_count, name: mergingToCollection.value.name }));
+                            showMergeConfirmDialog.value = false;
+                            fetchCollections();
+                        } else {
+                            const err = await res.json();
+                            ElementPlus.ElMessage.error(err.detail || '迁移失败');
+                        }
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('迁移失败');
+                    } finally {
+                        mergingInProgress.value = false;
+                    }
+                }
+
                 async function openCollectionDetail(collection) {
                     viewingCollection.value = collection;
                     collectionCurrentPage.value = 1;
@@ -5440,6 +5567,10 @@
                 function toggleSortOrder() {
                     collectionSortOrder.value = collectionSortOrder.value === 'desc' ? 'asc' : 'desc';
                     performSearch();
+                }
+
+                function openPaperUrl(url) {
+                    if (url) window.open(url, '_blank');
                 }
 
                 async function loadCollectionPage() {
@@ -6449,12 +6580,14 @@
                     showCreateCollection, showAddToCollection, showDeleteConfirm,
                     newCollection, editingCollection, deletingCollection,
                     savingCollection, deletingCollectionInProgress,
+                    showMergeConfirmDialog, mergingFromCollection, mergingToCollection, mergingInProgress,
+                    showMergeConfirm, mergePapers,
                     selectedCollectionId, selectedPaper, addingToCollection,
                     viewingCollection, showCollectionDetail, collectionPapers, loadingCollectionPapers,
                     collectionCurrentPage, collectionTotalCount, collectionTotalPages,
                     collectionPaperSearch, collectionSortBy, collectionSortOrder,
                     collectionSearchQuery, filteredCollections, formatRelativeTime,
-                    useAiSearch, aiSearching, performSearch, toggleSortOrder,
+                    useAiSearch, aiSearching, performSearch, toggleSortOrder, collectionViewMode, openPaperUrl,
                     recentSelectedIds, recentSelectAll, searchSelectedIds, searchSelectAll,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
                     checkInitStatus, fetchCategories, testSetupAI, toggleSetupField, toggleCategoryGroup, startInitialSync,

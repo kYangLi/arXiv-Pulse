@@ -442,3 +442,55 @@ async def ai_search_papers(collection_id: int, data: AISearchRequest):
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"AI search failed: {str(e)[:100]}")
+
+
+class MergePapersRequest(BaseModel):
+    target_collection_id: int
+
+
+@router.post("/{collection_id}/merge")
+async def merge_papers_to_collection(collection_id: int, data: MergePapersRequest):
+    """Merge all papers from this collection to target collection"""
+    if collection_id == data.target_collection_id:
+        raise HTTPException(status_code=400, detail="Cannot merge to the same collection")
+
+    with get_db().get_session() as session:
+        source_collection = session.query(Collection).filter_by(id=collection_id).first()
+        if not source_collection:
+            raise HTTPException(status_code=404, detail="Source collection not found")
+
+        target_collection = session.query(Collection).filter_by(id=data.target_collection_id).first()
+        if not target_collection:
+            raise HTTPException(status_code=404, detail="Target collection not found")
+
+        source_papers = session.query(CollectionPaper).filter_by(collection_id=collection_id).all()
+
+        if not source_papers:
+            return {"merged_count": 0, "message": "No papers to merge"}
+
+        merged_count = 0
+        for sp in source_papers:
+            existing = (
+                session.query(CollectionPaper)
+                .filter_by(collection_id=data.target_collection_id, paper_id=sp.paper_id)
+                .first()
+            )
+            if not existing:
+                new_cp = CollectionPaper(
+                    collection_id=data.target_collection_id,
+                    paper_id=sp.paper_id,
+                    added_at=datetime.now(UTC),
+                )
+                session.add(new_cp)
+                merged_count += 1
+
+        target_collection.updated_at = datetime.now(UTC)
+        session.commit()
+
+        refresh_stats_cache()
+
+        return {
+            "merged_count": merged_count,
+            "total_papers": len(source_papers),
+            "target_collection_name": target_collection.name,
+        }
