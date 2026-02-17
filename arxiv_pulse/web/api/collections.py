@@ -99,29 +99,55 @@ async def get_collection(
     collection_id: int,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None),
+    sort_by: str = Query("published"),
+    sort_order: str = Query("desc"),
 ):
-    """Get collection by ID with papers (paginated)"""
+    """Get collection by ID with papers (paginated, searchable, sortable)"""
     with get_db().get_session() as session:
         collection = session.query(Collection).filter_by(id=collection_id).first()
         if not collection:
             raise HTTPException(status_code=404, detail="Collection not found")
 
-        # Get total count
-        total_count = session.query(CollectionPaper).filter_by(collection_id=collection_id).count()
+        # Base query
+        query = session.query(CollectionPaper).filter_by(collection_id=collection_id)
 
-        # Get paginated papers
+        # Get all collection papers first for search
+        all_cp = query.all()
+
+        # Filter by search keyword
+        if search:
+            search_lower = search.lower()
+            filtered_cp = []
+            for cp in all_cp:
+                paper = session.query(Paper).filter_by(id=cp.paper_id).first()
+                if paper:
+                    title = (paper.title or "").lower()
+                    authors = (paper.authors or "").lower()
+                    summary = (paper.summary or "").lower()
+                    if search_lower in title or search_lower in authors or search_lower in summary:
+                        filtered_cp.append(cp)
+            all_cp = filtered_cp
+
+        # Sort
+        def get_sort_key(cp):
+            paper = session.query(Paper).filter_by(id=cp.paper_id).first()
+            if sort_by == "published":
+                return paper.published if paper and paper.published else datetime.min.replace(tzinfo=None)
+            else:
+                return cp.added_at or datetime.min.replace(tzinfo=None)
+
+        all_cp.sort(key=get_sort_key, reverse=(sort_order == "desc"))
+
+        # Get total count
+        total_count = len(all_cp)
+
+        # Paginate
         offset = (page - 1) * page_size
-        collection_papers = (
-            session.query(CollectionPaper)
-            .filter_by(collection_id=collection_id)
-            .order_by(CollectionPaper.added_at.desc())
-            .offset(offset)
-            .limit(page_size)
-            .all()
-        )
+        paginated_cp = all_cp[offset : offset + page_size]
 
         papers = []
-        for cp in collection_papers:
+        for cp in paginated_cp:
             paper = session.query(Paper).filter_by(id=cp.paper_id).first()
             if paper:
                 paper_data = enhance_paper_data(paper)
@@ -133,7 +159,7 @@ async def get_collection(
         result["total_count"] = total_count
         result["page"] = page
         result["page_size"] = page_size
-        result["total_pages"] = (total_count + page_size - 1) // page_size
+        result["total_pages"] = (total_count + page_size - 1) // page_size if total_count > 0 else 1
         return result
 
 
@@ -185,29 +211,55 @@ async def get_collection_papers(
     collection_id: int,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None),
+    sort_by: str = Query("published"),
+    sort_order: str = Query("desc"),
 ):
-    """Get papers in a collection (paginated)"""
+    """Get papers in a collection (paginated, searchable, sortable)"""
     with get_db().get_session() as session:
         collection = session.query(Collection).filter_by(id=collection_id).first()
         if not collection:
             raise HTTPException(status_code=404, detail="Collection not found")
 
-        # Get total count
-        total_count = session.query(CollectionPaper).filter_by(collection_id=collection_id).count()
+        # Base query
+        query = session.query(CollectionPaper).filter_by(collection_id=collection_id)
 
-        # Get paginated papers
+        # Get all collection papers first for search
+        all_cp = query.all()
+
+        # Filter by search keyword
+        if search:
+            search_lower = search.lower()
+            filtered_cp = []
+            for cp in all_cp:
+                paper = session.query(Paper).filter_by(id=cp.paper_id).first()
+                if paper:
+                    title = (paper.title or "").lower()
+                    authors = (paper.authors or "").lower()
+                    summary = (paper.summary or "").lower()
+                    if search_lower in title or search_lower in authors or search_lower in summary:
+                        filtered_cp.append(cp)
+            all_cp = filtered_cp
+
+        # Sort
+        def get_sort_key(cp):
+            paper = session.query(Paper).filter_by(id=cp.paper_id).first()
+            if sort_by == "published":
+                return paper.published if paper and paper.published else datetime.min.replace(tzinfo=None)
+            else:
+                return cp.added_at or datetime.min.replace(tzinfo=None)
+
+        all_cp.sort(key=get_sort_key, reverse=(sort_order == "desc"))
+
+        # Get total count
+        total_count = len(all_cp)
+
+        # Paginate
         offset = (page - 1) * page_size
-        collection_papers = (
-            session.query(CollectionPaper)
-            .filter_by(collection_id=collection_id)
-            .order_by(CollectionPaper.added_at.desc())
-            .offset(offset)
-            .limit(page_size)
-            .all()
-        )
+        paginated_cp = all_cp[offset : offset + page_size]
 
         papers = []
-        for cp in collection_papers:
+        for cp in paginated_cp:
             paper = session.query(Paper).filter_by(id=cp.paper_id).first()
             if paper:
                 paper_data = enhance_paper_data(paper)
@@ -219,7 +271,7 @@ async def get_collection_papers(
             "total_count": total_count,
             "page": page,
             "page_size": page_size,
-            "total_pages": (total_count + page_size - 1) // page_size,
+            "total_pages": (total_count + page_size - 1) // page_size if total_count > 0 else 1,
         }
 
 
@@ -291,3 +343,102 @@ async def update_collection_paper(collection_id: int, paper_id: int, data: Updat
             collection.updated_at = datetime.now(UTC).replace(tzinfo=None)
         session.commit()
         return cp.to_dict()
+
+
+class AISearchRequest(BaseModel):
+    query: str
+
+
+@router.post("/{collection_id}/ai-search")
+async def ai_search_papers(collection_id: int, data: AISearchRequest):
+    """AI-powered search in collection papers (searches titles only)"""
+    from arxiv_pulse.config import Config
+
+    with get_db().get_session() as session:
+        collection = session.query(Collection).filter_by(id=collection_id).first()
+        if not collection:
+            raise HTTPException(status_code=404, detail="Collection not found")
+
+        # Get all papers in collection
+        collection_papers = session.query(CollectionPaper).filter_by(collection_id=collection_id).all()
+
+        if not collection_papers:
+            return {"papers": [], "message": "No papers in collection"}
+
+        # Build paper list with titles
+        papers_info = []
+        for idx, cp in enumerate(collection_papers, 1):
+            paper = session.query(Paper).filter_by(id=cp.paper_id).first()
+            if paper:
+                papers_info.append(
+                    {
+                        "index": idx,
+                        "id": paper.id,
+                        "title": paper.title or "",
+                        "arxiv_id": paper.arxiv_id,
+                    }
+                )
+
+        if not papers_info:
+            return {"papers": [], "message": "No papers found"}
+
+        # Build prompt for AI
+        titles_text = "\n".join([f"{p['index']}. {p['title']}" for p in papers_info])
+
+        prompt = f"""用户描述：{data.query}
+
+以下是论文集中的所有论文标题（每行一个）：
+{titles_text}
+
+请找出与用户描述最相关的论文，返回编号列表（JSON数组格式），如：[1, 3, 5]
+
+如果没有相关论文，返回空列表 []
+只返回JSON数组，不要其他文字。"""
+
+        # Call AI
+        if not Config.AI_API_KEY:
+            raise HTTPException(status_code=400, detail="AI API not configured")
+
+        try:
+            import openai
+
+            client = openai.OpenAI(api_key=Config.AI_API_KEY, base_url=Config.AI_BASE_URL)
+
+            response = client.chat.completions.create(
+                model=Config.AI_MODEL or "DeepSeek-V3.2",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=100,
+                temperature=0.3,
+            )
+
+            result_text = response.choices[0].message.content.strip()
+
+            # Parse JSON result
+            import re
+
+            match = re.search(r"\[.*?\]", result_text)
+            if match:
+                indices = json.loads(match.group())
+            else:
+                indices = []
+
+            # Get matched papers
+            matched_papers = []
+            for p in papers_info:
+                if p["index"] in indices:
+                    paper = session.query(Paper).filter_by(id=p["id"]).first()
+                    if paper:
+                        paper_data = enhance_paper_data(paper)
+                        cp = (
+                            session.query(CollectionPaper)
+                            .filter_by(collection_id=collection_id, paper_id=p["id"])
+                            .first()
+                        )
+                        if cp:
+                            paper_data["collection_info"] = cp.to_dict()
+                        matched_papers.append(paper_data)
+
+            return {"papers": matched_papers, "total_found": len(matched_papers)}
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"AI search failed: {str(e)[:100]}")

@@ -2752,6 +2752,30 @@
                                             <el-dropdown-item @click.stop="duplicateCollection(collection)">
                                                 <el-icon><Document /></el-icon> {{ t('collections.duplicate') }}
                                             </el-dropdown-item>
+                                            <el-dropdown-item>
+                                                <el-dropdown placement="right-start" trigger="hover">
+                                                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                                        <span><el-icon><Download /></el-icon> {{ t('collections.export') }}</span>
+                                                        <el-icon style="margin-left: 20px;"><ArrowRight /></el-icon>
+                                                    </div>
+                                                    <template #dropdown>
+                                                        <el-dropdown-menu>
+                                                            <el-dropdown-item @click.stop="exportCollectionWithId(collection.id, 'markdown')">
+                                                                Markdown (.md)
+                                                            </el-dropdown-item>
+                                                            <el-dropdown-item @click.stop="exportCollectionWithId(collection.id, 'pdf')">
+                                                                {{ t('export.pdfDoc') }}
+                                                            </el-dropdown-item>
+                                                            <el-dropdown-item @click.stop="exportCollectionWithId(collection.id, 'csv')">
+                                                                {{ t('export.csvTable') }}
+                                                            </el-dropdown-item>
+                                                            <el-dropdown-item @click.stop="exportCollectionWithId(collection.id, 'bibtex')">
+                                                                BibTeX (.bib)
+                                                            </el-dropdown-item>
+                                                        </el-dropdown-menu>
+                                                    </template>
+                                                </el-dropdown>
+                                            </el-dropdown-item>
                                             <el-dropdown-item divided @click.stop="confirmDeleteCollection(collection)">
                                                 <el-icon><Delete /></el-icon> {{ t('common.delete') }}
                                             </el-dropdown-item>
@@ -2907,26 +2931,36 @@
             <el-dialog v-model="showCollectionDetail" :title="viewingCollection?.name" width="800px">
                 <div v-if="loadingCollectionPapers" style="text-align: center; padding: 40px;">
                     <el-icon class="is-loading" style="font-size: 32px;"><Loading /></el-icon>
+                    <p v-if="aiSearching" style="color: var(--text-secondary); margin-top: 12px;">{{ t('collections.aiSearching') }}</p>
                 </div>
-                <template v-else>
-                    <div v-if="collectionPapers.length > 0">
-                        <div class="export-bar">
-                            <span style="color: var(--text-secondary);">{{ collectionTotalCount }} {{ t('collections.papers') }}</span>
-                            <el-dropdown @command="exportCollection">
-                                <el-button type="primary" plain>
-                                    <el-icon><Download /></el-icon> {{ t('collections.exportCollection') }}
-                                    <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                                </el-button>
-                                <template #dropdown>
-                                    <el-dropdown-menu>
-                                        <el-dropdown-item command="markdown">Markdown (.md)</el-dropdown-item>
-                                        <el-dropdown-item command="pdf">{{ t('export.pdfDoc') }}</el-dropdown-item>
-                                        <el-dropdown-item command="csv">{{ t('export.csvTable') }}</el-dropdown-item>
-                                        <el-dropdown-item command="bibtex">BibTeX (.bib)</el-dropdown-item>
-                                    </el-dropdown-menu>
-                                </template>
-                            </el-dropdown>
+                <div v-else>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <el-input 
+                                v-model="collectionPaperSearch" 
+                                :placeholder="useAiSearch ? t('collections.aiSearchPlaceholder') : t('collections.searchPapers')" 
+                                clearable 
+                                style="width: 260px;" 
+                                @keyup.enter="performSearch" 
+                                @clear="performSearch"
+                                :disabled="aiSearching"
+                            >
+                                <template #prefix><el-icon><Search /></el-icon></template>
+                            </el-input>
+                            <el-checkbox v-model="useAiSearch" :disabled="aiSearching">{{ t('collections.aiSearch') }}</el-checkbox>
                         </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: var(--text-secondary); font-size: 13px;">{{ collectionTotalCount }} {{ t('collections.papers') }}</span>
+                            <el-divider direction="vertical"></el-divider>
+                            <span style="color: var(--text-muted); font-size: 12px;">{{ t('collections.sortBy') }}:</span>
+                            <span style="color: var(--text-primary); font-size: 13px; cursor: pointer;" @click="collectionSortBy = 'published'; performSearch();" :style="{ fontWeight: collectionSortBy === 'published' ? '600' : '400' }">{{ t('collections.sortPublished') }}</span>
+                            <span style="color: var(--text-muted);">/</span>
+                            <span style="color: var(--text-primary); font-size: 13px; cursor: pointer;" @click="collectionSortBy = 'added_at'; performSearch();" :style="{ fontWeight: collectionSortBy === 'added_at' ? '600' : '400' }">{{ t('collections.sortAdded') }}</span>
+                            <el-divider direction="vertical"></el-divider>
+                            <span style="color: var(--text-primary); font-size: 13px; cursor: pointer;" @click="toggleSortOrder">{{ collectionSortOrder === 'desc' ? t('collections.sortDesc') : t('collections.sortAsc') }}</span>
+                        </div>
+                    </div>
+                    <div v-if="collectionPapers.length > 0">
                         <paper-card 
                             v-for="paper in collectionPapers" 
                             :key="paper.id" 
@@ -2941,9 +2975,11 @@
                         />
                     </div>
                     <div v-else class="empty-state">
-                        <p>{{ t('collections.noPapersInCollection') }}</p>
+                        <p v-if="useAiSearch">{{ t('collections.aiNoResult') }}</p>
+                        <p v-else-if="collectionPaperSearch">{{ t('collections.noSearchResult') }}</p>
+                        <p v-else>{{ t('collections.noPapersInCollection') }}</p>
                     </div>
-                    <div v-if="collectionTotalPages > 1" style="display: flex; justify-content: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light);">
+                    <div v-if="collectionTotalPages > 1 && !useAiSearch" style="display: flex; justify-content: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light);">
                         <el-pagination
                             v-model:current-page="collectionCurrentPage"
                             :page-size="20"
@@ -2952,7 +2988,7 @@
                             @current-change="loadCollectionPage"
                         />
                     </div>
-                </template>
+                </div>
             </el-dialog>
 
             <el-dialog v-model="showDeleteConfirm" :title="t('common.confirmDelete')" width="400px">
@@ -3567,7 +3603,19 @@
                     addPapers: '添加',
                     duplicate: '创建副本',
                     shareLink: '分享链接已复制',
-                    lastUpdated: '最近更新'
+                    lastUpdated: '最近更新',
+                    searchPapers: '搜索论文...',
+                    sortBy: '排序',
+                    sortPublished: '发表时间',
+                    sortAdded: '加入时间',
+                    sortAsc: '升序',
+                    sortDesc: '降序',
+                    aiSearch: 'AI 检索',
+                    aiSearchPlaceholder: '描述你想找的论文，如：关于电池材料 DFT 计算的',
+                    aiSearching: 'AI 正在检索...',
+                    aiNoResult: '未找到匹配的论文',
+                    aiResult: '找到 {count} 篇匹配论文',
+                    noSearchResult: '未找到匹配的论文，试试 AI 检索？'
                 },
                 export: {
                     pdfDoc: 'PDF 文档',
@@ -3833,7 +3881,19 @@
                     addPapers: 'Add',
                     duplicate: 'Make a Copy',
                     shareLink: 'Share link copied',
-                    lastUpdated: 'Last updated'
+                    lastUpdated: 'Last updated',
+                    searchPapers: 'Search papers...',
+                    sortBy: 'Sort',
+                    sortPublished: 'Published date',
+                    sortAdded: 'Added date',
+                    sortAsc: 'Ascending',
+                    sortDesc: 'Descending',
+                    aiSearch: 'AI Search',
+                    aiSearchPlaceholder: 'Describe what you\'re looking for, e.g., DFT calculations for battery materials',
+                    aiSearching: 'AI searching...',
+                    aiNoResult: 'No matching papers found',
+                    aiResult: 'Found {count} matching papers',
+                    noSearchResult: 'No matching papers. Try AI search?'
                 },
                 export: {
                     pdfDoc: 'PDF Document',
@@ -4327,6 +4387,11 @@
                 const collectionCurrentPage = ref(1);
                 const collectionTotalCount = ref(0);
                 const collectionTotalPages = ref(0);
+                const collectionPaperSearch = ref('');
+                const collectionSortBy = ref('published');
+                const collectionSortOrder = ref('desc');
+                const useAiSearch = ref(false);
+                const aiSearching = ref(false);
 
                 const filteredCollections = computed(() => {
                     if (!collectionSearchQuery.value) return collections.value;
@@ -5326,15 +5391,75 @@
                 async function openCollectionDetail(collection) {
                     viewingCollection.value = collection;
                     collectionCurrentPage.value = 1;
+                    collectionPaperSearch.value = '';
+                    collectionSortBy.value = 'published';
+                    collectionSortOrder.value = 'desc';
+                    useAiSearch.value = false;
+                    loadingCollectionPapers.value = true;
                     showCollectionDetail.value = true;
                     await loadCollectionPage();
+                }
+
+                async function performSearch() {
+                    if (!viewingCollection.value) return;
+                    collectionCurrentPage.value = 1;
+                    
+                    if (useAiSearch.value && collectionPaperSearch.value.trim()) {
+                        aiSearching.value = true;
+                        loadingCollectionPapers.value = true;
+                        try {
+                            const res = await fetch(`${API_BASE}/collections/${viewingCollection.value.id}/ai-search`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ query: collectionPaperSearch.value.trim() })
+                            });
+                            const data = await res.json();
+                            if (data.papers && data.papers.length > 0) {
+                                collectionPapers.value = data.papers;
+                                collectionTotalCount.value = data.papers.length;
+                                collectionTotalPages.value = 1;
+                                ElementPlus.ElMessage.success(t('collections.aiResult', { count: data.papers.length }));
+                            } else {
+                                collectionPapers.value = [];
+                                collectionTotalCount.value = 0;
+                                collectionTotalPages.value = 0;
+                                ElementPlus.ElMessage.info(t('collections.aiNoResult'));
+                            }
+                        } catch (e) {
+                            console.error('AI search failed:', e);
+                            ElementPlus.ElMessage.error(currentLang.value === 'zh' ? 'AI 检索失败' : 'AI search failed');
+                        } finally {
+                            aiSearching.value = false;
+                            loadingCollectionPapers.value = false;
+                        }
+                    } else {
+                        loadCollectionPage();
+                    }
+                }
+
+                function toggleSortOrder() {
+                    collectionSortOrder.value = collectionSortOrder.value === 'desc' ? 'asc' : 'desc';
+                    performSearch();
                 }
 
                 async function loadCollectionPage() {
                     if (!viewingCollection.value) return;
                     loadingCollectionPapers.value = true;
                     try {
-                        const res = await fetch(`${API_BASE}/collections/${viewingCollection.value.id}/papers?page=${collectionCurrentPage.value}&page_size=20`);
+                        const params = new URLSearchParams({
+                            page: collectionCurrentPage.value,
+                            page_size: 20
+                        });
+                        if (collectionPaperSearch.value && !useAiSearch.value) {
+                            params.append('search', collectionPaperSearch.value);
+                        }
+                        if (collectionSortBy.value) {
+                            params.append('sort_by', collectionSortBy.value);
+                        }
+                        if (collectionSortOrder.value) {
+                            params.append('sort_order', collectionSortOrder.value);
+                        }
+                        const res = await fetch(`${API_BASE}/collections/${viewingCollection.value.id}/papers?${params}`);
                         const data = await res.json();
                         collectionPapers.value = data.papers || [];
                         collectionTotalCount.value = data.total_count || 0;
@@ -5553,6 +5678,34 @@
                         a.href = url;
                         const ext = format === 'markdown' ? 'md' : format === 'bibtex' ? 'bib' : format;
                         a.download = `collection_${viewingCollection.value.name.replace(/\s+/g, '_')}.${ext}`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        ElementPlus.ElMessage.success('导出成功');
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('导出失败');
+                    }
+                }
+
+                async function exportCollectionWithId(collectionId, format) {
+                    const collection = collections.value.find(c => c.id === collectionId);
+                    if (!collection) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/export/collection`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                collection_id: collectionId,
+                                format: format,
+                                include_summary: true
+                            })
+                        });
+                        if (!res.ok) throw new Error('Export failed');
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const ext = format === 'markdown' ? 'md' : format === 'bibtex' ? 'bib' : format;
+                        a.download = `collection_${collection.name.replace(/\s+/g, '_')}.${ext}`;
                         a.click();
                         window.URL.revokeObjectURL(url);
                         ElementPlus.ElMessage.success('导出成功');
@@ -6299,7 +6452,9 @@
                     selectedCollectionId, selectedPaper, addingToCollection,
                     viewingCollection, showCollectionDetail, collectionPapers, loadingCollectionPapers,
                     collectionCurrentPage, collectionTotalCount, collectionTotalPages,
+                    collectionPaperSearch, collectionSortBy, collectionSortOrder,
                     collectionSearchQuery, filteredCollections, formatRelativeTime,
+                    useAiSearch, aiSearching, performSearch, toggleSortOrder,
                     recentSelectedIds, recentSelectAll, searchSelectedIds, searchSelectAll,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
                     checkInitStatus, fetchCategories, testSetupAI, toggleSetupField, toggleCategoryGroup, startInitialSync,
@@ -6313,7 +6468,7 @@
                     addToCollection, confirmAddToCollection,
                     editCollection, duplicateCollection,
                     toggleRecentSelect, toggleRecentSelectAll, toggleSearchSelect, toggleSearchSelectAll,
-                    exportRecent, exportSearch, exportCollection,
+                    exportRecent, exportSearch, exportCollection, exportCollectionWithId,
                     navigateTo, navigateToHome, onTabChange, startHomeSearch, toggleHomeSelect, exportHome,
                     chatExpanded, chatSessions, currentChatSession, chatMessages, chatInput, chatPosition, chatPanelRef, chatZIndex,
                     chatFullscreen, chatSize, chatAnimating,
