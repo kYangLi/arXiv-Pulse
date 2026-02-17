@@ -2611,7 +2611,8 @@
 
                     <div v-if="loadingRecent" class="loading-state">
                         <el-icon class="is-loading" style="font-size: 32px;"><Loading /></el-icon>
-                        <p>{{ loadingTotal > 0 ? `${t('papers.loadingProgress')} (${loadingProgress}/${loadingTotal})` : t('papers.loading') }}</p>
+                        <p v-if="loadingTotal > 0">{{ t('papers.aiReading') }} ({{ loadingProgress }}/{{ loadingTotal }})</p>
+                        <p v-else>{{ t('papers.loading') }}</p>
                         <el-button v-if="loadingTotal > 0" size="small" @click="stopLoading" style="margin-top: 8px;">
                             {{ t('common.stop') }}
                         </el-button>
@@ -3645,7 +3646,7 @@
                     yearsBack: '回溯年数',
                     filterFields: '筛选领域',
                     loading: '正在加载论文数据...',
-                    loadingProgress: '正在加载论文'
+                    aiReading: 'AI 正在阅读并理解文献，请耐心等待...'
                 },
                 sync: {
                     status: '同步状态',
@@ -3933,7 +3934,7 @@
                     yearsBack: 'Years Back',
                     filterFields: 'Filter Fields',
                     loading: 'Loading papers...',
-                    loadingProgress: 'Loading papers'
+                    aiReading: 'AI is reading and understanding papers, please wait...'
                 },
                 sync: {
                     status: 'Sync Status',
