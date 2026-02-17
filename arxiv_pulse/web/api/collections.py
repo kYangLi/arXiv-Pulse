@@ -52,6 +52,10 @@ class AddPaperToCollection(BaseModel):
     tags: list[str] | None = None
 
 
+class BatchAddPapersToCollection(BaseModel):
+    paper_ids: list[int]
+
+
 class UpdateCollectionPaper(BaseModel):
     notes: str | None = None
     tags: list[str] | None = None
@@ -302,6 +306,46 @@ async def add_paper_to_collection(collection_id: int, data: AddPaperToCollection
         session.commit()
         refresh_stats_cache()
         return {"message": "Paper added to collection"}
+
+
+@router.post("/{collection_id}/papers/batch")
+async def batch_add_papers_to_collection(collection_id: int, data: BatchAddPapersToCollection):
+    """Batch add multiple papers to collection"""
+    with get_db().get_session() as session:
+        collection = session.query(Collection).filter_by(id=collection_id).first()
+        if not collection:
+            raise HTTPException(status_code=404, detail="Collection not found")
+
+        existing_ids = set(
+            cp.paper_id
+            for cp in session.query(CollectionPaper)
+            .filter(
+                CollectionPaper.collection_id == collection_id,
+                CollectionPaper.paper_id.in_(data.paper_ids),
+            )
+            .all()
+        )
+
+        added_count = 0
+        for paper_id in data.paper_ids:
+            if paper_id not in existing_ids:
+                cp = CollectionPaper(
+                    collection_id=collection_id,
+                    paper_id=paper_id,
+                )
+                session.add(cp)
+                added_count += 1
+
+        if added_count > 0:
+            collection.updated_at = datetime.now(UTC).replace(tzinfo=None)
+            session.commit()
+            refresh_stats_cache()
+
+        return {
+            "added_count": added_count,
+            "skipped_count": len(data.paper_ids) - added_count,
+            "message": f"Added {added_count} papers to collection",
+        }
 
 
 @router.delete("/{collection_id}/papers/{paper_id}")

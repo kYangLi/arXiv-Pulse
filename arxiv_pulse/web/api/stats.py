@@ -7,6 +7,7 @@ from collections import Counter
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter
+from sqlalchemy import func
 
 from arxiv_pulse.config import Config
 from arxiv_pulse.models import Collection, CollectionPaper, Database, Paper
@@ -21,39 +22,46 @@ def get_db():
 
 
 def update_stats_cache():
-    """更新统计数据缓存"""
+    """更新统计数据缓存 - 使用 SQL 聚合查询优化性能"""
     with get_db().get_session() as session:
-        total_papers = session.query(Paper).count()
-        summarized_papers = session.query(Paper).filter_by(summarized=True).count()
+        total_papers = session.query(func.count(Paper.id)).scalar()
+        summarized_papers = session.query(func.count(Paper.id)).filter(Paper.summarized == True).scalar()
 
         now = datetime.now(UTC).replace(tzinfo=None)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         week_start = now - timedelta(days=7)
         month_start = now - timedelta(days=30)
 
-        today_count = session.query(Paper).filter(Paper.published >= today_start).count()
-        week_count = session.query(Paper).filter(Paper.published >= week_start).count()
-        month_count = session.query(Paper).filter(Paper.published >= month_start).count()
+        today_count = session.query(func.count(Paper.id)).filter(Paper.published >= today_start).scalar()
+        week_count = session.query(func.count(Paper.id)).filter(Paper.published >= week_start).scalar()
+        month_count = session.query(func.count(Paper.id)).filter(Paper.published >= month_start).scalar()
 
-        papers = session.query(Paper).all()
+        category_counts = (
+            session.query(Paper.categories, func.count(Paper.id))
+            .filter(Paper.categories.isnot(None))
+            .group_by(Paper.categories)
+            .all()
+        )
         category_counter = Counter()
-        for paper in papers:
-            if paper.categories:
-                for cat in paper.categories.split(", "):
+        for cats, count in category_counts:
+            if cats:
+                for cat in cats.split(", "):
                     if cat:
-                        category_counter[cat] += 1
+                        category_counter[cat] += count
 
         top_categories = category_counter.most_common(10)
 
-        year_counter = Counter()
-        for paper in papers:
-            if paper.published:
-                year_counter[paper.published.year] += 1
+        year_counts = (
+            session.query(func.strftime("%Y", Paper.published), func.count(Paper.id))
+            .filter(Paper.published.isnot(None))
+            .group_by(func.strftime("%Y", Paper.published))
+            .all()
+        )
+        year_distribution = {int(year): count for year, count in year_counts if year}
+        year_distribution = dict(sorted(year_distribution.items()))
 
-        year_distribution = dict(sorted(year_counter.items()))
-
-        total_collections = session.query(Collection).count()
-        total_collection_papers = session.query(CollectionPaper).count()
+        total_collections = session.query(func.count(Collection.id)).scalar()
+        total_collection_papers = session.query(func.count(CollectionPaper.id)).scalar()
 
         cache_data = {
             "updated_at": datetime.now(UTC).isoformat(),
@@ -111,13 +119,18 @@ async def get_field_stats():
     all_cats = get_all_categories()
 
     with db.get_session() as session:
-        papers = session.query(Paper).all()
+        category_counts = (
+            session.query(Paper.categories, func.count(Paper.id))
+            .filter(Paper.categories.isnot(None))
+            .group_by(Paper.categories)
+            .all()
+        )
         category_counter = Counter()
-        for paper in papers:
-            if paper.categories:
-                for cat in paper.categories.split(", "):
+        for cats, count in category_counts:
+            if cats:
+                for cat in cats.split(", "):
                     if cat:
-                        category_counter[cat] += 1
+                        category_counter[cat] += count
 
     fields_data = []
     for field_id, field_info in all_cats.items():

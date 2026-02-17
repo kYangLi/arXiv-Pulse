@@ -5677,25 +5677,31 @@
                     }
                     addingToCollection.value = true;
                     try {
-                        // Priority: selectedPaper (from card click) > paperCart (from cart button)
                         const papersToAdd = selectedPaper.value ? [selectedPaper.value] : paperCart.value;
                         if (papersToAdd.length === 0) {
                             ElementPlus.ElMessage.warning('没有选中的论文');
                             return;
                         }
                         
-                        let successCount = 0;
-                        for (const paper of papersToAdd) {
-                            const res = await fetch(`${API_BASE}/collections/${selectedCollectionId.value}/papers`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ paper_id: paper.id })
-                            });
-                            if (res.ok) successCount++;
-                        }
+                        const paperIds = papersToAdd.map(p => p.id);
+                        const res = await fetch(`${API_BASE}/collections/${selectedCollectionId.value}/papers/batch`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ paper_ids: paperIds })
+                        });
                         
-                        if (successCount > 0) {
-                            ElementPlus.ElMessage.success(`成功添加 ${successCount} 篇论文`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            const messages = [];
+                            if (data.added_count > 0) {
+                                messages.push(`成功添加 ${data.added_count} 篇论文`);
+                            }
+                            if (data.skipped_count > 0) {
+                                messages.push(`${data.skipped_count} 篇已在论文集中`);
+                            }
+                            if (messages.length > 0) {
+                                ElementPlus.ElMessage.success(messages.join('，'));
+                            }
                             showAddToCollection.value = false;
                             fetchCollections();
                         }
@@ -6946,6 +6952,15 @@
         });
 
         app.use(ElementPlus);
+        
+        // Wrap ElMessage to always center
+        const originalMessage = ElementPlus.ElMessage;
+        const wrapMessage = (type) => (msg) => originalMessage({ message: msg, type, center: true });
+        ElementPlus.ElMessage.success = wrapMessage('success');
+        ElementPlus.ElMessage.warning = wrapMessage('warning');
+        ElementPlus.ElMessage.info = wrapMessage('info');
+        ElementPlus.ElMessage.error = wrapMessage('error');
+        
         if (window.ElementPlusIconsVue) {
             for (const [key, component] of Object.entries(window.ElementPlusIconsVue)) {
                 app.component(key, component);
