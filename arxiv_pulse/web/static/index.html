@@ -5894,7 +5894,7 @@
                         const response = await fetch(`${API_BASE}/chat/sessions/${currentChatSession.value.id}/send`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ content: messageContent, paper_ids: paperIds })
+                            body: JSON.stringify({ content: messageContent, paper_ids: paperIds, language: currentLang.value })
                         });
 
                         const reader = response.body.getReader();
