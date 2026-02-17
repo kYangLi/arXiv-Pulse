@@ -1200,6 +1200,7 @@
     </div>
 
     <script src="libs/vue/vue.global.prod.js"></script>
+    <script src="libs/pinia/pinia.iife.prod.js"></script>
     <script src="libs/element-plus/index.full.js"></script>
     <script src="libs/element-plus/icons.iife.min.js"></script>
     <script src="libs/echarts/echarts.min.js"></script>
@@ -1208,9 +1209,15 @@
     <script src="js/i18n/en.js"></script>
     <script src="js/services/api.js"></script>
     <script src="js/utils/export.js"></script>
+    <script src="js/stores/configStore.js"></script>
+    <script src="js/stores/paperStore.js"></script>
+    <script src="js/stores/collectionStore.js"></script>
+    <script src="js/stores/chatStore.js"></script>
+    <script src="js/stores/uiStore.js"></script>
     <script src="js/components/PaperCard.js"></script>
     <script>
         const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+        const { createPinia } = Pinia;
         
         const i18n = { zh: i18nZh, en: i18nEn };
 
@@ -1246,6 +1253,12 @@
 
         const app = createApp({
             setup() {
+                const configStore = useConfigStore();
+                const paperStore = usePaperStore();
+                const collectionStore = useCollectionStore();
+                const chatStore = useChatStore();
+                const uiStore = useUiStore();
+                
                 const showSetup = ref(false);
                 const setupStep = ref(1);
                 const initializing = ref(false);
@@ -3684,6 +3697,8 @@
             setup: PaperCardSetup
         });
 
+        const pinia = createPinia();
+        app.use(pinia);
         app.use(ElementPlus);
         if (window.ElementPlusIconsVue) {
             for (const [key, component] of Object.entries(window.ElementPlusIconsVue)) {
