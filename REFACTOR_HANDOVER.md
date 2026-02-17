@@ -1,126 +1,128 @@
-# ArXiv-Pulse 重构 Handover 文档
+# ArXiv-Pulse Refactor Handover
 
-## 已完成的重构
+## Goal
 
-### Session 1-4 (已完成)
+Refactor the ArXiv-Pulse project to improve code organization, modularity, and maintainability:
+- Reduce index.html from 7035 lines (monolithic Vue app)
+- Reduce papers.py from 1069 lines
+- Create modular service layer, utilities, and Vue stores
+- Implement Pinia state management for better component decoupling
 
-详见之前 commit 历史。
+## Instructions
 
-**关键指标**：
-- index.html: 7035 → 3696 行 (**-47%**)
-- papers.py: 1069 → 812 行 (**-24%**)
+- Keep code simple and elegant
+- Commit changes with `REFACTOR` prefix
+- Update this file after major changes
+- Use `storeToRefs()` from Pinia to destructure store properties while maintaining reactivity
+- Run `black --check . && ruff check .` before commits
 
-### Session 5 (Pinia Stores 创建与初始化)
+## Discoveries
 
-**创建的 Stores** (1455 行):
+- **Pinia storeToRefs()**: Essential for destructuring store properties while maintaining reactivity. Regular destructuring breaks reactivity.
+- **Store property naming**: Some properties exist in multiple stores (e.g., `cartPanelRef` in paperStore, `chatPanelRef` in chatStore) - careful naming prevents conflicts.
+- **Computed in stores**: `filteredCollections` is a computed property in collectionStore that can be accessed via storeToRefs.
+- **LSP errors**: SQLAlchemy Column type errors in Python files are false positives - code works at runtime.
+- **Migration strategy**: Using `storeToRefs()` allows keeping same variable names in setup(), so template bindings don't need changes.
 
-| Store | 行数 | 职责 |
-|-------|------|------|
-| configStore.js | 327 | 配置、设置、分类、i18n |
-| paperStore.js | 359 | 论文、购物车、搜索、导出 |
-| collectionStore.js | 302 | 收藏集、收藏集论文 |
-| chatStore.js | 321 | 聊天会话、消息 |
-| uiStore.js | 146 | 导航、同步、缓存 |
+## Accomplished
 
-**添加的依赖**：
-- Pinia v2.3.1 (Vue 3 状态管理库)
+### Completed (Sessions 1-6):
 
-**已完成的集成**：
-- 添加 Pinia 和 store 脚本标签
-- 创建 Pinia 实例并添加到 app
-- 在 setup() 中初始化所有 5 个 store
+**Backend service layer**:
+- `services/paper_service.py` - Paper data enhancement
+- `services/translation_service.py` - Translation logic
+- `services/ai_client.py` - AI API client abstraction
+- `utils/sse.py` - SSE streaming utilities
+- `utils/time.py` - Time formatting utilities
+- `web/dependencies.py` - FastAPI dependencies
 
----
+**Frontend API layer**:
+- `js/services/api.js` (121 lines) - unified API calls
 
-## 待完成：全面迁移到 Stores
+**Vue component**:
+- `js/components/PaperCard.js` (312 lines)
 
-### 当前状态
+**Pinia stores** (fully integrated):
+- `js/stores/configStore.js` (336 lines) - Config, settings, categories, i18n, field selector
+- `js/stores/paperStore.js` (359 lines) - Papers, cart, search, export
+- `js/stores/collectionStore.js` (302 lines) - Collections, collection papers
+- `js/stores/chatStore.js` (321 lines) - Chat sessions, messages
+- `js/stores/uiStore.js` (146 lines) - Navigation, sync, cache
 
-index.html 中 setup() 函数仍有 ~2400 行代码，包含 ~100 个 ref() 声明。需要逐步替换为 store 引用。
+**Store integration completed**:
+- All store properties migrated via `storeToRefs()`
+- All store methods integrated (checkInitStatus, fetchConfig, saveSettings, etc.)
+- Removed duplicate ref() declarations
+- Removed duplicate computed properties
+- Removed duplicate function definitions
+- index.html reduced to 3372 lines (-52% from 7035)
 
-### 迁移步骤
+### Key refactorings this session:
 
-#### 示例：迁移 configStore
+1. **configStore full migration**:
+   - `showSetup`, `setupStep`, `setupConfig`, `testingAI`
+   - `showSettings`, `savingSettings`, `settingsConfig`
+   - `arxivCategories`, `allCategories`, `currentLang`
+   - `showFieldSelector`, `fieldSelectorSource`, `tempSelectedFields`, etc.
+   - `filteredCategories`, `advancedQueriesLines`, `parsedCodeResult`
+   - Functions: `t()`, `setLanguage()`, `getFieldTranslation()`, `checkInitStatus()`, `fetchCategories()`, `testSetupAI()`, `fetchConfig()`, `saveSettings()`, `saveApiKey()`, `testAIConnection()`, `openFieldSelector()`, etc.
 
-**之前** (setup 函数内):
-```javascript
-const showSetup = ref(false);
-const setupConfig = ref({ ... });
-const currentLang = ref('zh');
-```
+2. **Removed global scope duplicates**:
+   - Removed `currentLang`, `t()`, `setLanguage()`, `getFieldTranslation()` outside setup()
+   - Removed `arxivCategories`, `allCategories`, `defaultFields` outside setup()
 
-**之后** (使用 store):
-```javascript
-// 删除上述 ref() 声明
-// 使用 configStore.showSetup, configStore.setupConfig, configStore.currentLang
-```
+3. **Removed duplicate local refs**:
+   - Removed duplicate `syncStatus`, `syncing`, `syncYearsBack`, `syncForce` (already in uiStore)
 
-**模板更新**:
-```html
-<!-- 之前 -->
-<div v-if="showSetup">
+## File Size Progress
 
-<!-- 之后 -->
-<div v-if="configStore.showSetup">
-```
+| File | Original | Current | Reduction |
+|------|----------|---------|-----------|
+| index.html | 7035 | 3372 | **-52%** |
+| papers.py | 1069 | 812 | **-24%** |
 
-### 建议的迁移顺序
-
-1. **configStore** - 最独立，优先迁移
-   - 设置页面、分类选择器、i18n
-
-2. **uiStore** - 导航和同步
-   - 底部导航、同步页面
-
-3. **paperStore** - 核心业务
-   - 主页、搜索、购物车
-
-4. **collectionStore** - 收藏集
-   - 收藏集页面
-
-5. **chatStore** - AI 聊天
-   - 聊天组件
-
----
-
-## 当前项目结构
+## Current Project Structure
 
 ```
-arxiv_pulse/web/static/
-├── css/
-│   └── main.css
-├── js/
-│   ├── components/
-│   │   └── PaperCard.js
-│   ├── i18n/
-│   ├── services/
-│   │   └── api.js
-│   ├── stores/             # ✅ Pinia stores
-│   │   ├── configStore.js
-│   │   ├── paperStore.js
-│   │   ├── collectionStore.js
-│   │   ├── chatStore.js
-│   │   └── uiStore.js
-│   └── utils/
-├── libs/
-│   └── pinia/              # ✅ Pinia 库
-└── index.html              # 待迁移 (3711 行)
+arxiv_pulse/
+├── services/
+│   ├── ai_client.py
+│   ├── paper_service.py
+│   └── translation_service.py
+├── utils/
+│   ├── __init__.py
+│   ├── sse.py
+│   └── time.py
+├── web/
+│   ├── dependencies.py
+│   └── static/
+│       ├── css/main.css
+│       └── js/
+│           ├── components/PaperCard.js
+│           ├── i18n/zh.js, en.js
+│           ├── services/api.js
+│           ├── stores/
+│           │   ├── configStore.js
+│           │   ├── paperStore.js
+│           │   ├── collectionStore.js
+│           │   ├── chatStore.js
+│           │   └── uiStore.js
+│           └── utils/export.js
 ```
 
----
+## Next Steps
 
-## 测试命令
+1. **Test the application** - Run `pulse serve .` and verify all functionality
+2. **Extract more Vue components** - Now that stores are integrated, extract:
+   - ChatWidget component
+   - FieldSelector component
+   - SettingsDrawer component
+3. **Consider Vite build system** - For Vue SFC support and better DX
+4. **Optimize re-renders** - Review computed properties for unnecessary updates
+
+## Testing Commands
 
 ```bash
 black --check . && ruff check .
 pulse serve .
 ```
-
----
-
-## 下一步
-
-1. **迁移 configStore** - 替换设置相关的 ref()
-2. **迁移 uiStore** - 替换导航相关的 ref()
-3. **逐步迁移其他 stores**
-4. **提取更多 Vue 组件** - 使用 stores 后组件提取会更容易

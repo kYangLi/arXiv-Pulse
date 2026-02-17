@@ -118,13 +118,21 @@ const useConfigStore = defineStore('config', () => {
     
     function t(key, params = {}) {
         const keys = key.split('.');
-        let value = currentLang.value === 'zh' ? i18n_zh : i18n_en;
+        let value = currentLang.value === 'zh' ? i18nZh : i18nEn;
         for (const k of keys) {
             if (value && typeof value === 'object') value = value[k];
             else return key;
         }
         if (typeof value !== 'string') return key;
         return value.replace(/\{(\w+)\}/g, (_, k) => params[k] ?? `{${k}}`);
+    }
+    
+    function getFieldTranslation(fieldKey, type) {
+        if (currentLang.value === 'zh') return null;
+        const i18n = currentLang.value === 'zh' ? i18nZh : i18nEn;
+        const fieldTrans = i18n?.fields?.[fieldKey];
+        if (!fieldTrans) return null;
+        return type === 'name' ? fieldTrans.name : fieldTrans.desc;
     }
     
     async function checkInitStatus() {
@@ -144,11 +152,6 @@ const useConfigStore = defineStore('config', () => {
             const data = await res.json();
             arxivCategories.value = data.categories || {};
             allCategories.value = data.all_categories || {};
-            
-            const defaultExpanded = ['physics', 'cond-mat', 'cs'];
-            defaultExpanded.forEach(key => {
-                expandedGroups.value[key] = true;
-            });
         } catch (e) {
             console.error('Failed to fetch categories:', e);
         }
@@ -272,6 +275,17 @@ const useConfigStore = defineStore('config', () => {
             } else {
                 advancedQueriesText.value = tempSelectedFields.value.map(f => `cat:${f}`).join('\n');
             }
+        } else if (source === 'recent') {
+            if (recentCategories.value.length > 0) {
+                tempSelectedFields.value = [...recentCategories.value];
+            } else {
+                tempSelectedFields.value = [...(settingsConfig.value.selected_fields || [])];
+            }
+            if (settingsConfig.value.search_queries?.length > 0) {
+                advancedQueriesText.value = settingsConfig.value.search_queries.join('\n');
+            } else {
+                advancedQueriesText.value = tempSelectedFields.value.map(f => `cat:${f}`).join('\n');
+            }
         }
         
         fieldSearchQuery.value = '';
@@ -318,7 +332,7 @@ const useConfigStore = defineStore('config', () => {
         fieldSearchQuery, fieldSelectorExpanded, recentCategories,
         fieldAdvancedMode, advancedQueriesText,
         filteredCategories, advancedQueriesLines, parsedCodeResult,
-        setLanguage, t,
+        setLanguage, t, getFieldTranslation,
         checkInitStatus, fetchCategories, testSetupAI, fetchConfig,
         saveApiKey, testAIConnection, saveSettings,
         openFieldSelector, toggleFieldSelectorGroup, toggleTempField,

@@ -1217,39 +1217,9 @@
     <script src="js/components/PaperCard.js"></script>
     <script>
         const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
-        const { createPinia } = Pinia;
+        const { createPinia, storeToRefs } = Pinia;
         
         const i18n = { zh: i18nZh, en: i18nEn };
-
-        const currentLang = ref('zh');
-        function t(key, params = {}) {
-            const keys = key.split('.');
-            let value = i18n[currentLang.value];
-            for (const k of keys) {
-                if (value && typeof value === 'object') {
-                    value = value[k];
-                } else {
-                    return key;
-                }
-            }
-            if (typeof value !== 'string') return key;
-            return value.replace(/\{(\w+)\}/g, (_, k) => params[k] ?? `{${k}}`);
-        }
-        function setLanguage(lang) {
-            currentLang.value = lang;
-        }
-        function getFieldTranslation(fieldKey, type) {
-            if (currentLang.value === 'zh') return null;
-            const fieldTrans = i18n[currentLang.value]?.fields?.[fieldKey];
-            if (!fieldTrans) return null;
-            return type === 'name' ? fieldTrans.name : fieldTrans.desc;
-        }
-        window.t = t;
-        window.setLanguage = setLanguage;
-
-        const arxivCategories = ref({});
-        const allCategories = ref({});
-        const defaultFields = ['cond-mat.mtrl-sci', 'quant-ph', 'cs.LG'];
 
         const app = createApp({
             setup() {
@@ -1259,10 +1229,18 @@
                 const chatStore = useChatStore();
                 const uiStore = useUiStore();
                 
-                const showSetup = ref(false);
-                const setupStep = ref(1);
+                // configStore properties
+                const {
+                    showSetup, setupStep, testingAI, setupConfig,
+                    showSettings, savingSettings, settingsConfig,
+                    arxivCategories, allCategories, currentLang,
+                    showFieldSelector, fieldSelectorSource, tempSelectedFields,
+                    fieldSearchQuery, fieldSelectorExpanded, recentCategories,
+                    fieldAdvancedMode, advancedQueriesText,
+                    filteredCategories, advancedQueriesLines, parsedCodeResult
+                } = storeToRefs(configStore);
+                
                 const initializing = ref(false);
-                const testingAI = ref(false);
                 const initLogs = ref([]);
                 const initProgress = ref(0);
                 const initCurrentQuery = ref(0);
@@ -1289,93 +1267,25 @@
                 });
                 const waitingMessage = ref('');
                 let waitingTimer = null;
+
+                // uiStore properties
+                const { currentPage, expandedGroups, cacheStats, cacheClearing, syncing, syncLogs, syncYearsBack, syncForce, syncStatus } = storeToRefs(uiStore);
                 
-                const setupConfig = ref({
-                    ai_api_key: '',
-                    ai_model: 'DeepSeek-V3.2',
-                    ai_base_url: 'https://llmapi.paratera.com',
-                    translate_language: 'zh',
-                    selected_fields: [...defaultFields],
-                    search_queries: [],
-                    years_back: 5,
-                    arxiv_max_results_per_field: 10000,
-                    arxiv_max_results: 100000,
-                    recent_papers_limit: 64,
-                    search_limit: 20
-                });
-
-                const showSettings = ref(false);
-                const savingSettings = ref(false);
-                const settingsConfig = ref({
-                    ai_api_key: '',
-                    ai_model: 'DeepSeek-V3.2',
-                    ai_base_url: 'https://llmapi.paratera.com',
-                    selected_fields: [],
-                    search_queries: [],
-                    years_back: 5,
-                    arxiv_max_results: 100000,
-                    arxiv_max_results_per_field: 10000,
-                    recent_papers_limit: 64,
-                    search_limit: 20,
-                    ui_language: 'zh',
-                    translate_language: 'zh'
-                });
-
-                // Field Selector
-                const showFieldSelector = ref(false);
-                const fieldSelectorSource = ref('settings');
-                const tempSelectedFields = ref([]);
-                const fieldSearchQuery = ref('');
-                const fieldSelectorExpanded = ref({});
-                const recentCategories = ref([]);
-                const fieldAdvancedMode = ref(false);
-                const advancedQueriesText = ref('');
-
-                const currentPage = ref('home');
-                const stats = ref(null);
-                const fieldStats = ref([]);
-                const expandedGroups = ref({});
-                const recentPapers = ref([]);
-                const loadingRecent = ref(true);
-                const loadingProgress = ref(0);
-                const loadingTotal = ref(0);
-                const loadingController = ref(null);
-                const updatingRecent = ref(false);
-                const recentLogs = ref([]);
-                const recentDays = ref('7');
-                const recentNeedSync = ref(true);
-
-                const homeQuery = ref('');
-                const homeSearching = ref(false);
-                const homeLogs = ref([]);
-                const homeResults = ref([]);
-                const homeSelectedIds = ref([]);
-
-                const paperCart = ref([]);
-                const showCart = ref(false);
-                const cartExportLoading = ref(false);
-                const cartPosition = ref({ x: window.innerWidth - 424, y: window.innerHeight - 520 });
-                const cartPanelRef = ref(null);
-                const cartZIndex = ref(1000);
-
-                const chatExpanded = ref(false);
-                const chatSessions = ref([]);
-                const currentChatSession = ref(null);
-                const chatMessages = ref([]);
-                const chatInput = ref('');
-                const selectedChatPapers = ref([]);
-                const chatTyping = ref(false);
-                const chatProgress = ref(null);
-                const showChatSidebar = ref(false);
-                const chatUnreadCount = ref(0);
-                const chatMessagesContainer = ref(null);
-                const userScrolledUp = ref(false);
-                const chatPosition = ref({ x: window.innerWidth - 500, y: 80 });
-                const chatPanelRef = ref(null);
-                const chatZIndex = ref(999);
-                const chatFullscreen = ref(false);
-                const chatSize = ref({ width: 480, height: 640 });
-                const chatAnimating = ref(false);
+                // paperStore properties
+                const { 
+                    stats, fieldStats, recentPapers, loadingRecent, loadingProgress, loadingTotal, loadingController,
+                    updatingRecent, recentLogs, recentDays, recentNeedSync,
+                    homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
+                    paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex
+                } = storeToRefs(paperStore);
+                
+                // chatStore properties
+                const {
+                    chatExpanded, chatSessions, currentChatSession, chatMessages, chatInput,
+                    selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
+                    chatUnreadCount, chatMessagesContainer, userScrolledUp, chatPosition, chatPanelRef, chatZIndex,
+                    chatFullscreen, chatSize, chatAnimating
+                } = storeToRefs(chatStore);
 
                 const quickPrompts = computed(() => currentLang.value === 'zh' ? [
                     { icon: '📝', text: '帮我总结这篇论文的核心内容' },
@@ -1542,70 +1452,22 @@
                 const searchSelectedIds = ref([]);
                 const searchSelectAll = ref(false);
 
-                const syncStatus = ref(null);
-                const syncing = ref(false);
-                const syncLogs = ref([]);
-                const syncYearsBack = ref('5');
-                const syncForce = ref(false);
+                // collectionStore properties
+                const {
+                    collections, viewingCollection, collectionPapers, collectionCurrentPage,
+                    collectionTotalCount, collectionTotalPages, collectionPaperSearch,
+                    loadingCollectionPapers, useAiSearch, aiSearching, collectionViewMode,
+                    collectionSearchQuery, filteredCollections, showCreateCollection, savingCollection,
+                    editingCollection, newCollection, showDeleteConfirm, deletingCollection,
+                    deletingCollectionInProgress, showMergeConfirmDialog, mergingFromCollection,
+                    mergingToCollection, mergingInProgress, selectedCollectionId
+                } = storeToRefs(collectionStore);
 
-                const cacheStats = ref({ translations: 0, summaries: 0, figures: 0, contents: 0 });
-                const cacheClearing = ref(null);
-
-                const collections = ref([]);
-                const collectionSearchQuery = ref('');
-                const showCreateCollection = ref(false);
-                const showAddToCollection = ref(false);
-                const showDeleteConfirm = ref(false);
-                const newCollection = ref({ name: '', description: '', color: '#1e3a5f' });
-                const editingCollection = ref(null);
-                const deletingCollection = ref(null);
-                const savingCollection = ref(false);
-                const deletingCollectionInProgress = ref(false);
-                const showMergeConfirmDialog = ref(false);
-                const mergingFromCollection = ref(null);
-                const mergingToCollection = ref(null);
-                const mergingInProgress = ref(false);
-                const selectedCollectionId = ref(null);
                 const selectedPaper = ref(null);
                 const addingToCollection = ref(false);
-                const viewingCollection = ref(null);
                 const showCollectionDetail = ref(false);
-                const collectionPapers = ref([]);
-                const loadingCollectionPapers = ref(false);
-                const collectionCurrentPage = ref(1);
-                const collectionTotalCount = ref(0);
-                const collectionTotalPages = ref(0);
-                const collectionPaperSearch = ref('');
                 const collectionSortBy = ref('published');
                 const collectionSortOrder = ref('desc');
-                const useAiSearch = ref(false);
-                const aiSearching = ref(false);
-                const collectionViewMode = ref('card');
-
-                const filteredCollections = computed(() => {
-                    if (!collectionSearchQuery.value) return collections.value;
-                    const query = collectionSearchQuery.value.toLowerCase();
-                    return collections.value.filter(c => 
-                        c.name.toLowerCase().includes(query) || 
-                        (c.description && c.description.toLowerCase().includes(query))
-                    );
-                });
-
-                function formatRelativeTime(dateStr) {
-                    if (!dateStr) return '';
-                    const date = new Date(dateStr);
-                    const now = new Date();
-                    const diff = now - date;
-                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    const isZh = currentLang.value === 'zh';
-                    
-                    if (days === 0) return isZh ? '今天' : 'today';
-                    if (days === 1) return isZh ? '昨天' : 'yesterday';
-                    if (days < 7) return isZh ? `${days} 天前` : `${days} days ago`;
-                    if (days < 30) return isZh ? `${Math.floor(days / 7)} 周前` : `${Math.floor(days / 7)} weeks ago`;
-                    if (days < 365) return isZh ? `${Math.floor(days / 30)} 月前` : `${Math.floor(days / 30)} months ago`;
-                    return isZh ? `${Math.floor(days / 365)} 年前` : `${Math.floor(days / 365)} years ago`;
-                }
 
                 let yearChart = null;
                 let categoryChart = null;
@@ -1724,47 +1586,15 @@
                 });
 
                 async function checkInitStatus() {
-                    try {
-                        const res = await API.config.status();
-                        const data = await res.json();
-                        showSetup.value = !data.is_initialized;
-                        await fetchCategories();
-                    } catch (e) {
-                        console.error('Failed to check init status:', e);
-                    }
-                }
-
-                async function fetchCategories() {
-                    try {
-                        const res = await API.config.categories();
-                        const data = await res.json();
-                        arxivCategories.value = data.categories || {};
-                        allCategories.value = data.all_categories || {};
-                        
-                        const defaultExpanded = ['physics', 'cond-mat', 'cs'];
-                        defaultExpanded.forEach(key => {
-                            expandedGroups.value[key] = true;
-                        });
-                    } catch (e) {
-                        console.error('Failed to fetch categories:', e);
-                    }
+                    await configStore.checkInitStatus();
+                    const defaultExpanded = ['physics', 'cond-mat', 'cs'];
+                    defaultExpanded.forEach(key => {
+                        expandedGroups.value[key] = true;
+                    });
                 }
 
                 async function testSetupAI() {
-                    testingAI.value = true;
-                    try {
-                        const res = await API.config.testAI(setupConfig.value);
-                        const data = await res.json();
-                        if (res.ok) {
-                            ElementPlus.ElMessage.success(data.message || t('settings.connectionSuccess'));
-                        } else {
-                            ElementPlus.ElMessage.error(data.detail || t('settings.connectionFailed'));
-                        }
-                    } catch (e) {
-                        ElementPlus.ElMessage.error(t('settings.connectionFailed'));
-                    } finally {
-                        testingAI.value = false;
-                    }
+                    await configStore.testSetupAI();
                 }
 
                 function toggleCategoryGroup(key) {
@@ -1847,69 +1677,16 @@
                 }
 
                 async function fetchConfig() {
-                    try {
-                        const res = await API.config.get();
-                        const data = await res.json();
-                        settingsConfig.value = {
-                            ai_api_key: data.ai_api_key || '',
-                            ai_model: data.ai_model || 'DeepSeek-V3.2',
-                            ai_base_url: data.ai_base_url || 'https://llmapi.paratera.com',
-                            selected_fields: data.selected_fields || [],
-                            search_queries: data.search_queries || [],
-                            years_back: data.years_back || 5,
-                            arxiv_max_results: data.arxiv_max_results || 100000,
-                            arxiv_max_results_per_field: data.arxiv_max_results_per_field || 10000,
-                            recent_papers_limit: data.recent_papers_limit || 64,
-                            search_limit: data.search_limit || 20,
-                            ui_language: data.ui_language || 'zh',
-                            translate_language: data.translate_language || 'zh'
-                        };
-                        setLanguage(settingsConfig.value.ui_language || 'zh');
-                        nextTick(() => { settingsInitialized = true; });
-                    } catch (e) {
-                        console.error('Failed to fetch config:', e);
-                    }
+                    await configStore.fetchConfig();
+                    nextTick(() => { settingsInitialized = true; });
                 }
 
                 async function saveApiKey() {
-                    savingSettings.value = true;
-                    try {
-                        const res = await API.config.update({ ai_api_key: settingsConfig.value.ai_api_key });
-                        if (res.ok) {
-                            ElementPlus.ElMessage.success(currentLang.value === 'zh' ? 'API Key 已更新' : 'API Key updated');
-                        } else {
-                            ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '更新失败' : 'Update failed');
-                        }
-                    } catch (e) {
-                        ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '更新失败' : 'Update failed');
-                    } finally {
-                        savingSettings.value = false;
-                    }
+                    await configStore.saveApiKey();
                 }
 
                 async function testAIConnection() {
-                    testingAI.value = true;
-                    try {
-                        const payload = {
-                            ai_base_url: settingsConfig.value.ai_base_url,
-                            ai_model: settingsConfig.value.ai_model
-                        };
-                        if (settingsConfig.value.ai_api_key && settingsConfig.value.ai_api_key !== '***') {
-                            payload.ai_api_key = settingsConfig.value.ai_api_key;
-                        }
-                        
-                        const res = await API.config.testAI(payload);
-                        const data = await res.json();
-                        if (res.ok) {
-                            ElementPlus.ElMessage.success(data.message || t('settings.connectionSuccess'));
-                        } else {
-                            ElementPlus.ElMessage.error(data.detail || t('settings.connectionFailed'));
-                        }
-                    } catch (e) {
-                        ElementPlus.ElMessage.error(t('settings.connectionFailed'));
-                    } finally {
-                        testingAI.value = false;
-                    }
+                    await configStore.testAIConnection();
                 }
 
                 function toggleSettingsField(key) {
@@ -1925,85 +1702,30 @@
                 }
 
                 function openFieldSelector(source) {
-                    fieldSelectorSource.value = source;
-                    fieldAdvancedMode.value = false;
-                    syncingFromCode = true; // 防止 watch 触发
-                    
-                    if (source === 'settings') {
-                        tempSelectedFields.value = [...(settingsConfig.value.selected_fields || [])];
-                        if (settingsConfig.value.search_queries?.length > 0) {
-                            advancedQueriesText.value = settingsConfig.value.search_queries.join('\n');
-                        } else {
-                            advancedQueriesText.value = tempSelectedFields.value.map(f => `cat:${f}`).join('\n');
-                        }
-                    } else if (source === 'init') {
-                        tempSelectedFields.value = [...(setupConfig.value.selected_fields || [])];
-                        if (setupConfig.value.search_queries?.length > 0) {
-                            advancedQueriesText.value = setupConfig.value.search_queries.join('\n');
-                        } else {
-                            advancedQueriesText.value = tempSelectedFields.value.map(f => `cat:${f}`).join('\n');
-                        }
-                    } else if (source === 'recent') {
-                        if (recentCategories.value.length > 0) {
-                            tempSelectedFields.value = [...recentCategories.value];
-                        } else {
-                            tempSelectedFields.value = [...(settingsConfig.value.selected_fields || [])];
-                        }
-                        if (settingsConfig.value.search_queries?.length > 0) {
-                            advancedQueriesText.value = settingsConfig.value.search_queries.join('\n');
-                        } else {
-                            advancedQueriesText.value = tempSelectedFields.value.map(f => `cat:${f}`).join('\n');
-                        }
-                    }
-                    
-                    fieldSearchQuery.value = '';
+                    configStore.openFieldSelector(source);
+                    syncingFromCode = true;
                     nextTick(() => { syncingFromCode = false; });
-                    
-                    const recommendedGroups = ['physics', 'cond-mat', 'cs', 'quant-ph'];
-                    fieldSelectorExpanded.value = {};
-                    recommendedGroups.forEach(key => {
-                        fieldSelectorExpanded.value[key] = true;
-                    });
-                    
-                    showFieldSelector.value = true;
                 }
 
                 function toggleFieldSelectorGroup(key) {
-                    fieldSelectorExpanded.value[key] = !fieldSelectorExpanded.value[key];
+                    configStore.toggleFieldSelectorGroup(key);
                 }
 
                 function toggleTempField(fieldId) {
-                    const idx = tempSelectedFields.value.indexOf(fieldId);
-                    if (idx >= 0) {
-                        tempSelectedFields.value.splice(idx, 1);
-                    } else {
-                        tempSelectedFields.value.push(fieldId);
-                    }
-                    // 同步更新源码
+                    configStore.toggleTempField(fieldId);
                     syncFieldsToCode();
                 }
 
                 function removeFromTempSelection(fieldId) {
-                    const idx = tempSelectedFields.value.indexOf(fieldId);
-                    if (idx >= 0) {
-                        tempSelectedFields.value.splice(idx, 1);
-                    }
+                    configStore.removeFromTempSelection(fieldId);
                     syncFieldsToCode();
                 }
 
                 function clearTempSelection() {
-                    tempSelectedFields.value = [];
-                    advancedQueriesText.value = '';
+                    configStore.clearTempSelection();
                 }
 
                 let syncingFromCode = false;
-
-                const advancedQueriesLines = computed(() => {
-                    return advancedQueriesText.value
-                        .split('\n')
-                        .map(line => line.trim())
-                        .filter(line => line.length > 0);
-                });
 
                 function syncFieldsToCode() {
                     const queries = tempSelectedFields.value.map(f => `cat:${f}`);
@@ -2031,11 +1753,6 @@
                     
                     return { standardFields, customQueries };
                 }
-
-                const parsedCodeResult = computed(() => {
-                    if (!fieldAdvancedMode.value) return { standardFields: [], customQueries: [] };
-                    return parseCodeToFields();
-                });
 
                 // 源码变化时同步 fields（仅在源码模式）
                 watch(advancedQueriesText, () => {
@@ -2072,67 +1789,10 @@
                     showFieldSelector.value = false;
                 }
 
-                const filteredCategories = computed(() => {
-                    if (!fieldSearchQuery.value) return arxivCategories.value;
-                    const query = fieldSearchQuery.value.toLowerCase();
-                    const result = {};
-                    for (const [groupKey, group] of Object.entries(arxivCategories.value)) {
-                        const filteredGroup = { ...group, children: {} };
-                        let hasMatch = false;
-                        if (group.name?.toLowerCase().includes(query) || group.name_en?.toLowerCase().includes(query)) {
-                            hasMatch = true;
-                        }
-                        if (group.children) {
-                            for (const [catKey, cat] of Object.entries(group.children)) {
-                                let catMatch = false;
-                                if (cat.name?.toLowerCase().includes(query) || cat.name_en?.toLowerCase().includes(query) || cat.id?.toLowerCase().includes(query)) {
-                                    catMatch = true;
-                                }
-                                if (cat.children) {
-                                    const filteredChildren = {};
-                                    for (const [subcatKey, subcat] of Object.entries(cat.children)) {
-                                        if (subcat.name?.toLowerCase().includes(query) || subcat.name_en?.toLowerCase().includes(query) || subcat.id?.toLowerCase().includes(query)) {
-                                            filteredChildren[subcatKey] = subcat;
-                                            catMatch = true;
-                                        }
-                                    }
-                                    if (catMatch) {
-                                        filteredGroup.children[catKey] = { ...cat, children: filteredChildren };
-                                        hasMatch = true;
-                                    }
-                                } else if (catMatch) {
-                                    filteredGroup.children[catKey] = cat;
-                                    hasMatch = true;
-                                }
-                            }
-                        }
-                        if (hasMatch) {
-                            result[groupKey] = filteredGroup;
-                            fieldSelectorExpanded.value[groupKey] = true;
-                        }
-                    }
-                    return result;
-                });
-
                 let saveTimeout = null;
                 async function saveSettings() {
-                    savingSettings.value = true;
-                    try {
-                        const res = await API.config.update(settingsConfig.value);
-                        if (res.ok) {
-                            ElementPlus.ElMessage.success(currentLang.value === 'zh' ? '设置已保存' : 'Settings saved');
-                            if (settingsConfig.value.ui_language) {
-                                setLanguage(settingsConfig.value.ui_language);
-                            }
-                            fetchFieldStats();
-                        } else {
-                            ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '保存失败' : 'Save failed');
-                        }
-                    } catch (e) {
-                        ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '保存失败' : 'Save failed');
-                    } finally {
-                        savingSettings.value = false;
-                    }
+                    await configStore.saveSettings();
+                    fetchFieldStats();
                 }
 
                 function debouncedSave() {
@@ -2174,7 +1834,7 @@
 
                 async function toggleLanguage() {
                     const newLang = currentLang.value === 'zh' ? 'en' : 'zh';
-                    setLanguage(newLang);
+                    configStore.setLanguage(newLang);
                     if (settingsConfig.value) {
                         settingsConfig.value.ui_language = newLang;
                         try {
@@ -3628,6 +3288,7 @@
                 });
 
                 return {
+                    configStore, paperStore, collectionStore, chatStore, uiStore,
                     showSetup, setupStep, setupConfig, initializing, testingAI, initLogs, initProgress,
                     initCurrentQuery, initTotalQueries, waitingMessage, initComplete,
                     showSettings, settingsConfig, savingSettings,
@@ -3649,7 +3310,7 @@
                     viewingCollection, showCollectionDetail, collectionPapers, loadingCollectionPapers,
                     collectionCurrentPage, collectionTotalCount, collectionTotalPages,
                     collectionPaperSearch, collectionSortBy, collectionSortOrder,
-                    collectionSearchQuery, filteredCollections, formatRelativeTime,
+                    collectionSearchQuery, filteredCollections,
                     useAiSearch, aiSearching, performSearch, toggleSortOrder, collectionViewMode, openPaperUrl,
                     recentSelectedIds, recentSelectAll, searchSelectedIds, searchSelectAll,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
@@ -3680,7 +3341,7 @@
                     addCartToCollection, copyCartLinks,
                     scrollToBottom, handleChatScroll,
                     bringToFront, handleEscKey,
-                    t, currentLang, toggleLanguage, i18n, getFieldTranslation,
+                    t: configStore.t, currentLang, toggleLanguage, i18n, getFieldTranslation: configStore.getFieldTranslation,
                     // Field Selector
                     showFieldSelector, fieldSelectorSource, tempSelectedFields, fieldSearchQuery,
                     fieldSelectorExpanded, openFieldSelector, toggleFieldSelectorGroup, toggleTempField,
