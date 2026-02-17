@@ -4,13 +4,13 @@
 ![Python](https://img.shields.io/badge/python-3.12%2B-green)
 ![License](https://img.shields.io/badge/license-GPL--3.0-orange)
 
-> 🌐 **Language**: [中文文档](README_CN.md)
+> 🌐 **Language**: [中文文档](https://github.com/kYangLi/arXiv-Pulse/blob/main/README_CN.md)
 
 **arXiv Pulse** is a Python package for automated crawling, summarizing, and tracking of the latest research papers from arXiv in condensed matter physics, density functional theory (DFT), machine learning, force fields, and computational materials science. It provides a modern web interface for a professional literature management experience.
 
 ## 📸 Screenshots
 
-![English Interface](.image/interface_en.png)
+![English Interface](https://github.com/kYangLi/arXiv-Pulse/blob/main/.image/interface_en.png?raw=true)
 
 ## ✨ Key Features
 

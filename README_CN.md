@@ -4,13 +4,13 @@
 ![Python](https://img.shields.io/badge/python-3.12%2B-green)
 ![License](https://img.shields.io/badge/license-GPL--3.0-orange)
 
-> 🌐 **语言**: [English Documentation](README.md)
+> 🌐 **语言**: [English Documentation](https://github.com/kYangLi/arXiv-Pulse/blob/main/README.md)
 
 **arXiv Pulse** 是一个 Python 包，用于自动爬取、总结和追踪凝聚态物理、密度泛函理论 (DFT)、机器学习、力场和计算材料科学领域的最新 arXiv 论文。它提供现代化的 Web 界面，带来专业的文献管理体验。
 
 ## 📸 界面截图
 
-![中文界面](.image/interface_zh.png)
+![中文界面](https://github.com/kYangLi/arXiv-Pulse/blob/main/.image/interface_zh.png?raw=true)
 
 ## ✨ 主要特性
 
