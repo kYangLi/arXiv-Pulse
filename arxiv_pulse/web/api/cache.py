@@ -7,13 +7,9 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from arxiv_pulse.models import Database
+from arxiv_pulse.web.dependencies import get_db
 
 router = APIRouter(prefix="/cache", tags=["cache"])
-
-
-def get_db():
-    return Database()
 
 
 class ClearCacheRequest(BaseModel):

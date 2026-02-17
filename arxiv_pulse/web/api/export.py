@@ -13,14 +13,10 @@ from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel
 
 from arxiv_pulse.config import Config
-from arxiv_pulse.models import Collection, CollectionPaper, Database, FigureCache, Paper
+from arxiv_pulse.models import Collection, CollectionPaper, FigureCache, Paper
+from arxiv_pulse.web.dependencies import get_db
 
 router = APIRouter()
-
-
-def get_db():
-    """Get database instance (lazy initialization)"""
-    return Database()
 
 
 class ExportRequest(BaseModel):

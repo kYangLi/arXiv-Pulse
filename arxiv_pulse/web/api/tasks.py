@@ -8,18 +8,14 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from arxiv_pulse.config import Config
-from arxiv_pulse.models import Database, Paper, RecentResult, SyncTask
+from arxiv_pulse.models import Paper, RecentResult, SyncTask
+from arxiv_pulse.utils import sse_event, sse_response
+from arxiv_pulse.web.dependencies import get_db
 
 router = APIRouter()
-
-
-def get_db():
-    """Get database instance (lazy initialization)"""
-    return Database()
 
 
 class SyncTaskCreate(BaseModel):
@@ -213,17 +209,9 @@ async def start_sync_stream(
                     task.completed_at = datetime.now(UTC).replace(tzinfo=None)
                     session.commit()
 
-            yield f"data: {json.dumps({'type': 'error', 'message': f'同步失败: {str(e)}'}, ensure_ascii=False)}\n\n"
+            yield sse_event("error", message=f"同步失败: {str(e)}")
 
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+    return sse_response(event_generator)
 
 
 @router.post("")

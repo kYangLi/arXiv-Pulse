@@ -8,14 +8,10 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from arxiv_pulse.models import Collection, CollectionPaper, Database, Paper
+from arxiv_pulse.models import Collection, CollectionPaper, Paper
+from arxiv_pulse.web.dependencies import get_db
 
 router = APIRouter()
-
-
-def get_db():
-    """Get database instance (lazy initialization)"""
-    return Database()
 
 
 def refresh_stats_cache():

@@ -3,15 +3,17 @@ Papers API Router
 """
 
 import json
+import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import StreamingResponse
 
 from arxiv_pulse.config import Config
-from arxiv_pulse.models import Database, FigureCache, Paper
+from arxiv_pulse.models import FigureCache, Paper
 from arxiv_pulse.summarizer import PaperSummarizer
+from arxiv_pulse.utils import sse_event, sse_log, sse_response
+from arxiv_pulse.web.dependencies import get_db
 
 router = APIRouter()
 
@@ -58,11 +60,6 @@ _category_explanations = {
     "stat.OT": "其他 (Other)",
     "stat.TH": "理论 (Theory)",
 }
-
-
-def get_db():
-    """Get database instance (lazy initialization)"""
-    return Database()
 
 
 def get_category_explanation(category_code: str) -> str:
@@ -376,20 +373,12 @@ async def get_recent_cache_stream():
                     enhanced = enhance_paper_data(paper, session)
                     yield f"data: {json.dumps({'type': 'result', 'paper': enhanced, 'index': i, 'total': total}, ensure_ascii=False)}\n\n"
                 else:
-                    yield f"data: {json.dumps({'type': 'progress', 'index': i, 'total': total}, ensure_ascii=False)}\n\n"
+                    yield sse_event("progress", {"index": i, "total": total})
                 await asyncio.sleep(0.01)
 
-        yield f"data: {json.dumps({'type': 'done', 'total': total, 'cached': True}, ensure_ascii=False)}\n\n"
+        yield sse_event("done", {"total": total, "cached": True})
 
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+    return sse_response(event_generator)
 
 
 @router.get("/recent/status")
@@ -556,17 +545,12 @@ async def update_recent_papers(
                 task.completed_at = datetime.now(UTC).replace(tzinfo=None)
                 session.commit()
 
-        yield f"data: {json.dumps({'type': 'done', 'total': len(papers), 'synced': total_added, 'summarized': summarized_count, 'figures': figure_count}, ensure_ascii=False)}\n\n"
+        yield sse_event(
+            "done",
+            {"total": len(papers), "synced": total_added, "summarized": summarized_count, "figures": figure_count},
+        )
 
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+    return sse_response(event_generator)
 
 
 import re
@@ -838,20 +822,12 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                 fetch_and_cache_figure(paper.arxiv_id)
 
             enhanced = enhance_paper_data(paper)
-            yield f"data: {json.dumps({'type': 'result', 'paper': enhanced, 'index': i + 1, 'total': len(papers), 'match_type': 'fuzzy'}, ensure_ascii=False)}\n\n"
+            yield sse_event("result", {"paper": enhanced, "index": i + 1, "total": len(papers), "match_type": "fuzzy"})
             await asyncio.sleep(0.03)
 
-        yield f"data: {json.dumps({'type': 'done', 'total': len(papers)}, ensure_ascii=False)}\n\n"
+        yield sse_event("done", {"total": len(papers)})
 
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+    return sse_response(event_generator)
 
 
 @router.get("/search")
@@ -1024,20 +1000,12 @@ async def search_papers_stream(
                 figure_count += 1
 
             enhanced = enhance_paper_data(paper)
-            yield f"data: {json.dumps({'type': 'result', 'paper': enhanced, 'index': i + 1, 'total': len(unique_papers)}, ensure_ascii=False)}\n\n"
+            yield sse_event("result", {"paper": enhanced, "index": i + 1, "total": len(unique_papers)})
             await asyncio.sleep(0.05)
 
-        yield f"data: {json.dumps({'type': 'done', 'total': len(unique_papers), 'summarized': summarized_count, 'figures': figure_count}, ensure_ascii=False)}\n\n"
+        yield sse_event("done", {"total": len(unique_papers), "summarized": summarized_count, "figures": figure_count})
 
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+    return sse_response(event_generator)
 
 
 @router.get("/{paper_id}")

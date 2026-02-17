@@ -11,7 +11,6 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from arxiv_pulse.config import Config
-from arxiv_pulse.models import Database
 from arxiv_pulse.research_fields import (
     ARXIV_CATEGORIES,
     DEFAULT_FIELDS,
@@ -19,6 +18,8 @@ from arxiv_pulse.research_fields import (
     get_field_display_name,
     get_queries_for_fields,
 )
+from arxiv_pulse.utils import sse_event, sse_response
+from arxiv_pulse.web.dependencies import get_db
 
 router = APIRouter()
 
@@ -56,10 +57,6 @@ class InitConfig(BaseModel):
     arxiv_max_results: int = 100000
     recent_papers_limit: int = 64
     search_limit: int = 20
-
-
-def get_db():
-    return Database()
 
 
 @router.get("")

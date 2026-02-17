@@ -10,24 +10,19 @@ from datetime import UTC, datetime
 
 import requests
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from arxiv_pulse.config import Config
 from arxiv_pulse.models import (
     ChatMessage,
     ChatSession,
-    Database,
     Paper,
     PaperContentCache,
 )
+from arxiv_pulse.utils import sse_event, sse_response
+from arxiv_pulse.web.dependencies import get_db
 
 router = APIRouter()
-
-
-def get_db():
-    """Get database instance"""
-    return Database()
 
 
 class SendMessageRequest(BaseModel):
@@ -38,11 +33,6 @@ class SendMessageRequest(BaseModel):
 
 class RenameSessionRequest(BaseModel):
     title: str
-
-
-def sse_event(event_type: str, data: dict) -> str:
-    """Helper to format SSE event"""
-    return f"data: {json.dumps({'type': event_type, **data}, ensure_ascii=False)}\n\n"
 
 
 @router.get("/sessions")
@@ -407,15 +397,7 @@ IMPORTANT: Always respond in English."""
         except Exception as e:
             yield sse_event("error", {"message": m["response_failed"](str(e))})
 
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+    return sse_response(event_generator)
 
 
 @router.get("/papers/{arxiv_id}/content")
