@@ -10,7 +10,7 @@
 - index.html: 7035 → 3696 行 (**-47%**)
 - papers.py: 1069 → 812 行 (**-24%**)
 
-### Session 5 (Pinia Stores 创建)
+### Session 5 (Pinia Stores 创建与初始化)
 
 **创建的 Stores** (1455 行):
 
@@ -25,117 +25,86 @@
 **添加的依赖**：
 - Pinia v2.3.1 (Vue 3 状态管理库)
 
+**已完成的集成**：
+- 添加 Pinia 和 store 脚本标签
+- 创建 Pinia 实例并添加到 app
+- 在 setup() 中初始化所有 5 个 store
+
 ---
 
-## 待完成：集成 Stores 到 index.html
+## 待完成：全面迁移到 Stores
 
-### 需要做的修改
+### 当前状态
 
-#### 1. 添加脚本标签
+index.html 中 setup() 函数仍有 ~2400 行代码，包含 ~100 个 ref() 声明。需要逐步替换为 store 引用。
 
-```html
-<!-- 在其他脚本后添加 -->
-<script src="libs/pinia/pinia.iife.prod.js"></script>
-<script src="js/stores/configStore.js"></script>
-<script src="js/stores/paperStore.js"></script>
-<script src="js/stores/collectionStore.js"></script>
-<script src="js/stores/chatStore.js"></script>
-<script src="js/stores/uiStore.js"></script>
-```
+### 迁移步骤
 
-#### 2. 初始化 Pinia
+#### 示例：迁移 configStore
 
+**之前** (setup 函数内):
 ```javascript
-const app = createApp({ ... });
-const pinia = createPinia();
-app.use(pinia);
+const showSetup = ref(false);
+const setupConfig = ref({ ... });
+const currentLang = ref('zh');
 ```
 
-#### 3. 替换 ref() 为 store
-
-**之前**:
+**之后** (使用 store):
 ```javascript
-const recentPapers = ref([]);
-const loadingRecent = ref(true);
+// 删除上述 ref() 声明
+// 使用 configStore.showSetup, configStore.setupConfig, configStore.currentLang
 ```
 
-**之后**:
-```javascript
-const paperStore = usePaperStore();
-// 使用 paperStore.recentPapers, paperStore.loadingRecent
-```
-
-#### 4. 更新模板绑定
-
-**之前**:
+**模板更新**:
 ```html
-<div v-for="paper in recentPapers">
+<!-- 之前 -->
+<div v-if="showSetup">
+
+<!-- 之后 -->
+<div v-if="configStore.showSetup">
 ```
 
-**之后**:
-```html
-<div v-for="paper in paperStore.recentPapers">
-```
+### 建议的迁移顺序
 
-### 迁移策略
+1. **configStore** - 最独立，优先迁移
+   - 设置页面、分类选择器、i18n
 
-建议按模块逐步迁移，避免一次性大改动：
+2. **uiStore** - 导航和同步
+   - 底部导航、同步页面
 
-1. **阶段 1**: configStore (最独立)
-   - 设置页面
-   - 分类选择器
+3. **paperStore** - 核心业务
+   - 主页、搜索、购物车
 
-2. **阶段 2**: uiStore
-   - 导航
-   - 同步页面
-
-3. **阶段 3**: paperStore
-   - 主页
-   - 搜索
-   - 购物车
-
-4. **阶段 4**: collectionStore
+4. **collectionStore** - 收藏集
    - 收藏集页面
 
-5. **阶段 5**: chatStore
-   - AI 聊天
+5. **chatStore** - AI 聊天
+   - 聊天组件
 
 ---
 
 ## 当前项目结构
 
 ```
-arxiv_pulse/
-├── services/               # ✅ 服务层
-│   ├── ai_client.py
-│   ├── paper_service.py
-│   └── translation_service.py
-├── utils/                  # ✅ 工具层
-│   ├── sse.py
-│   └── time.py
-├── web/
-│   ├── dependencies.py
-│   ├── api/
-│   │   └── papers.py       # 已瘦身 (812 行)
-│   └── static/
-│       ├── css/
-│       │   └── main.css
-│       ├── js/
-│       │   ├── components/
-│       │   │   └── PaperCard.js
-│       │   ├── i18n/
-│       │   ├── services/
-│       │   │   └── api.js
-│       │   ├── stores/     # ✅ 新增 Pinia stores
-│       │   │   ├── configStore.js
-│       │   │   ├── paperStore.js
-│       │   │   ├── collectionStore.js
-│       │   │   ├── chatStore.js
-│       │   │   └── uiStore.js
-│       │   └── utils/
-│       ├── libs/
-│       │   └── pinia/      # ✅ 新增 Pinia 库
-│       └── index.html      # 待迁移 (3696 行)
+arxiv_pulse/web/static/
+├── css/
+│   └── main.css
+├── js/
+│   ├── components/
+│   │   └── PaperCard.js
+│   ├── i18n/
+│   ├── services/
+│   │   └── api.js
+│   ├── stores/             # ✅ Pinia stores
+│   │   ├── configStore.js
+│   │   ├── paperStore.js
+│   │   ├── collectionStore.js
+│   │   ├── chatStore.js
+│   │   └── uiStore.js
+│   └── utils/
+├── libs/
+│   └── pinia/              # ✅ Pinia 库
+└── index.html              # 待迁移 (3711 行)
 ```
 
 ---
@@ -143,10 +112,7 @@ arxiv_pulse/
 ## 测试命令
 
 ```bash
-# 代码检查
 black --check . && ruff check .
-
-# 启动服务
 pulse serve .
 ```
 
@@ -154,6 +120,7 @@ pulse serve .
 
 ## 下一步
 
-1. **集成 stores 到 index.html** - 按阶段逐步迁移
-2. **提取更多 Vue 组件** - 使用 stores 后组件提取会更容易
-3. **考虑 Vite 构建** - 支持 Vue SFC
+1. **迁移 configStore** - 替换设置相关的 ref()
+2. **迁移 uiStore** - 替换导航相关的 ref()
+3. **逐步迁移其他 stores**
+4. **提取更多 Vue 组件** - 使用 stores 后组件提取会更容易
