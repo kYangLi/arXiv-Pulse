@@ -46,14 +46,24 @@
 
 **index.html 瘦身**: 4082 → 3999 行 (-2%)
 
+### Session 4
+
+**前端 Vue 组件提取**:
+
+| 文件 | 行数 | 作用 |
+|------|------|------|
+| `js/components/PaperCard.js` | 312 | 论文卡片组件 (template + setup) |
+
+**index.html 瘦身**: 3999 → 3696 行 (-8%)
+
 ### 累计成果
 
 | 指标 | 变化 |
 |------|------|
-| index.html | 7035 → 3999 行 (**-43%**) |
+| index.html | 7035 → 3696 行 (**-47%**) |
 | papers.py | 1069 → 812 行 (**-24%**) |
 | 新增服务层 | 4 个文件，321 行 |
-| 新增前端模块 | api.js (121 行) |
+| 新增前端模块 | api.js (121 行), PaperCard.js (312 行) |
 
 ---
 
@@ -61,29 +71,22 @@
 
 ### P1 - 中优先级
 
-#### 1. 提取前端 Vue 组件
+#### 1. 继续提取 Vue 组件
 
-**问题**：`index.html` 仍有 3999 行，组件逻辑混杂
+**问题**：`index.html` 仍有 3696 行
 
-**建议提取的组件**：
-```
-web/static/
-├── js/
-│   └── components/
-│       ├── PaperCard.js       # 论文卡片组件
-│       ├── CollectionCard.js  # 收藏集卡片
-│       ├── StatCard.js        # 统计卡片
-│       ├── ChatWidget.js      # AI 对话组件
-│       ├── FieldSelector.js   # 领域选择器
-│       ├── CartPanel.js       # 暂存篮面板
-│       └── EmptyState.js      # 空状态组件
-```
+**可提取的组件**：
+- `ChatWidget.js` - AI 对话组件 (~190 行模板)
+- `CollectionCard.js` - 收藏集卡片 (~70 行)
+- `FieldSelector.js` - 领域选择器 (~150 行)
+
+**注意**：这些组件与主 app 状态耦合较深，提取需要传递大量 props
 
 ### P2 - 低优先级
 
 #### 1. 引入 Pinia 状态管理
 
-**问题**：114 个 `ref()` 状态分散在 setup() 中
+**问题**：100+ 个 `ref()` 状态分散在 setup() 中
 
 #### 2. 后端 Repository 模式
 
@@ -112,11 +115,13 @@ arxiv_pulse/
 │       ├── css/
 │       │   └── main.css    # ✅ 新增样式文件
 │       ├── js/
+│       │   ├── components/ # ✅ 新增 Vue 组件
+│       │   │   └── PaperCard.js
 │       │   ├── i18n/       # ✅ 新增 i18n 模块
 │       │   ├── services/   # ✅ 新增 API 层
 │       │   │   └── api.js  # 统一 API 调用
 │       │   └── utils/      # ✅ 新增工具模块
-│       └── index.html      # 已瘦身 (3999 行)
+│       └── index.html      # 已瘦身 (3696 行)
 ```
 
 ---
@@ -139,5 +144,6 @@ pulse serve .
 
 ## 下一步建议
 
-1. **提取 Vue 组件** - 进一步降低 index.html 复杂度
+1. **继续提取组件** - ChatWidget, CollectionCard 等
 2. **考虑 Vite 构建** - 支持 Vue SFC 和模块化
+3. **状态管理** - 引入 Pinia 减少组件间耦合
