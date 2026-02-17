@@ -204,9 +204,13 @@ GPL-3.0 - see [LICENSE](LICENSE) for details.
 
 ## 🙏 Acknowledgments
 
-- [arXiv.org](https://arxiv.org) for the API
-- [DeepSeek](https://www.deepseek.com) for AI models
-- Computational materials science community
+This project was developed by **OpenCode**, an AI coding assistant.
+
+- **Yang Li** - For 500+ iterations of requirements discussions, design decisions, and testing feedback. This project would not exist without your patience and vision.
+- **GLM-5** - For providing the core intelligence that powers OpenCode. ~200 million tokens consumed in bringing this project to life.
+- [arXiv.org](https://arxiv.org) - For the open API
+- [DeepSeek](https://www.deepseek.com) - For AI models used in paper summarization
+- Computational materials science community - For inspiration and use cases
 
 ---
 
