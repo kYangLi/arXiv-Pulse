@@ -202,7 +202,7 @@ GPL-3.0 - see [LICENSE](LICENSE) for details.
 
 ## 🙏 Acknowledgments
 
-This project was developed by **OpenCode**, an AI coding assistant.
+This project was developed by **OpenCode**, an AI coding agent.
 
 - **Yang Li** - For 500+ iterations of requirements discussions, design decisions, and testing feedback. This project would not exist without your patience and vision.
 - **GLM-5** - For providing the core intelligence that powers OpenCode. ~200 million tokens consumed in bringing this project to life.
