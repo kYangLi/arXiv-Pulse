@@ -342,6 +342,56 @@ async def get_recent_cache():
     }
 
 
+@router.get("/recent/cache/stream")
+async def get_recent_cache_stream():
+    """SSE: Get cached recent papers with progress (for large databases)"""
+
+    async def event_generator():
+        import asyncio
+
+        db = get_db()
+        cache = db.get_recent_cache()
+
+        if not cache:
+            yield f"data: {json.dumps({'type': 'done', 'total': 0, 'cached': False}, ensure_ascii=False)}\n\n"
+            return
+
+        paper_ids = cache.get("paper_ids", [])
+        total = len(paper_ids)
+
+        if not paper_ids:
+            yield f"data: {json.dumps({'type': 'done', 'total': 0, 'cached': True}, ensure_ascii=False)}\n\n"
+            return
+
+        yield f"data: {json.dumps({'type': 'start', 'total': total, 'days_back': cache.get('days_back', 7), 'updated_at': cache.get('updated_at')}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.01)
+
+        with db.get_session() as session:
+            papers = session.query(Paper).filter(Paper.id.in_(paper_ids)).all()
+            id_to_paper = {p.id: p for p in papers}
+
+            for i, pid in enumerate(paper_ids, 1):
+                if pid in id_to_paper:
+                    paper = id_to_paper[pid]
+                    enhanced = enhance_paper_data(paper, session)
+                    yield f"data: {json.dumps({'type': 'result', 'paper': enhanced, 'index': i, 'total': total}, ensure_ascii=False)}\n\n"
+                else:
+                    yield f"data: {json.dumps({'type': 'progress', 'index': i, 'total': total}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.01)
+
+        yield f"data: {json.dumps({'type': 'done', 'total': total, 'cached': True}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @router.get("/recent/status")
 async def get_recent_cache_status():
     """Get recent papers cache status"""

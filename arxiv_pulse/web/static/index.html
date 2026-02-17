@@ -2373,6 +2373,17 @@
             .collections-grid { grid-template-columns: 1fr; }
             .field-grid { grid-template-columns: 1fr; }
         }
+        /* Element Plus Message - Force center all messages */
+        .el-message {
+            --el-message-top: 20px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            margin-left: 0 !important;
+            right: auto !important;
+        }
+        .el-message--center .el-message__content {
+            text-align: center !important;
+        }
     </style>
 </head>
 <body>
@@ -2600,7 +2611,10 @@
 
                     <div v-if="loadingRecent" class="loading-state">
                         <el-icon class="is-loading" style="font-size: 32px;"><Loading /></el-icon>
-                        <p>{{ currentLang === 'zh' ? '正在加载论文数据...' : 'Loading papers...' }}</p>
+                        <p>{{ loadingTotal > 0 ? `${t('papers.loadingProgress')} (${loadingProgress}/${loadingTotal})` : t('papers.loading') }}</p>
+                        <el-button v-if="loadingTotal > 0" size="small" @click="stopLoading" style="margin-top: 8px;">
+                            {{ t('common.stop') }}
+                        </el-button>
                     </div>
                     <div v-else-if="recentPapers.length > 0">
                         <paper-card 
@@ -3594,6 +3608,7 @@
                     loading: '加载中...',
                     noData: '暂无数据',
                     success: '成功',
+                    stop: '停止',
                     error: '错误',
                     confirmDelete: '确认删除',
                     next: '下一步',
@@ -3628,7 +3643,9 @@
                     categoryFilter: '领域过滤',
                     syncNewPapers: '从arXiv同步',
                     yearsBack: '回溯年数',
-                    filterFields: '筛选领域'
+                    filterFields: '筛选领域',
+                    loading: '正在加载论文数据...',
+                    loadingProgress: '正在加载论文'
                 },
                 sync: {
                     status: '同步状态',
@@ -3877,6 +3894,7 @@
                     confirmDelete: 'Confirm Delete',
                     add: 'Add',
                     loading: 'Loading...',
+                    stop: 'Stop',
                     noData: 'No data',
                     success: 'Success',
                     error: 'Error',
@@ -3913,7 +3931,9 @@
                     categoryFilter: 'Category Filter',
                     syncNewPapers: 'Sync from arXiv',
                     yearsBack: 'Years Back',
-                    filterFields: 'Filter Fields'
+                    filterFields: 'Filter Fields',
+                    loading: 'Loading papers...',
+                    loadingProgress: 'Loading papers'
                 },
                 sync: {
                     status: 'Sync Status',
@@ -4254,6 +4274,9 @@
                 const expandedGroups = ref({});
                 const recentPapers = ref([]);
                 const loadingRecent = ref(true);
+                const loadingProgress = ref(0);
+                const loadingTotal = ref(0);
+                const loadingController = ref(null);
                 const updatingRecent = ref(false);
                 const recentLogs = ref([]);
                 const recentDays = ref('7');
@@ -5177,19 +5200,67 @@
 
                 async function fetchRecentCache() {
                     loadingRecent.value = true;
+                    loadingProgress.value = 0;
+                    loadingTotal.value = 0;
+                    recentPapers.value = [];
+                    
+                    const controller = new AbortController();
+                    loadingController.value = controller;
+                    
                     try {
-                        const res = await fetch(`${API_BASE}/papers/recent/cache`);
-                        const data = await res.json();
-                        recentPapers.value = data.papers || [];
-                        recentPapers.value._cacheInfo = {
-                            cached: data.cached,
-                            updated_at: data.updated_at,
-                            days_back: data.days_back
-                        };
+                        const response = await fetch(`${API_BASE}/papers/recent/cache/stream`, {
+                            signal: controller.signal
+                        });
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let buffer = '';
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop() || '';
+
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const data = JSON.parse(line.slice(6));
+                                        if (data.type === 'start') {
+                                            loadingTotal.value = data.total;
+                                            recentPapers.value._cacheInfo = {
+                                                cached: data.cached,
+                                                updated_at: data.updated_at,
+                                                days_back: data.days_back
+                                            };
+                                        } else if (data.type === 'result') {
+                                            recentPapers.value.push(data.paper);
+                                            loadingProgress.value = data.index;
+                                        } else if (data.type === 'progress') {
+                                            loadingProgress.value = data.index;
+                                        } else if (data.type === 'done') {
+                                            loadingTotal.value = data.total;
+                                        }
+                                    } catch (e) {}
+                                }
+                            }
+                        }
                     } catch (e) {
-                        console.error('Failed to fetch recent cache:', e);
+                        if (e.name !== 'AbortError') {
+                            console.error('Failed to fetch recent cache:', e);
+                        }
                     } finally {
                         loadingRecent.value = false;
+                        loadingController.value = null;
+                    }
+                }
+                
+                function stopLoading() {
+                    if (loadingController.value) {
+                        loadingController.value.abort();
+                        loadingRecent.value = false;
+                        loadingController.value = null;
                     }
                 }
 
@@ -6582,7 +6653,7 @@
                     initCurrentQuery, initTotalQueries, waitingMessage, initComplete,
                     showSettings, settingsConfig, savingSettings,
                     currentPage, stats, fieldStats, expandedGroups, recentPapers, searchResults, collections,
-                    loadingRecent, updatingRecent, recentLogs,
+                    loadingRecent, updatingRecent, recentLogs, loadingProgress, loadingTotal, stopLoading,
                     recentDays, recentNeedSync, recentCategories,
                     categoryOptions, daysOptions, limitOptions, syncYearOptions, initYearOptions, syncYearsBackOptions, searchDaysOptions, aiLanguageOptions,
                     searching, searchQuery, searchDays, searchLogs,
@@ -6952,15 +7023,6 @@
         });
 
         app.use(ElementPlus);
-        
-        // Wrap ElMessage to always center
-        const originalMessage = ElementPlus.ElMessage;
-        const wrapMessage = (type) => (msg) => originalMessage({ message: msg, type, center: true });
-        ElementPlus.ElMessage.success = wrapMessage('success');
-        ElementPlus.ElMessage.warning = wrapMessage('warning');
-        ElementPlus.ElMessage.info = wrapMessage('info');
-        ElementPlus.ElMessage.error = wrapMessage('error');
-        
         if (window.ElementPlusIconsVue) {
             for (const [key, component] of Object.entries(window.ElementPlusIconsVue)) {
                 app.component(key, component);
