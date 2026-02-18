@@ -3128,6 +3128,10 @@
                     return date.toLocaleDateString(currentLang.value === 'zh' ? 'zh-CN' : 'en-US');
                 }
 
+                function formatRelativeTime(dateStr) {
+                    return uiStore.formatRelativeTime(dateStr, configStore);
+                }
+
                 function togglePaperSelection(paper) {
                     const idx = selectedChatPapers.value.findIndex(p => p.arxiv_id === paper.arxiv_id);
                     if (idx >= 0) {
@@ -3400,7 +3404,7 @@
                     selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
                     chatUnreadCount, chatMessagesContainer,
                     toggleChat, fetchChatSessions, createNewChat, selectChatSession,
-                    sendChatMessage, sendQuickPrompt, quickPrompts, formatChatMessage, formatChatTime, formatDate,
+                    sendChatMessage, sendQuickPrompt, quickPrompts, formatChatMessage, formatChatTime, formatDate, formatRelativeTime,
                     togglePaperSelection, removeSelectedChatPaper, deleteChatSession, clearAllChatSessions, userScrolledUp,
                     toggleChatFullscreen, startResizeChat,
                     paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex,

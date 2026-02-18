@@ -94,6 +94,12 @@ const PaperCardTemplate = `
 const PaperCardSetup = (props) => {
     const expanded = ref(false);
     
+    // Access configStore for i18n
+    const configStore = useConfigStore();
+    const currentLang = computed(() => configStore.currentLang);
+    const t = (key) => configStore.t(key);
+    const isZh = computed(() => currentLang.value === 'zh');
+    
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
         return new Date(dateStr).toLocaleDateString('zh-CN');
@@ -115,8 +121,6 @@ const PaperCardSetup = (props) => {
     const openImage = (url) => {
         window.open(url, '_blank');
     };
-    
-    const isZh = computed(() => currentLang.value === 'zh');
     
     const downloadCard = async () => {
         const scale = 2;
