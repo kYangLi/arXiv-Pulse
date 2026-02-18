@@ -488,87 +488,8 @@
         </div>
     </transition>
     
-    <!-- Settings Drawer -->
-            <el-drawer v-model="showSettings" :title="t('settings.title')" size="480px" class="settings-drawer">
-                <div style="padding: 24px;">
-                    <!-- UI Language -->
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 12px 16px; background: var(--bg-subtle); border-radius: 10px;">
-                        <span>
-                            <span :style="{ fontWeight: currentLang === 'zh' ? 600 : 400, opacity: currentLang === 'zh' ? 1 : 0.5 }">界面语言</span>
-                            <span style="margin: 0 6px; opacity: 0.3;">/</span>
-                            <span :style="{ fontWeight: currentLang === 'en' ? 600 : 400, opacity: currentLang === 'en' ? 1 : 0.5 }">UI Language</span>
-                        </span>
-                        <el-radio-group v-model="currentLang" size="small" @change="onLanguageChange">
-                            <el-radio-button label="zh">中文</el-radio-button>
-                            <el-radio-button label="en">EN</el-radio-button>
-                        </el-radio-group>
-                    </div>
-                    
-                    <div class="settings-section">
-                        <h3>{{ t('settings.aiConfig') }}</h3>
-                        <el-form label-position="top">
-                            <el-form-item :label="t('settings.apiBaseUrl')">
-                                <el-input v-model="settingsConfig.ai_base_url" />
-                            </el-form-item>
-                            <el-form-item :label="t('settings.apiKey')">
-                                <el-input v-model="settingsConfig.ai_api_key" type="password" show-password>
-                                    <template #append>
-                                        <el-button type="primary" @click="saveApiKey" :loading="savingSettings">{{ t('settings.updateKey') }}</el-button>
-                                    </template>
-                                </el-input>
-                            </el-form-item>
-                            <el-form-item :label="t('settings.modelName')">
-                                <el-input v-model="settingsConfig.ai_model" />
-                            </el-form-item>
-                            <el-form-item :label="t('settings.aiLanguage')">
-                                <el-select v-model="settingsConfig.translate_language" style="width: 100%;">
-                                    <el-option v-for="lang in aiLanguageOptions" :key="lang.value" :label="lang.label" :value="lang.value" />
-                                </el-select>
-                                <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">{{ t('settings.aiLanguageHint') }}</p>
-                            </el-form-item>
-                            <el-form-item>
-                                <el-button @click="testAIConnection" :loading="testingAI">{{ t('settings.testConnection') }}</el-button>
-                            </el-form-item>
-                        </el-form>
-                    </div>
-
-                    <div class="settings-section">
-                        <h3>{{ t('settings.researchFields') }}</h3>
-                        <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 12px;">
-                            {{ t('settings.fieldsHint') }}
-                        </p>
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-subtle); border-radius: 8px; cursor: pointer;" @click="openFieldSelector('settings')">
-                            <span style="font-size: 13px; color: var(--text-primary);">
-                                {{ currentLang === 'zh' ? '已选择' : 'Selected' }}: {{ settingsConfig.selected_fields?.length || 0 }} {{ currentLang === 'zh' ? '个领域' : 'fields' }}
-                            </span>
-                            <el-icon><ArrowRight /></el-icon>
-                        </div>
-                    </div>
-
-                    <div class="settings-section">
-                        <h3>{{ t('settings.syncSettings') }}</h3>
-                        <el-form label-position="top">
-                            <el-form-item :label="t('settings.yearsBack')">
-                                <el-select v-model="settingsConfig.years_back" style="width: 100%;">
-                                    <el-option v-for="item in initYearOptions" :key="item.value" :label="item.label" :value="item.value" />
-                                </el-select>
-                            </el-form-item>
-                            <el-form-item :label="t('settings.maxResultsPerField')">
-                                <el-input-number v-model="settingsConfig.arxiv_max_results_per_field" :min="1000" :max="50000" :step="1000" style="width: 100%;" />
-                            </el-form-item>
-                            <el-form-item :label="t('settings.arxivMaxResults')">
-                                <el-input-number v-model="settingsConfig.arxiv_max_results" :min="10000" :max="200000" :step="10000" style="width: 100%;" />
-                            </el-form-item>
-                            <el-form-item :label="t('settings.recentPapersLimit')">
-                                <el-input-number v-model="settingsConfig.recent_papers_limit" :min="20" :max="200" :step="10" style="width: 100%;" />
-                            </el-form-item>
-                            <el-form-item :label="t('settings.searchLimit')">
-                                <el-input-number v-model="settingsConfig.search_limit" :min="5" :max="100" :step="5" style="width: 100%;" />
-                            </el-form-item>
-                        </el-form>
-                    </div>
-                </div>
-            </el-drawer>
+    <!-- Settings Drawer Component -->
+    <settings-drawer v-model="showSettings" />
 
             <!-- Dialogs -->
             <el-dialog v-model="showCreateCollection" :title="editingCollection ? t('collections.edit') : t('collections.create')" width="480px" @closed="cancelCollectionDialog">
@@ -1076,6 +997,7 @@
     <script src="js/components/PaperCard.js"></script>
     <script src="js/components/FieldSelectorDialog.js"></script>
     <script src="js/components/PaperBasketPanel.js"></script>
+    <script src="js/components/SettingsDrawer.js"></script>
     <script>
         // Vue and Pinia APIs already exposed globally by earlier scripts
         const { createApp } = Vue;
@@ -1671,13 +1593,6 @@
                     },
                     { deep: true }
                 );
-
-                function onLanguageChange(lang) {
-                    setLanguage(lang);
-                    if (settingsConfig.value) {
-                        settingsConfig.value.ui_language = lang;
-                    }
-                }
 
                 async function toggleLanguage() {
                     const newLang = currentLang.value === 'zh' ? 'en' : 'zh';
@@ -3032,7 +2947,7 @@
                     recentSelectedIds, recentSelectAll, searchSelectedIds, searchSelectAll,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
                     checkInitStatus, testSetupAI, toggleSetupField, toggleCategoryGroup, startInitialSync,
-                    testAIConnection, saveSettings, saveApiKey, toggleSettingsField, onLanguageChange,
+                    testAIConnection, saveSettings, saveApiKey, toggleSettingsField,
                     fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers, startSearch, fetchCollections,
                     getSelectedFieldsTooltip, hasSelectedFields,
                     fetchSyncStatus, startSync,
@@ -3092,6 +3007,14 @@
             emits: ['update:show', 'start-drag', 'bring-to-front', 'add-to-collection'],
             template: PaperBasketPanelTemplate,
             setup: PaperBasketPanelSetup
+        });
+
+        // Register settings-drawer component
+        app.component('settings-drawer', {
+            props: ['modelValue'],
+            emits: ['update:modelValue'],
+            template: SettingsDrawerTemplate,
+            setup: SettingsDrawerSetup
         });
 
         if (window.ElementPlusIconsVue) {
