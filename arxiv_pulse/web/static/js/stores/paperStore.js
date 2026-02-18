@@ -481,6 +481,26 @@ const usePaperStore = defineStore('paper', () => {
         }
     }
     
+    function updatePaperCollectionIds(paperIds, collectionId, add = true) {
+        const idSet = new Set(paperIds);
+        const updateArray = (arr) => {
+            arr.forEach(paper => {
+                if (idSet.has(paper.id)) {
+                    if (!paper.collection_ids) paper.collection_ids = [];
+                    if (add && !paper.collection_ids.includes(collectionId)) {
+                        paper.collection_ids.push(collectionId);
+                    } else if (!add) {
+                        paper.collection_ids = paper.collection_ids.filter(id => id !== collectionId);
+                    }
+                }
+            });
+        };
+        updateArray(recentPapers.value);
+        updateArray(searchResults.value);
+        updateArray(homeResults.value);
+        updateArray(paperCart.value);
+    }
+    
     return {
         recentPapers, loadingRecent, loadingProgress, loadingTotal, loadingController,
         updatingRecent, recentLogs, recentDays, recentNeedSync, recentSelectedIds,
@@ -491,6 +511,6 @@ const usePaperStore = defineStore('paper', () => {
         toggleRecentSelection, toggleAllRecent, toggleSearchSelection, toggleAllSearch,
         toggleHomeSelection, addToCart, removeFromCart, clearCart, isInCart, exportCart, copyCartLinks,
         fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers,
-        searchPapers, startHomeSearch, exportPapers
+        searchPapers, startHomeSearch, exportPapers, updatePaperCollectionIds
     };
 });

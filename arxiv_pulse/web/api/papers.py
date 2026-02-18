@@ -180,6 +180,7 @@ async def update_recent_papers(
     days: int = Query(7, ge=1, le=30),
     need_sync: bool = Query(True),
     categories: str | None = Query(None, description="Comma-separated category codes"),
+    limit: int | None = Query(None, ge=1, le=200, description="Override config limit"),
 ):
     """SSE endpoint: sync -> query -> cache recent papers"""
 
@@ -193,7 +194,7 @@ async def update_recent_papers(
         task_id = str(uuid.uuid4())
 
         category_list = [c.strip() for c in categories.split(",")] if categories else []
-        limit = Config.RECENT_PAPERS_LIMIT
+        query_limit = limit or Config.RECENT_PAPERS_LIMIT
         sync_years = Config.YEARS_BACK
 
         with db.get_session() as session:
@@ -266,7 +267,7 @@ async def update_recent_papers(
                     conditions.append(Paper.primary_category.contains(cat))
                 query = query.filter(or_(*conditions))
 
-            papers = query.order_by(Paper.published.desc()).limit(limit).all()
+            papers = query.order_by(Paper.published.desc()).limit(query_limit).all()
             paper_ids = [p.id for p in papers]
 
         yield sse_event("log", {"message": f"找到 {len(papers)} 篇最近论文"})

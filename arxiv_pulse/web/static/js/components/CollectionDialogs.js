@@ -198,7 +198,8 @@ const CollectionDialogsSetup = (props, { emit }) => {
     }
     
     async function confirmAddToCollection() {
-        await collectionStore.confirmAddToCollection(configStore, props.paperCart);
+        const paperStore = usePaperStore();
+        await collectionStore.confirmAddToCollection(configStore, props.paperCart, paperStore);
     }
     
     function addToCollection(paper) {

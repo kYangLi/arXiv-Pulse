@@ -313,7 +313,7 @@ const useCollectionStore = defineStore('collection', () => {
         showAddToCollection.value = true;
     }
     
-    async function confirmAddToCollection(configStore, paperCart) {
+    async function confirmAddToCollection(configStore, paperCart, paperStore) {
         if (!selectedCollectionId.value) {
             ElementPlus.ElMessage.warning(configStore.currentLang === 'zh' ? '请选择论文集' : 'Please select a collection');
             return;
@@ -334,6 +334,9 @@ const useCollectionStore = defineStore('collection', () => {
                 const messages = [];
                 if (data.added_count > 0) {
                     messages.push(configStore.currentLang === 'zh' ? `成功添加 ${data.added_count} 篇论文` : `Added ${data.added_count} papers`);
+                    if (paperStore && data.added_count > 0) {
+                        paperStore.updatePaperCollectionIds(paperIds, selectedCollectionId.value, true);
+                    }
                 }
                 if (data.skipped_count > 0) {
                     messages.push(configStore.currentLang === 'zh' ? `${data.skipped_count} 篇已在论文集中` : `${data.skipped_count} already in collection`);

@@ -83,7 +83,7 @@ class PaperSummarizer:
 
         return json.dumps(
             {
-                "summary": "",
+                "summary": summary,
                 "keywords": keywords,
                 "method": "basic",
                 "key_findings": [],
@@ -112,12 +112,14 @@ Title: {paper.title}
 Abstract: {paper.abstract}
 
 Please provide:
-1. Key findings/contributions (bullet points)
-2. Methodology/approach used
-3. Relevance to condensed matter physics, DFT, machine learning, or force fields
-4. Potential impact/significance
+1. A concise summary paragraph (2-3 sentences)
+2. Key findings/contributions (bullet points)
+3. Methodology/approach used
+4. Relevance to condensed matter physics, DFT, machine learning, or force fields
+5. Potential impact/significance
 
 Please format your response as a JSON object with the following fields:
+- summary: string (2-3 sentence concise summary)
 - key_findings: array of strings
 - methodology: string
 - relevance: string
