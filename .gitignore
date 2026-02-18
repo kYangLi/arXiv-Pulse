@@ -208,6 +208,7 @@ __marimo__/
 
 # Project specific
 tests/data/
+tests/init_data/
 tests/*.log
 data/
 .pulse.lock
