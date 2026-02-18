@@ -11,6 +11,8 @@ const useCollectionStore = defineStore('collection', () => {
     const aiSearching = ref(false);
     const collectionViewMode = ref('card');
     const collectionSearchQuery = ref('');
+    const collectionSortBy = ref('published');
+    const collectionSortOrder = ref('desc');
     
     const showCreateCollection = ref(false);
     const savingCollection = ref(false);
@@ -27,6 +29,10 @@ const useCollectionStore = defineStore('collection', () => {
     const mergingInProgress = ref(false);
     
     const selectedCollectionId = ref(null);
+    const showCollectionDetail = ref(false);
+    const showAddToCollection = ref(false);
+    const selectedPaper = ref(null);
+    const addingToCollection = ref(false);
     
     const filteredCollections = computed(() => {
         if (!collectionSearchQuery.value) return collections.value;
@@ -46,17 +52,21 @@ const useCollectionStore = defineStore('collection', () => {
         }
     }
     
-    async function openCollectionDetail(collection) {
+    async function openCollectionDetail(collection, configStore) {
         viewingCollection.value = collection;
         collectionCurrentPage.value = 1;
         collectionPaperSearch.value = '';
         useAiSearch.value = false;
-        await loadCollectionPage();
+        collectionSortBy.value = 'published';
+        collectionSortOrder.value = 'desc';
+        loadingCollectionPapers.value = true;
+        showCollectionDetail.value = true;
+        await loadCollectionPage(configStore);
     }
     
-    async function loadCollectionPage(configStore) {
+    async function performSearch(configStore) {
         if (!viewingCollection.value) return;
-        loadingCollectionPapers.value = true;
+        collectionCurrentPage.value = 1;
         
         if (useAiSearch.value && collectionPaperSearch.value.trim()) {
             aiSearching.value = true;
@@ -83,21 +93,45 @@ const useCollectionStore = defineStore('collection', () => {
                 loadingCollectionPapers.value = false;
             }
         } else {
-            try {
-                const params = new URLSearchParams({
-                    page: collectionCurrentPage.value,
-                    search: collectionPaperSearch.value || ''
-                });
-                const res = await API.collections.papers(viewingCollection.value.id, params.toString());
-                const data = await res.json();
-                collectionPapers.value = data.papers || [];
-                collectionTotalCount.value = data.total || 0;
-                collectionTotalPages.value = data.total_pages || 0;
-            } catch (e) {
-                console.error('Failed to load collection papers:', e);
-            } finally {
-                loadingCollectionPapers.value = false;
+            await loadCollectionPage(configStore);
+        }
+    }
+    
+    function toggleSortOrder(configStore) {
+        collectionSortOrder.value = collectionSortOrder.value === 'desc' ? 'asc' : 'desc';
+        performSearch(configStore);
+    }
+    
+    function openPaperUrl(url) {
+        if (url) window.open(url, '_blank');
+    }
+    
+    async function loadCollectionPage(configStore) {
+        if (!viewingCollection.value) return;
+        loadingCollectionPapers.value = true;
+        try {
+            const params = new URLSearchParams({
+                page: collectionCurrentPage.value,
+                page_size: 20
+            });
+            if (collectionPaperSearch.value && !useAiSearch.value) {
+                params.append('search', collectionPaperSearch.value);
             }
+            if (collectionSortBy.value) {
+                params.append('sort_by', collectionSortBy.value);
+            }
+            if (collectionSortOrder.value) {
+                params.append('sort_order', collectionSortOrder.value);
+            }
+            const res = await API.collections.papers(viewingCollection.value.id, params.toString());
+            const data = await res.json();
+            collectionPapers.value = data.papers || [];
+            collectionTotalCount.value = data.total_count || 0;
+            collectionTotalPages.value = data.total_pages || 0;
+        } catch (e) {
+            console.error('Failed to load collection papers:', e);
+        } finally {
+            loadingCollectionPapers.value = false;
         }
     }
     
@@ -223,6 +257,57 @@ const useCollectionStore = defineStore('collection', () => {
         showDeleteConfirm.value = true;
     }
     
+    function addToCollection(paper) {
+        selectedPaper.value = paper;
+        selectedCollectionId.value = null;
+        showAddToCollection.value = true;
+    }
+    
+    async function confirmAddToCollection(configStore, paperCart) {
+        if (!selectedCollectionId.value) {
+            ElementPlus.ElMessage.warning(configStore.currentLang === 'zh' ? '请选择论文集' : 'Please select a collection');
+            return;
+        }
+        addingToCollection.value = true;
+        try {
+            const papersToAdd = selectedPaper.value ? [selectedPaper.value] : paperCart;
+            if (papersToAdd.length === 0) {
+                ElementPlus.ElMessage.warning(configStore.currentLang === 'zh' ? '没有选中的论文' : 'No papers selected');
+                return;
+            }
+            
+            const paperIds = papersToAdd.map(p => p.id);
+            const res = await API.collections.addPapersBatch(selectedCollectionId.value, paperIds);
+            
+            if (res.ok) {
+                const data = await res.json();
+                const messages = [];
+                if (data.added_count > 0) {
+                    messages.push(configStore.currentLang === 'zh' ? `成功添加 ${data.added_count} 篇论文` : `Added ${data.added_count} papers`);
+                }
+                if (data.skipped_count > 0) {
+                    messages.push(configStore.currentLang === 'zh' ? `${data.skipped_count} 篇已在论文集中` : `${data.skipped_count} already in collection`);
+                }
+                if (messages.length > 0) {
+                    ElementPlus.ElMessage.success(messages.join('，'));
+                }
+                showAddToCollection.value = false;
+                fetchCollections();
+            }
+        } catch (e) {
+            ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '添加失败' : 'Failed to add');
+        } finally {
+            addingToCollection.value = false;
+            selectedPaper.value = null;
+        }
+    }
+    
+    function cancelCollectionDialog() {
+        showCreateCollection.value = false;
+        editingCollection.value = null;
+        newCollection.value = { name: '', description: '', color: '#1e3a5f' };
+    }
+    
     async function addPapersToCollection(paperIds, configStore) {
         if (!selectedCollectionId.value) return;
         try {
@@ -287,16 +372,17 @@ const useCollectionStore = defineStore('collection', () => {
         collections, viewingCollection, collectionPapers,
         collectionCurrentPage, collectionTotalCount, collectionTotalPages,
         collectionPaperSearch, loadingCollectionPapers, useAiSearch, aiSearching,
-        collectionViewMode, collectionSearchQuery,
+        collectionViewMode, collectionSearchQuery, collectionSortBy, collectionSortOrder,
         showCreateCollection, savingCollection, editingCollection, newCollection,
         showDeleteConfirm, deletingCollection, deletingCollectionInProgress,
         showMergeConfirmDialog, mergingFromCollection, mergingToCollection, mergingInProgress,
-        selectedCollectionId,
+        selectedCollectionId, showCollectionDetail, showAddToCollection, selectedPaper, addingToCollection,
         filteredCollections,
-        fetchCollections, openCollectionDetail, loadCollectionPage,
+        fetchCollections, openCollectionDetail, loadCollectionPage, performSearch, toggleSortOrder, openPaperUrl,
         saveNewCollection, deleteCollection, showMergeConfirm, mergePapers,
         removePaperFromCollection, editCollection, duplicateCollection,
-        confirmDeleteCollection, addPapersToCollection,
+        confirmDeleteCollection, addToCollection, confirmAddToCollection, cancelCollectionDialog,
+        addPapersToCollection,
         exportCollection, exportCollectionWithId
     };
 });

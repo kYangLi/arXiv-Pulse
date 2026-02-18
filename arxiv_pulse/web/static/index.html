@@ -489,163 +489,17 @@
     </transition>
     
     <!-- Settings Drawer Component -->
-    <settings-drawer v-model="showSettings" />
+    <settings-drawer v-model="showSettings"></settings-drawer>
 
-            <!-- Dialogs -->
-            <el-dialog v-model="showCreateCollection" :title="editingCollection ? t('collections.edit') : t('collections.create')" width="480px" @closed="cancelCollectionDialog">
-                <el-form label-position="top">
-                    <el-form-item :label="t('collections.name')">
-                        <el-input v-model="newCollection.name" :placeholder="t('collections.name')" />
-                    </el-form-item>
-                    <el-form-item :label="t('collections.description')">
-                        <el-input v-model="newCollection.description" type="textarea" rows="3" :placeholder="t('collections.description')" />
-                    </el-form-item>
-                    <el-form-item :label="t('collections.color')">
-                        <el-color-picker v-model="newCollection.color" />
-                    </el-form-item>
-                </el-form>
-                <template #footer>
-                    <el-button @click="showCreateCollection = false">{{ t('common.cancel') }}</el-button>
-                    <el-button type="primary" @click="saveCollection" :loading="savingCollection">{{ t('common.confirm') }}</el-button>
-                </template>
-            </el-dialog>
-
-            <el-dialog v-model="showAddToCollection" :title="t('collections.addToCollection')" width="400px" @closed="selectedPaper = null">
-                <p style="margin-bottom: 12px; color: var(--text-secondary);">
-                    {{ t('collections.addPapersTo', { count: selectedPaper ? 1 : paperCart.length }) }}
-                </p>
-                <div v-if="selectedPaper?.collection_ids?.length > 0" style="margin-bottom: 12px; padding: 8px 12px; background: var(--bg-subtle); border-radius: 8px;">
-                    <span style="color: var(--text-muted); font-size: 12px;">{{ t('collections.alreadyIn') }}: </span>
-                    <el-tag v-for="cid in selectedPaper.collection_ids" :key="cid" size="small" style="margin: 2px;">
-                        {{ collections.find(c => c.id === cid)?.name || '#' + cid }}
-                    </el-tag>
-                </div>
-                <el-select v-model="selectedCollectionId" :placeholder="t('collections.selectPlaceholder')" style="width: 100%;">
-                    <el-option v-for="c in collections" :key="c.id" :label="c.name" :value="c.id" />
-                </el-select>
-                <template #footer>
-                    <el-button @click="showAddToCollection = false">{{ t('common.cancel') }}</el-button>
-                    <el-button type="primary" @click="confirmAddToCollection" :loading="addingToCollection">{{ t('common.add') }}</el-button>
-                </template>
-            </el-dialog>
-
-            <el-dialog v-model="showCollectionDetail" width="800px">
-                <template #header>
-                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                        <div>
-                            <span style="font-size: 18px; font-weight: 600;">{{ viewingCollection?.name }}</span>
-                            <div v-if="viewingCollection" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
-                                {{ collectionTotalCount }} {{ t('collections.papers') }} · {{ t('collections.lastAdded') }}: {{ formatRelativeTime(viewingCollection.updated_at) }}
-                            </div>
-                        </div>
-                    </div>
-                </template>
-                <div v-if="loadingCollectionPapers" style="text-align: center; padding: 40px;">
-                    <el-icon class="is-loading" style="font-size: 32px;"><Loading /></el-icon>
-                    <p v-if="aiSearching" style="color: var(--text-secondary); margin-top: 12px;">{{ t('collections.aiSearching') }}</p>
-                </div>
-                <div v-else>
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); flex-wrap: wrap; gap: 12px;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <el-input 
-                                v-model="collectionPaperSearch" 
-                                :placeholder="useAiSearch ? t('collections.aiSearchPlaceholder') : t('collections.searchPapers')" 
-                                clearable 
-                                style="width: 280px;" 
-                                @keyup.enter="performSearch" 
-                                @clear="performSearch"
-                                :disabled="aiSearching"
-                            >
-                                <template #prefix><el-icon><Search /></el-icon></template>
-                            </el-input>
-                            <el-checkbox v-model="useAiSearch" :disabled="aiSearching">{{ t('collections.aiSearch') }}</el-checkbox>
-                            <el-divider direction="vertical"></el-divider>
-                            <el-radio-group v-model="collectionSortBy" size="small" @change="performSearch">
-                                <el-radio-button value="published">
-                                    <el-icon><Calendar /></el-icon>
-                                    <span style="margin-left: 4px;">{{ t('collections.sortPublished') }}</span>
-                                </el-radio-button>
-                                <el-radio-button value="added_at">
-                                    <el-icon><Clock /></el-icon>
-                                    <span style="margin-left: 4px;">{{ t('collections.sortAdded') }}</span>
-                                </el-radio-button>
-                            </el-radio-group>
-                            <el-button size="small" @click="toggleSortOrder">
-                                <el-icon>
-                                    <component :is="collectionSortOrder === 'desc' ? 'SortDown' : 'SortUp'" />
-                                </el-icon>
-                            </el-button>
-                            <el-divider direction="vertical"></el-divider>
-                            <el-button-group size="small">
-                                <el-button :type="collectionViewMode === 'card' ? 'primary' : ''" @click="collectionViewMode = 'card'">
-                                    <el-icon><Grid /></el-icon>
-                                </el-button>
-                                <el-button :type="collectionViewMode === 'list' ? 'primary' : ''" @click="collectionViewMode = 'list'">
-                                    <el-icon><List /></el-icon>
-                                </el-button>
-                            </el-button-group>
-                        </div>
-                    </div>
-                    <div v-if="collectionPapers.length > 0">
-                        <template v-if="collectionViewMode === 'card'">
-                            <paper-card 
-                                v-for="paper in collectionPapers" 
-                                :key="paper.id" 
-                                :paper="paper"
-                                :collections="collections"
-                                :in-collection="true"
-                                :in-cart="isInCart(paper.arxiv_id)"
-                                :t="configStore.t"
-                                :current-lang="currentLang"
-                                @add-to-collection="addToCollection"
-                                @remove-from-collection="removePaperFromCollection"
-                                @add-to-cart="addToCart"
-                                @remove-from-cart="removeFromCartByArxivId"
-                            />
-                        </template>
-                        <template v-else>
-                            <div v-for="paper in collectionPapers" :key="paper.id" class="collection-list-item" @click="openPaperUrl(paper.arxiv_url)">
-                                <div class="list-item-title">{{ paper.title }}</div>
-                                <div class="list-item-meta">
-                                    <span>{{ paper.authors?.map(a => a.name).slice(0, 3).join(', ') }}{{ paper.authors?.length > 3 ? '...' : '' }}</span>
-                                    <span>·</span>
-                                    <span>{{ paper.published?.slice(0, 10) }}</span>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                    <div v-else class="empty-state">
-                        <p v-if="useAiSearch">{{ t('collections.aiNoResult') }}</p>
-                        <p v-else-if="collectionPaperSearch">{{ t('collections.noSearchResult') }}</p>
-                        <p v-else>{{ t('collections.noPapersInCollection') }}</p>
-                    </div>
-                    <div v-if="collectionTotalPages > 1 && !useAiSearch" style="display: flex; justify-content: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light);">
-                        <el-pagination
-                            v-model:current-page="collectionCurrentPage"
-                            :page-size="20"
-                            :total="collectionTotalCount"
-                            layout="prev, pager, next"
-                            @current-change="loadCollectionPage"
-                        />
-                    </div>
-                </div>
-            </el-dialog>
-
-            <el-dialog v-model="showDeleteConfirm" :title="t('common.confirmDelete')" width="400px">
-                <p>{{ t('collections.deleteConfirm', { name: deletingCollection?.name }) }}</p>
-                <template #footer>
-                    <el-button @click="showDeleteConfirm = false">{{ t('common.cancel') }}</el-button>
-                    <el-button type="danger" @click="deleteCollection" :loading="deletingCollectionInProgress">{{ t('common.delete') }}</el-button>
-                </template>
-            </el-dialog>
-
-            <el-dialog v-model="showMergeConfirmDialog" :title="t('collections.mergePapers')" width="400px">
-                <p>{{ t('collections.mergeConfirm', { count: mergingFromCollection?.paper_count || 0, name: mergingToCollection?.name }) }}</p>
-                <template #footer>
-                    <el-button @click="showMergeConfirmDialog = false">{{ t('common.cancel') }}</el-button>
-                    <el-button type="primary" @click="mergePapers" :loading="mergingInProgress">{{ t('common.confirm') }}</el-button>
-                </template>
-            </el-dialog>
+            <!-- Collection Dialogs Component -->
+            <collection-dialogs 
+                :collections="collections"
+                :paper-cart="paperCart"
+                :t="configStore.t"
+                :current-lang="currentLang"
+                @add-to-cart="addToCart"
+                @remove-from-cart="removeFromCartByArxivId"
+            ></collection-dialogs>
         </div>
 
         <!-- Field Selector Dialog Component -->
@@ -998,6 +852,7 @@
     <script src="js/components/FieldSelectorDialog.js"></script>
     <script src="js/components/PaperBasketPanel.js"></script>
     <script src="js/components/SettingsDrawer.js"></script>
+    <script src="js/components/CollectionDialogs.js"></script>
     <script>
         // Vue and Pinia APIs already exposed globally by earlier scripts
         const { createApp } = Vue;
@@ -1241,18 +1096,13 @@
                     collections, viewingCollection, collectionPapers, collectionCurrentPage,
                     collectionTotalCount, collectionTotalPages, collectionPaperSearch,
                     loadingCollectionPapers, useAiSearch, aiSearching, collectionViewMode,
-                    collectionSearchQuery, filteredCollections, showCreateCollection, savingCollection,
+                    collectionSearchQuery, collectionSortBy, collectionSortOrder,
+                    filteredCollections, showCreateCollection, savingCollection,
                     editingCollection, newCollection, showDeleteConfirm, deletingCollection,
                     deletingCollectionInProgress, showMergeConfirmDialog, mergingFromCollection,
-                    mergingToCollection, mergingInProgress, selectedCollectionId
+                    mergingToCollection, mergingInProgress, selectedCollectionId,
+                    showCollectionDetail, showAddToCollection, selectedPaper, addingToCollection
                 } = storeToRefs(collectionStore);
-
-                const selectedPaper = ref(null);
-                const addingToCollection = ref(false);
-                const showCollectionDetail = ref(false);
-                const showAddToCollection = ref(false);
-                const collectionSortBy = ref('published');
-                const collectionSortOrder = ref('desc');
 
                 let yearChart = null;
                 let categoryChart = null;
@@ -1936,277 +1786,20 @@
                     }
                 }
 
-                async function saveCollection() {
-                    if (!newCollection.value.name.trim()) {
-                        ElementPlus.ElMessage.warning('请输入论文集名称');
-                        return;
-                    }
-                    savingCollection.value = true;
-                    try {
-                        if (editingCollection.value) {
-                            const res = await API.collections.update(editingCollection.value.id, newCollection.value);
-                            if (res.ok) {
-                                ElementPlus.ElMessage.success(currentLang.value === 'zh' ? '更新成功' : 'Updated');
-                                showCreateCollection.value = false;
-                                editingCollection.value = null;
-                                newCollection.value = { name: '', description: '', color: '#1e3a5f' };
-                                fetchCollections();
-                            } else {
-                                ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '更新失败' : 'Failed to update');
-                            }
-                        } else {
-                            const res = await API.collections.create(newCollection.value);
-                            if (res.ok) {
-                                ElementPlus.ElMessage.success(currentLang.value === 'zh' ? '创建成功' : 'Created');
-                                showCreateCollection.value = false;
-                                newCollection.value = { name: '', description: '', color: '#1e3a5f' };
-                                fetchCollections();
-                            } else {
-                                ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '创建失败' : 'Failed to create');
-                            }
-                        }
-                    } catch (e) {
-                        ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '操作失败' : 'Operation failed');
-                    } finally {
-                        savingCollection.value = false;
-                    }
-                }
-
-                function cancelCollectionDialog() {
-                    showCreateCollection.value = false;
-                    editingCollection.value = null;
-                    newCollection.value = { name: '', description: '', color: '#1e3a5f' };
-                }
-
                 function openEditCollection(collection) {
-                    editingCollection.value = { ...collection };
-                    newCollection.value = { 
-                        name: collection.name, 
-                        description: collection.description || '', 
-                        color: collection.color || '#1e3a5f' 
-                    };
-                    showCreateCollection.value = true;
+                    collectionStore.editCollection(collection);
                 }
 
-                async function deleteCollection() {
-                    deletingCollectionInProgress.value = true;
-                    try {
-                        const res = await API.collections.delete(deletingCollection.value.id);
-                        if (res.ok) {
-                            ElementPlus.ElMessage.success('删除成功');
-                            showDeleteConfirm.value = false;
-                            fetchCollections();
-                        } else {
-                            ElementPlus.ElMessage.error('删除失败');
-                        }
-                    } catch (e) {
-                        ElementPlus.ElMessage.error('删除失败');
-                    } finally {
-                        deletingCollectionInProgress.value = false;
-                    }
-                }
-
-                function showMergeConfirm(fromCollection, toCollection) {
-                    mergingFromCollection.value = fromCollection;
-                    mergingToCollection.value = toCollection;
-                    showMergeConfirmDialog.value = true;
-                }
-
-                async function mergePapers() {
-                    if (!mergingFromCollection.value || !mergingToCollection.value) return;
-                    mergingInProgress.value = true;
-                    try {
-                        const res = await API.collections.merge(mergingFromCollection.value.id, mergingToCollection.value.id);
-                        if (res.ok) {
-                            const data = await res.json();
-                            ElementPlus.ElMessage.success(configStore.t('collections.mergeSuccess', { count: data.merged_count, name: mergingToCollection.value.name }));
-                            showMergeConfirmDialog.value = false;
-                            fetchCollections();
-                        } else {
-                            const err = await res.json();
-                            ElementPlus.ElMessage.error(err.detail || '迁移失败');
-                        }
-                    } catch (e) {
-                        ElementPlus.ElMessage.error('迁移失败');
-                    } finally {
-                        mergingInProgress.value = false;
-                    }
-                }
-
-                async function openCollectionDetail(collection) {
-                    viewingCollection.value = collection;
-                    collectionCurrentPage.value = 1;
-                    collectionPaperSearch.value = '';
-                    collectionSortBy.value = 'published';
-                    collectionSortOrder.value = 'desc';
-                    useAiSearch.value = false;
-                    loadingCollectionPapers.value = true;
-                    showCollectionDetail.value = true;
-                    await loadCollectionPage();
-                }
-
-                async function performSearch() {
-                    if (!viewingCollection.value) return;
-                    collectionCurrentPage.value = 1;
-                    
-                    if (useAiSearch.value && collectionPaperSearch.value.trim()) {
-                        aiSearching.value = true;
-                        loadingCollectionPapers.value = true;
-                        try {
-                            const res = await API.collections.aiSearch(viewingCollection.value.id, collectionPaperSearch.value.trim());
-                            const data = await res.json();
-                            if (data.papers && data.papers.length > 0) {
-                                collectionPapers.value = data.papers;
-                                collectionTotalCount.value = data.papers.length;
-                                collectionTotalPages.value = 1;
-                                ElementPlus.ElMessage.success(configStore.t('collections.aiResult', { count: data.papers.length }));
-                            } else {
-                                collectionPapers.value = [];
-                                collectionTotalCount.value = 0;
-                                collectionTotalPages.value = 0;
-                                ElementPlus.ElMessage.info(configStore.t('collections.aiNoResult'));
-                            }
-                        } catch (e) {
-                            console.error('AI search failed:', e);
-                            ElementPlus.ElMessage.error(currentLang.value === 'zh' ? 'AI 检索失败' : 'AI search failed');
-                        } finally {
-                            aiSearching.value = false;
-                            loadingCollectionPapers.value = false;
-                        }
-                    } else {
-                        loadCollectionPage();
-                    }
-                }
-
-                function toggleSortOrder() {
-                    collectionSortOrder.value = collectionSortOrder.value === 'desc' ? 'asc' : 'desc';
-                    performSearch();
-                }
-
-                function openPaperUrl(url) {
-                    if (url) window.open(url, '_blank');
-                }
-
-                async function loadCollectionPage() {
-                    if (!viewingCollection.value) return;
-                    loadingCollectionPapers.value = true;
-                    try {
-                        const params = new URLSearchParams({
-                            page: collectionCurrentPage.value,
-                            page_size: 20
-                        });
-                        if (collectionPaperSearch.value && !useAiSearch.value) {
-                            params.append('search', collectionPaperSearch.value);
-                        }
-                        if (collectionSortBy.value) {
-                            params.append('sort_by', collectionSortBy.value);
-                        }
-                        if (collectionSortOrder.value) {
-                            params.append('sort_order', collectionSortOrder.value);
-                        }
-                        const res = await API.collections.papers(viewingCollection.value.id, params.toString());
-                        const data = await res.json();
-                        collectionPapers.value = data.papers || [];
-                        collectionTotalCount.value = data.total_count || 0;
-                        collectionTotalPages.value = data.total_pages || 0;
-                    } catch (e) {
-                        console.error('Failed to fetch collection papers:', e);
-                    } finally {
-                        loadingCollectionPapers.value = false;
-                    }
-                }
-
-                async function removePaperFromCollection(paperId) {
-                    try {
-                        const res = await API.collections.removePaper(viewingCollection.value.id, paperId);
-                        if (res.ok) {
-                            ElementPlus.ElMessage.success('已移除');
-                            loadCollectionPage();
-                            fetchCollections();
-                        }
-                    } catch (e) {
-                        ElementPlus.ElMessage.error('移除失败');
-                    }
-                }
-
-                function editCollection(collection) {
-                    editingCollection.value = { ...collection };
-                    newCollection.value = { 
-                        name: collection.name, 
-                        description: collection.description || '', 
-                        color: collection.color || '#1e3a5f' 
-                    };
-                    showCreateCollection.value = true;
-                }
-
-                async function duplicateCollection(collection) {
-                    savingCollection.value = true;
-                    try {
-                        const res = await API.collections.create({
-                            name: `${collection.name} (copy)`,
-                            description: collection.description,
-                            color: collection.color
-                        });
-                        if (res.ok) {
-                            const newCol = await res.json();
-                            fetchCollections();
-                            ElementPlus.ElMessage.success(currentLang.value === 'zh' ? '已复制' : 'Duplicated');
-                        }
-                    } catch (e) {
-                        ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '复制失败' : 'Failed to duplicate');
-                    } finally {
-                        savingCollection.value = false;
-                    }
+                function duplicateCollection(collection) {
+                    collectionStore.duplicateCollection(collection, configStore);
                 }
 
                 function confirmDeleteCollection(collection) {
-                    deletingCollection.value = collection;
-                    showDeleteConfirm.value = true;
+                    collectionStore.confirmDeleteCollection(collection);
                 }
 
-                function addToCollection(paper) {
-                    selectedPaper.value = paper;
-                    selectedCollectionId.value = null;
-                    showAddToCollection.value = true;
-                }
-
-                async function confirmAddToCollection() {
-                    if (!selectedCollectionId.value) {
-                        ElementPlus.ElMessage.warning('请选择论文集');
-                        return;
-                    }
-                    addingToCollection.value = true;
-                    try {
-                        const papersToAdd = selectedPaper.value ? [selectedPaper.value] : paperCart.value;
-                        if (papersToAdd.length === 0) {
-                            ElementPlus.ElMessage.warning('没有选中的论文');
-                            return;
-                        }
-                        
-                        const paperIds = papersToAdd.map(p => p.id);
-                        const res = await API.collections.addPapersBatch(selectedCollectionId.value, paperIds);
-                        
-                        if (res.ok) {
-                            const data = await res.json();
-                            const messages = [];
-                            if (data.added_count > 0) {
-                                messages.push(`成功添加 ${data.added_count} 篇论文`);
-                            }
-                            if (data.skipped_count > 0) {
-                                messages.push(`${data.skipped_count} 篇已在论文集中`);
-                            }
-                            if (messages.length > 0) {
-                                ElementPlus.ElMessage.success(messages.join('，'));
-                            }
-                            showAddToCollection.value = false;
-                            fetchCollections();
-                        }
-                    } catch (e) {
-                        ElementPlus.ElMessage.error('添加失败');
-                    } finally {
-                        addingToCollection.value = false;
-                        selectedPaper.value = null;
-                    }
+                function openCollectionDetail(collection) {
+                    collectionStore.openCollectionDetail(collection, configStore);
                 }
 
                 function toggleRecentSelect(paperId) {
@@ -2937,13 +2530,12 @@
                     newCollection, editingCollection, deletingCollection,
                     savingCollection, deletingCollectionInProgress,
                     showMergeConfirmDialog, mergingFromCollection, mergingToCollection, mergingInProgress,
-                    showMergeConfirm, mergePapers,
                     selectedCollectionId, selectedPaper, addingToCollection,
                     viewingCollection, showCollectionDetail, collectionPapers, loadingCollectionPapers,
                     collectionCurrentPage, collectionTotalCount, collectionTotalPages,
                     collectionPaperSearch, collectionSortBy, collectionSortOrder,
                     collectionSearchQuery, filteredCollections,
-                    useAiSearch, aiSearching, performSearch, toggleSortOrder, collectionViewMode, openPaperUrl,
+                    useAiSearch, aiSearching, collectionViewMode,
                     recentSelectedIds, recentSelectAll, searchSelectedIds, searchSelectAll,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
                     checkInitStatus, testSetupAI, toggleSetupField, toggleCategoryGroup, startInitialSync,
@@ -2951,11 +2543,7 @@
                     fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers, startSearch, fetchCollections,
                     getSelectedFieldsTooltip, hasSelectedFields,
                     fetchSyncStatus, startSync,
-                    saveCollection, cancelCollectionDialog, openEditCollection,
-                    confirmDeleteCollection, deleteCollection,
-                    openCollectionDetail, loadCollectionPage, removePaperFromCollection,
-                    addToCollection, confirmAddToCollection,
-                    editCollection, duplicateCollection,
+                    openEditCollection, confirmDeleteCollection, duplicateCollection, openCollectionDetail,
                     toggleRecentSelect, toggleRecentSelectAll, toggleSearchSelect, toggleSearchSelectAll,
                     exportRecent, exportSearch, exportCollection, exportCollectionWithId,
                     navigateTo, navigateToHome, onTabChange, startHomeSearch, toggleHomeSelect, exportHome,
@@ -2974,7 +2562,6 @@
                     scrollToBottom, handleChatScroll,
                     bringToFront, handleEscKey,
                     t: configStore.t, currentLang, toggleLanguage, i18n, getFieldTranslation: configStore.getFieldTranslation,
-                    // Field Selector
                     showFieldSelector, fieldSelectorSource, tempSelectedFields, fieldSearchQuery,
                     fieldSelectorExpanded, openFieldSelector, toggleFieldSelectorGroup, toggleTempField,
                     removeFromTempSelection, clearTempSelection, filteredCategories,
@@ -3015,6 +2602,14 @@
             emits: ['update:modelValue'],
             template: SettingsDrawerTemplate,
             setup: SettingsDrawerSetup
+        });
+
+        // Register collection-dialogs component
+        app.component('collection-dialogs', {
+            props: ['collections', 'paperCart', 't', 'currentLang'],
+            emits: ['add-to-cart', 'remove-from-cart'],
+            template: CollectionDialogsTemplate,
+            setup: CollectionDialogsSetup
         });
 
         if (window.ElementPlusIconsVue) {
