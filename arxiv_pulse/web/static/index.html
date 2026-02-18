@@ -752,13 +752,13 @@
                 // paperStore properties
                 const { 
                     stats, fieldStats, recentPapers, loadingRecent, loadingProgress, loadingTotal, loadingController,
-                    updatingRecent, recentLogs, recentDays, recentNeedSync,
+                    updatingRecent, recentLogs, recentDays, recentNeedSync, recentUserScrolledUp, recentUpdateController,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds, homeController, homeUserScrolledUp,
                     paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex
                 } = storeToRefs(paperStore);
                 
                 const { 
-                    startHomeSearch, stopHomeSearch
+                    startHomeSearch, stopHomeSearch, stopUpdateRecent
                 } = paperStore;
                 
                 // chatStore properties
