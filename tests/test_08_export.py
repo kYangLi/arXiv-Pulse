@@ -26,7 +26,7 @@ def test_export_collection_json(browser_page):
     collection_items = page.locator(".collection-item, [class*='collection']")
 
     if collection_items.count() == 0:
-        print("  ⚠ 没有论文集可导出")
+        print("  [!] 没有论文集可导出")
         return
 
     print("  检查导出按钮...")
@@ -44,9 +44,9 @@ def test_export_collection_json(browser_page):
             export_btn.first.click()
 
         page.wait_for_timeout(1000)
-        print("  ✓ JSON 导出完成（文件保存到下载目录）")
+        print("  [v] JSON 导出完成（文件保存到下载目录）")
     else:
-        print("  ⚠ 导出按钮未找到")
+        print("  [!] 导出按钮未找到")
 
 
 def test_export_collection_csv(browser_page):
@@ -64,7 +64,7 @@ def test_export_collection_csv(browser_page):
     collection_items = page.locator(".collection-item, [class*='collection']")
 
     if collection_items.count() == 0:
-        print("  ⚠ 没有论文集可导出")
+        print("  [!] 没有论文集可导出")
         return
 
     collection_items.first.click()
@@ -76,9 +76,9 @@ def test_export_collection_csv(browser_page):
         print("  点击导出 CSV...")
         export_btn.first.click()
         page.wait_for_timeout(1000)
-        print("  ✓ CSV 导出完成")
+        print("  [v] CSV 导出完成")
     else:
-        print("  ⚠ CSV 导出按钮未找到")
+        print("  [!] CSV 导出按钮未找到")
 
 
 def test_export_paper_card_image(browser_page):
@@ -110,9 +110,9 @@ def test_export_paper_card_image(browser_page):
     if export_card_btn.count() > 0:
         export_card_btn.first.click()
         page.wait_for_timeout(2000)
-        print("  ✓ 论文卡片图片导出完成")
+        print("  [v] 论文卡片图片导出完成")
     else:
-        print("  ⚠ 导出卡片按钮未找到")
+        print("  [!] 导出卡片按钮未找到")
 
 
 if __name__ == "__main__":

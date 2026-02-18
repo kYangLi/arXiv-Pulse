@@ -35,10 +35,10 @@ def test_settings_open(browser_page):
     drawer = page.locator(".el-drawer, [class*='settings']")
 
     if drawer.count() > 0:
-        print("  ✓ 设置抽屉打开")
+        print("  [v] 设置抽屉打开")
         page.screenshot(path="/tmp/test_settings.png")
     else:
-        print("  ⚠ 设置抽屉未显示")
+        print("  [!] 设置抽屉未显示")
 
 
 def test_settings_language_toggle(browser_page):
@@ -69,14 +69,14 @@ def test_settings_language_toggle(browser_page):
         if en_btn.count() > 0:
             en_btn.first.click()
             page.wait_for_timeout(300)
-            print("  ✓ 切换到英文界面")
+            print("  [v] 切换到英文界面")
 
         if zh_btn.count() > 0:
             zh_btn.first.click()
             page.wait_for_timeout(300)
-            print("  ✓ 切换到中文界面")
+            print("  [v] 切换到中文界面")
     else:
-        print("  ⚠ 语言切换控件未找到")
+        print("  [!] 语言切换控件未找到")
 
 
 def test_settings_field_selector(browser_page):
@@ -106,16 +106,16 @@ def test_settings_field_selector(browser_page):
 
         dialog = page.locator(".el-dialog")
         if dialog.count() > 0:
-            print("  ✓ 领域选择器打开")
+            print("  [v] 领域选择器打开")
 
             close_btn = dialog.locator(".el-dialog__headerbtn")
             if close_btn.count() > 0:
                 close_btn.first.click()
-                print("  ✓ 领域选择器关闭")
+                print("  [v] 领域选择器关闭")
         else:
-            print("  ⚠ 领域选择对话框未显示")
+            print("  [!] 领域选择对话框未显示")
     else:
-        print("  ⚠ 领域选择入口未找到")
+        print("  [!] 领域选择入口未找到")
 
 
 def test_settings_ai_test_connection(browser_page, api_config):
@@ -148,15 +148,15 @@ def test_settings_ai_test_connection(browser_page, api_config):
 
         success_msg = page.locator(".el-message--success")
         if success_msg.count() > 0:
-            print("  ✓ AI 连接测试成功")
+            print("  [v] AI 连接测试成功")
         else:
             error_msg = page.locator(".el-message--error")
             if error_msg.count() > 0:
-                print("  ⚠ AI 连接测试失败")
+                print("  [!] AI 连接测试失败")
             else:
-                print("  ⚠ 测试结果未确认")
+                print("  [!] 测试结果未确认")
     else:
-        print("  ⚠ 测试连接按钮未找到")
+        print("  [!] 测试连接按钮未找到")
 
 
 def test_settings_close(browser_page):
@@ -183,12 +183,12 @@ def test_settings_close(browser_page):
     if close_btn.count() > 0:
         close_btn.first.click()
         page.wait_for_timeout(300)
-        print("  ✓ 设置抽屉关闭")
+        print("  [v] 设置抽屉关闭")
     else:
         print("  点击抽屉外部关闭...")
         page.mouse.click(100, 100)
         page.wait_for_timeout(300)
-        print("  ✓ 设置抽屉关闭")
+        print("  [v] 设置抽屉关闭")
 
 
 if __name__ == "__main__":

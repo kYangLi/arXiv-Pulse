@@ -53,9 +53,9 @@ def main():
         results[test_file] = passed
 
         if passed:
-            print(f"\n✅ {test_file} PASSED")
+            print(f"\n[PASS] {test_file} PASSED")
         else:
-            print(f"\n❌ {test_file} FAILED")
+            print(f"\n[FAIL] {test_file} FAILED")
             print("\n输出详情:")
             print(output[-2000:] if len(output) > 2000 else output)
 
@@ -67,7 +67,7 @@ def main():
     total_count = len(results)
 
     for test_file, passed in results.items():
-        status = "✅ PASS" if passed else "❌ FAIL"
+        status = "[PASS]" if passed else "[FAIL]"
         print(f"  {status}: {test_file}")
 
     print("\n" + "-" * 60)
@@ -75,10 +75,10 @@ def main():
     print("-" * 60)
 
     if passed_count == total_count:
-        print("\n🎉 所有测试通过！")
+        print("\n[OK] 所有测试通过！")
         return 0
     else:
-        print(f"\n⚠️  {total_count - passed_count} 个测试失败")
+        print(f"\n[!] {total_count - passed_count} 个测试失败")
         return 1
 
 

@@ -28,7 +28,7 @@ def test_bottom_nav_expand(browser_page):
 
     nav_items = page.locator(".nav-item")
     assert nav_items.count() >= 4, f"导航项不足，只有 {nav_items.count()} 个"
-    print(f"  ✓ 导航栏展开，显示 {nav_items.count()} 个导航项")
+    print(f"  [v] 导航栏展开，显示 {nav_items.count()} 个导航项")
 
 
 def test_navigate_to_recent(browser_page):
@@ -47,7 +47,7 @@ def test_navigate_to_recent(browser_page):
 
     page_title = page.locator("text=近期论文")
     assert page_title.count() > 0, "近期论文标题未显示"
-    print("  ✓ 近期论文页导航成功")
+    print("  [v] 近期论文页导航成功")
 
 
 def test_navigate_to_sync(browser_page):
@@ -66,7 +66,7 @@ def test_navigate_to_sync(browser_page):
 
     sync_indicator = page.locator("text=同步")
     assert sync_indicator.count() > 0, "同步页面未显示"
-    print("  ✓ 同步页导航成功")
+    print("  [v] 同步页导航成功")
 
 
 def test_navigate_to_collections(browser_page):
@@ -85,7 +85,7 @@ def test_navigate_to_collections(browser_page):
 
     collections_title = page.locator("text=收藏集, text=论文集")
     assert collections_title.count() > 0, "论文集页面未显示"
-    print("  ✓ 论文集页导航成功")
+    print("  [v] 论文集页导航成功")
 
 
 def test_navigate_to_home(browser_page):
@@ -106,7 +106,7 @@ def test_navigate_to_home(browser_page):
 
     page.screenshot(path="/tmp/navigation_home.png")
 
-    print("  ✓ 首页导航成功")
+    print("  [v] 首页导航成功")
 
 
 def test_no_console_errors(browser_page):
@@ -130,10 +130,10 @@ def test_no_console_errors(browser_page):
     js_errors = [e for e in errors if "TypeError" in e or "ReferenceError" in e or "SyntaxError" in e]
 
     if js_errors:
-        print(f"  ❌ 发现 JS 错误: {js_errors}")
+        print(f"  [X] 发现 JS 错误: {js_errors}")
         pytest.fail(f"发现 JS 错误: {js_errors}")
     else:
-        print("  ✓ 无 JS 错误")
+        print("  [v] 无 JS 错误")
 
 
 if __name__ == "__main__":

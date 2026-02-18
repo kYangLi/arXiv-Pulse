@@ -22,13 +22,13 @@ def test_stats_display(browser_page):
 
     stats_cards = page.locator(".stat-card, .el-card, [class*='stat']")
     if stats_cards.count() > 0:
-        print(f"  ✓ 找到 {stats_cards.count()} 个统计卡片")
+        print(f"  [v] 找到 {stats_cards.count()} 个统计卡片")
     else:
         page_content = page.content()
         if "论文" in page_content or "Papers" in page_content:
-            print("  ✓ 统计信息已显示")
+            print("  [v] 统计信息已显示")
         else:
-            print("  ⚠ 统计卡片未找到")
+            print("  [!] 统计卡片未找到")
 
 
 def test_search_input_visible(browser_page):
@@ -45,10 +45,10 @@ def test_search_input_visible(browser_page):
     )
 
     if search_input.count() > 0:
-        print("  ✓ 搜索框显示")
+        print("  [v] 搜索框显示")
     else:
         all_inputs = page.locator("input[type='text'], input:not([type])")
-        print(f"  ⚠ 未找到特定搜索框，页面有 {all_inputs.count()} 个输入框")
+        print(f"  [!] 未找到特定搜索框，页面有 {all_inputs.count()} 个输入框")
 
 
 def test_ai_search(browser_page, api_config):
@@ -89,7 +89,7 @@ def test_ai_search(browser_page, api_config):
     page.wait_for_timeout(5000)
 
     page.screenshot(path="/tmp/test_home_search_results.png")
-    print("  ✓ AI 搜索执行完成")
+    print("  [v] AI 搜索执行完成")
 
 
 def test_search_results_display(browser_page):
@@ -104,9 +104,9 @@ def test_search_results_display(browser_page):
     paper_cards = page.locator(".paper-card")
 
     if paper_cards.count() > 0:
-        print(f"  ✓ 找到 {paper_cards.count()} 个论文卡片")
+        print(f"  [v] 找到 {paper_cards.count()} 个论文卡片")
     else:
-        print("  ⚠ 未找到论文卡片（可能需要先执行搜索）")
+        print("  [!] 未找到论文卡片（可能需要先执行搜索）")
 
 
 def test_field_filter_button(browser_page):
@@ -121,9 +121,9 @@ def test_field_filter_button(browser_page):
     filter_btn = page.locator("button:has-text('筛选'), button:has-text('Filter'), text=筛选领域")
 
     if filter_btn.count() > 0:
-        print("  ✓ 领域筛选按钮显示")
+        print("  [v] 领域筛选按钮显示")
     else:
-        print("  ⚠ 领域筛选按钮未找到")
+        print("  [!] 领域筛选按钮未找到")
 
 
 if __name__ == "__main__":

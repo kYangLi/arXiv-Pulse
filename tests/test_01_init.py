@@ -27,7 +27,7 @@ def test_init_page_visible(init_server, clean_browser_page, api_config):
     step_indicator = page.locator(".setup-steps")
     assert step_indicator.is_visible(), "设置向导步骤指示器未显示"
 
-    print("  ✓ 设置向导页面显示")
+    print("  [v] 设置向导页面显示")
 
 
 def test_init_step1_elements(init_server, clean_browser_page, api_config):
@@ -43,17 +43,17 @@ def test_init_step1_elements(init_server, clean_browser_page, api_config):
     print("  检查步骤1元素...")
 
     assert page.locator("input[placeholder*='openai']").is_visible(), "API Base URL 输入框未显示"
-    print("  ✓ API Base URL 输入框")
+    print("  [v] API Base URL 输入框")
 
     assert page.locator("input[type='password']").is_visible(), "API Key 输入框未显示"
-    print("  ✓ API Key 输入框")
+    print("  [v] API Key 输入框")
 
     assert page.locator("button:has-text('测试连接')").is_visible(), "测试连接按钮未显示"
-    print("  ✓ 测试连接按钮")
+    print("  [v] 测试连接按钮")
 
     next_btn = page.locator("button:has-text('下一步')")
     assert next_btn.is_visible(), "下一步按钮未显示"
-    print("  ✓ 下一步按钮")
+    print("  [v] 下一步按钮")
 
 
 def test_init_step1_test_connection(init_server, clean_browser_page, api_config):
@@ -93,9 +93,9 @@ def test_init_step1_test_connection(init_server, clean_browser_page, api_config)
 
     success_indicator = page.locator(".el-message--success")
     if success_indicator.count() > 0:
-        print("  ✓ AI 连接测试成功")
+        print("  [v] AI 连接测试成功")
     else:
-        print("  ⚠ AI 连接测试结果未确认（可能需要检查控制台）")
+        print("  [!] AI 连接测试结果未确认（可能需要检查控制台）")
 
 
 def test_init_step2_field_selector(init_server, clean_browser_page, api_config):
@@ -119,13 +119,13 @@ def test_init_step2_field_selector(init_server, clean_browser_page, api_config):
 
     dialog = page.locator(".el-dialog")
     assert dialog.is_visible(), "领域选择对话框未显示"
-    print("  ✓ 领域选择对话框打开")
+    print("  [v] 领域选择对话框打开")
 
     close_btn = page.locator(".el-dialog__headerbtn")
     if close_btn.is_visible():
         close_btn.click()
         page.wait_for_timeout(300)
-        print("  ✓ 对话框可关闭")
+        print("  [v] 对话框可关闭")
 
 
 def test_init_step3_sync_settings(init_server, clean_browser_page, api_config):
@@ -148,11 +148,11 @@ def test_init_step3_sync_settings(init_server, clean_browser_page, api_config):
 
     selects = page.locator("select, .el-select")
     assert selects.count() >= 1, "年份选择器未显示"
-    print("  ✓ 年份选择器显示")
+    print("  [v] 年份选择器显示")
 
     number_inputs = page.locator("input[type='number'], .el-input-number input")
     assert number_inputs.count() >= 3, "数值输入框未显示"
-    print("  ✓ 同步参数输入框显示")
+    print("  [v] 同步参数输入框显示")
 
 
 def test_init_step4_start_sync(init_server, clean_browser_page, api_config):
@@ -174,9 +174,9 @@ def test_init_step4_start_sync(init_server, clean_browser_page, api_config):
 
     start_btn = page.locator("button:has-text('开始同步'), button:has-text('开始使用')")
     if start_btn.count() > 0:
-        print("  ✓ 开始同步按钮显示")
+        print("  [v] 开始同步按钮显示")
     else:
-        print("  ⚠ 开始同步按钮未找到")
+        print("  [!] 开始同步按钮未找到")
 
 
 def test_init_navigation_blocked(init_server, clean_browser_page, api_config):
@@ -194,7 +194,7 @@ def test_init_navigation_blocked(init_server, clean_browser_page, api_config):
 
     bottom_nav = page.locator(".bottom-nav")
     assert not bottom_nav.is_visible(), "底部导航栏不应显示（初始化未完成）"
-    print("  ✓ 初始化前导航正确阻止")
+    print("  [v] 初始化前导航正确阻止")
 
 
 if __name__ == "__main__":

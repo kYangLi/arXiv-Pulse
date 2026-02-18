@@ -21,9 +21,9 @@ def test_chat_fab_visible(browser_page):
     chat_fab = page.locator(".chat-fab-btn, button[class*='chat'], [class*='fab']")
 
     if chat_fab.count() > 0:
-        print("  ✓ 聊天 FAB 按钮显示")
+        print("  [v] 聊天 FAB 按钮显示")
     else:
-        print("  ⚠ 聊天 FAB 按钮未找到")
+        print("  [!] 聊天 FAB 按钮未找到")
 
 
 def test_chat_open_from_fab(browser_page):
@@ -50,10 +50,10 @@ def test_chat_open_from_fab(browser_page):
     chat_window = page.locator(".chat-window, [class*='chat-panel']")
 
     if chat_window.count() > 0:
-        print("  ✓ 聊天窗口打开")
+        print("  [v] 聊天窗口打开")
         page.screenshot(path="/tmp/test_chat_open.png")
     else:
-        print("  ⚠ 聊天窗口未显示")
+        print("  [!] 聊天窗口未显示")
 
 
 def test_chat_create_new_session(browser_page, api_config):
@@ -83,9 +83,9 @@ def test_chat_create_new_session(browser_page, api_config):
         print("  点击新对话按钮...")
         new_chat_btn.first.click()
         page.wait_for_timeout(500)
-        print("  ✓ 新对话创建")
+        print("  [v] 新对话创建")
     else:
-        print("  ⚠ 新对话按钮未找到")
+        print("  [!] 新对话按钮未找到")
 
 
 def test_chat_send_message(browser_page, api_config):
@@ -128,7 +128,7 @@ def test_chat_send_message(browser_page, api_config):
     page.wait_for_timeout(10000)
 
     page.screenshot(path="/tmp/test_chat_response.png")
-    print("  ✓ 消息发送完成")
+    print("  [v] 消息发送完成")
 
 
 def test_chat_from_paper_card(browser_page, api_config):
@@ -160,12 +160,12 @@ def test_chat_from_paper_card(browser_page, api_config):
 
         chat_window = page.locator(".chat-window, [class*='chat-panel']")
         if chat_window.count() > 0:
-            print("  ✓ 聊天窗口打开（从论文卡片分析）")
+            print("  [v] 聊天窗口打开（从论文卡片分析）")
             page.screenshot(path="/tmp/test_chat_from_paper.png")
         else:
-            print("  ⚠ 聊天窗口未打开")
+            print("  [!] 聊天窗口未打开")
     else:
-        print("  ⚠ 分析按钮未找到")
+        print("  [!] 分析按钮未找到")
 
 
 def test_chat_close(browser_page):
@@ -195,13 +195,13 @@ def test_chat_close(browser_page):
 
         chat_window = page.locator(".chat-window, [class*='chat-panel']")
         if chat_window.count() == 0 or not chat_window.first.is_visible():
-            print("  ✓ 聊天窗口已关闭")
+            print("  [v] 聊天窗口已关闭")
     else:
         chat_fab = page.locator(".chat-fab-btn").first
         if chat_fab.count() > 0:
             chat_fab.click()
             page.wait_for_timeout(300)
-            print("  ✓ 聊天窗口已关闭（通过 FAB 切换）")
+            print("  [v] 聊天窗口已关闭（通过 FAB 切换）")
 
 
 if __name__ == "__main__":
