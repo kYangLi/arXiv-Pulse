@@ -19,7 +19,7 @@ def test_init_page_visible(init_server, clean_browser_page, api_config):
 
     print(f"\n访问 {url} ...")
     page.goto(url)
-    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(1000)
 
     page.screenshot(path="/tmp/init_page.png")
@@ -37,7 +37,7 @@ def test_init_step1_elements(init_server, clean_browser_page, api_config):
 
     print(f"\n访问 {url} ...")
     page.goto(url)
-    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     print("  检查步骤1元素...")
@@ -66,7 +66,7 @@ def test_init_step1_test_connection(init_server, clean_browser_page, api_config)
 
     print(f"\n访问 {url} ...")
     page.goto(url)
-    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     print("  填写 API 配置...")
@@ -105,7 +105,7 @@ def test_init_step2_field_selector(init_server, clean_browser_page, api_config):
 
     print(f"\n访问 {url} ...")
     page.goto(url)
-    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     print("  跳转到步骤2...")
@@ -135,7 +135,7 @@ def test_init_step3_sync_settings(init_server, clean_browser_page, api_config):
 
     print(f"\n访问 {url} ...")
     page.goto(url)
-    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     print("  跳转到步骤3...")
@@ -162,7 +162,7 @@ def test_init_step4_start_sync(init_server, clean_browser_page, api_config):
 
     print(f"\n访问 {url} ...")
     page.goto(url)
-    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     print("  跳转到步骤4...")
@@ -186,7 +186,7 @@ def test_init_navigation_blocked(init_server, clean_browser_page, api_config):
 
     print(f"\n访问 {url} ...")
     page.goto(url)
-    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     setup_container = page.locator(".setup-container")

@@ -16,8 +16,8 @@ def test_collections_list_load(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     print("  导航到论文集页...")
@@ -39,8 +39,8 @@ def test_create_collection(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "collections")
@@ -79,8 +79,8 @@ def test_edit_collection_name(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "collections")
@@ -115,8 +115,8 @@ def test_add_paper_to_collection(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "recent")
@@ -152,8 +152,8 @@ def test_view_collection_papers(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "collections")
@@ -177,8 +177,8 @@ def test_remove_paper_from_collection(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "collections")
@@ -212,8 +212,8 @@ def test_delete_collection(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "collections")

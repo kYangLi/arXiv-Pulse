@@ -14,8 +14,8 @@ def test_recent_papers_load(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     print("  导航到近期论文页...")
@@ -36,8 +36,8 @@ def test_recent_papers_count(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "recent")
@@ -56,8 +56,8 @@ def test_paper_card_expand(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "recent")
@@ -93,8 +93,8 @@ def test_paper_card_arxiv_link(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "recent")
@@ -119,8 +119,8 @@ def test_paper_card_pdf_link(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "recent")

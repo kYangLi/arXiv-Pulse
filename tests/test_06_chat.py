@@ -14,8 +14,8 @@ def test_chat_fab_visible(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(1000)
 
     chat_fab = page.locator(".chat-fab-btn, button[class*='chat'], [class*='fab']")
@@ -31,8 +31,8 @@ def test_chat_open_from_fab(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     chat_fab = page.locator(".chat-fab-btn").first
@@ -64,8 +64,8 @@ def test_chat_create_new_session(browser_page, api_config):
         pytest.skip("未配置 AI API Key")
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     chat_fab = page.locator(".chat-fab-btn").first
@@ -96,8 +96,8 @@ def test_chat_send_message(browser_page, api_config):
         pytest.skip("未配置 AI API Key")
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     chat_fab = page.locator(".chat-fab-btn").first
@@ -139,8 +139,8 @@ def test_chat_from_paper_card(browser_page, api_config):
         pytest.skip("未配置 AI API Key")
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "recent")
@@ -173,8 +173,8 @@ def test_chat_close(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     chat_fab = page.locator(".chat-fab-btn").first

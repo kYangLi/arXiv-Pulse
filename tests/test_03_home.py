@@ -14,8 +14,8 @@ def test_stats_display(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(1000)
 
     page.screenshot(path="/tmp/test_home_stats.png")
@@ -36,8 +36,8 @@ def test_search_input_visible(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     search_input = page.locator(
@@ -59,8 +59,8 @@ def test_ai_search(browser_page, api_config):
         pytest.skip("未配置 AI API Key")
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     search_input = page.locator(
@@ -97,8 +97,8 @@ def test_search_results_display(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     paper_cards = page.locator(".paper-card")
@@ -114,8 +114,8 @@ def test_field_filter_button(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     filter_btn = page.locator("button:has-text('筛选'), button:has-text('Filter'), text=筛选领域")

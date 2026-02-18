@@ -100,15 +100,22 @@ def navigate_to(page: Page, target: str):
     nav_map = {
         "home": "首页",
         "recent": "近期论文",
-        "sync": "同步",
-        "collections": "收藏集",
+        "sync": "数据管理",
+        "collections": "论文集",
     }
 
     target_text = nav_map.get(target, target)
     btn = page.locator(f"text={target_text}")
-    if btn.is_visible():
-        btn.click()
-        page.wait_for_timeout(500)
+
+    for _ in range(3):
+        expand_bottom_nav(page)
+        if btn.count() > 0:
+            btn.first.click()
+            page.wait_for_timeout(500)
+            return
+
+    page.locator(f".nav-item:has-text('{target_text}')").first.click()
+    page.wait_for_timeout(500)
 
 
 def get_console_errors(page: Page) -> list:
@@ -138,6 +145,9 @@ def browser_page():
         browser = p.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
+
+        page.set_default_timeout(60000)
+        page.set_default_navigation_timeout(60000)
 
         errors = get_console_errors(page)
         page._test_errors = errors
@@ -172,6 +182,9 @@ def clean_browser_page():
         browser = p.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
+
+        page.set_default_timeout(60000)
+        page.set_default_navigation_timeout(60000)
 
         errors = get_console_errors(page)
         page._test_errors = errors

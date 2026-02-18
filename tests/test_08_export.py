@@ -16,8 +16,8 @@ def test_export_collection_json(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "collections")
@@ -54,8 +54,8 @@ def test_export_collection_csv(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "collections")
@@ -86,8 +86,8 @@ def test_export_paper_card_image(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     navigate_to(page, "recent")

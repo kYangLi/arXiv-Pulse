@@ -14,8 +14,8 @@ def test_settings_open(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(1000)
 
     settings_btn = page.locator(
@@ -46,8 +46,8 @@ def test_settings_language_toggle(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     settings_btn = page.locator(".settings-btn, button[class*='settings']")
@@ -84,8 +84,8 @@ def test_settings_field_selector(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     settings_btn = page.locator(".settings-btn, button[class*='settings']")
@@ -126,8 +126,8 @@ def test_settings_ai_test_connection(browser_page, api_config):
         pytest.skip("未配置 AI API Key")
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     settings_btn = page.locator(".settings-btn, button[class*='settings']")
@@ -164,8 +164,8 @@ def test_settings_close(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(500)
     page.wait_for_timeout(500)
 
     settings_btn = page.locator(".settings-btn, button[class*='settings']")

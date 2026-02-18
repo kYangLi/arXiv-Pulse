@@ -14,13 +14,15 @@ def test_bottom_nav_expand(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
     page.wait_for_timeout(1000)
 
     bottom_nav = page.locator(".bottom-nav")
     if not bottom_nav.is_visible():
-        pytest.skip("底部导航栏未显示（可能在 setup 模式）")
+        setup = page.locator(".setup-container")
+        if setup.is_visible():
+            pytest.skip("在 setup 模式")
+        pytest.skip("底部导航栏未显示")
 
     print("  悬停展开导航栏...")
     bottom_nav.hover()
@@ -36,8 +38,7 @@ def test_navigate_to_recent(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
     page.wait_for_timeout(500)
 
     print("  导航到近期论文页...")
@@ -55,8 +56,7 @@ def test_navigate_to_sync(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
     page.wait_for_timeout(500)
 
     print("  导航到同步页...")
@@ -64,7 +64,7 @@ def test_navigate_to_sync(browser_page):
 
     page.screenshot(path="/tmp/navigation_sync.png")
 
-    sync_indicator = page.locator("text=同步")
+    sync_indicator = page.locator("text=数据管理, text=同步状态, text=同步设置, .sync-status-card")
     assert sync_indicator.count() > 0, "同步页面未显示"
     print("  [v] 同步页导航成功")
 
@@ -74,8 +74,7 @@ def test_navigate_to_collections(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
     page.wait_for_timeout(500)
 
     print("  导航到论文集页...")
@@ -83,7 +82,7 @@ def test_navigate_to_collections(browser_page):
 
     page.screenshot(path="/tmp/navigation_collections.png")
 
-    collections_title = page.locator("text=收藏集, text=论文集")
+    collections_title = page.locator("text=论文集, .collections-page-header")
     assert collections_title.count() > 0, "论文集页面未显示"
     print("  [v] 论文集页导航成功")
 
@@ -93,13 +92,12 @@ def test_navigate_to_home(browser_page):
     page = browser_page
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
     page.wait_for_timeout(500)
 
     print("  先导航到近期论文页...")
     navigate_to(page, "recent")
-    page.wait_for_timeout(500)
+    page.wait_for_timeout(300)
 
     print("  再导航回首页...")
     navigate_to(page, "home")
@@ -118,14 +116,13 @@ def test_no_console_errors(browser_page):
     page.on("pageerror", lambda err: errors.append(str(err)))
 
     print(f"\n访问 {BASE_URL} ...")
-    page.goto(BASE_URL)
-    page.wait_for_load_state("networkidle")
+    page.goto(BASE_URL, wait_until="domcontentloaded")
     page.wait_for_timeout(500)
 
     print("  循环导航所有页面...")
     for target in ["recent", "sync", "collections", "home"]:
         navigate_to(page, target)
-        page.wait_for_timeout(500)
+        page.wait_for_timeout(300)
 
     js_errors = [e for e in errors if "TypeError" in e or "ReferenceError" in e or "SyntaxError" in e]
 
