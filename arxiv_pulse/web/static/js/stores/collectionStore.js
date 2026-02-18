@@ -249,14 +249,28 @@ const useCollectionStore = defineStore('collection', () => {
                 });
                 
                 if (res.ok) {
-                    const newCollection = await res.json();
+                    const newCol = await res.json();
                     
-                    const detailRes = await API.collections.get(collection.id);
-                    if (detailRes.ok) {
-                        const detail = await detailRes.json();
-                        if (detail.papers && detail.papers.length > 0) {
-                            const paperIds = detail.papers.map(p => p.id);
-                            await API.collections.addPapersBatch(newCollection.id, paperIds);
+                    const firstPageRes = await API.collections.papers(collection.id, 'page=1&page_size=100');
+                    if (firstPageRes.ok) {
+                        const firstPage = await firstPageRes.json();
+                        const totalCount = firstPage.total_count || 0;
+                        
+                        if (totalCount > 0) {
+                            let allPaperIds = firstPage.papers.map(p => p.id);
+                            const totalPages = firstPage.total_pages || 1;
+                            
+                            for (let page = 2; page <= totalPages; page++) {
+                                const pageRes = await API.collections.papers(collection.id, `page=${page}&page_size=100`);
+                                if (pageRes.ok) {
+                                    const pageData = await pageRes.json();
+                                    allPaperIds = allPaperIds.concat(pageData.papers.map(p => p.id));
+                                }
+                            }
+                            
+                            if (allPaperIds.length > 0) {
+                                await API.collections.addPapersBatch(newCol.id, allPaperIds);
+                            }
                         }
                     }
                     
@@ -272,21 +286,6 @@ const useCollectionStore = defineStore('collection', () => {
                         ElementPlus.ElMessage.error(data.detail || (configStore.currentLang === 'zh' ? '复制失败' : 'Failed to duplicate'));
                         break;
                     }
-                } else {
-                    ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '复制失败' : 'Failed to duplicate');
-                    break;
-                }
-            }
-            
-            if (attempts >= 10) {
-                ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '复制失败：无法生成唯一名称' : 'Failed: cannot generate unique name');
-            }
-        } catch (e) {
-            ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '复制失败' : 'Failed to duplicate');
-        } finally {
-            savingCollection.value = false;
-        }
-    }
                 } else {
                     ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '复制失败' : 'Failed to duplicate');
                     break;
