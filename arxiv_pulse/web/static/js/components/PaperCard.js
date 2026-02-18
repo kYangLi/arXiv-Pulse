@@ -24,9 +24,6 @@ const PaperCardTemplate = `
     
     <div class="abstract-section">
         <p class="abstract-text" :class="{ 'abstract-collapsed': !expanded }">{{ paper.abstract }}</p>
-        <el-button size="small" text @click="expanded = !expanded" class="expand-btn">
-            {{ expanded ? t('paper.collapse') : t('paper.expandDetail') }}
-        </el-button>
     </div>
     
     <template v-if="expanded">
@@ -39,7 +36,7 @@ const PaperCardTemplate = `
             <p>{{ isZh ? '未配置 AI API Key，无法翻译。请在设置中配置。' : 'AI API Key not configured.' }}</p>
         </div>
         
-        <div v-if="paper.keywords?.length" class="paper-keywords">
+        <div v-if="paper.keywords && paper.keywords.length" class="paper-keywords">
             <h4>{{ t('paper.keywords') }}</h4>
             <div class="keywords-list">
                 <el-tag v-for="kw in paper.keywords" :key="kw" size="small" type="info">{{ kw }}</el-tag>
@@ -55,14 +52,14 @@ const PaperCardTemplate = `
             <p>{{ paper.methodology }}</p>
         </div>
         
-        <div v-if="paper.key_findings?.length" class="key-findings">
+        <div v-if="paper.key_findings && paper.key_findings.length" class="key-findings">
             <h4>{{ t('paper.keyFindings') }}</h4>
             <ul>
                 <li v-for="(finding, i) in paper.key_findings" :key="i">{{ finding }}</li>
             </ul>
         </div>
         
-        <div v-if="!paper.key_findings?.length && !paper.methodology && !paper.keywords?.length && !paper.ai_available" style="color: var(--text-muted); font-style: italic; padding: 10px 0;">
+        <div v-if="(!paper.key_findings || !paper.key_findings.length) && !paper.methodology && (!paper.keywords || !paper.keywords.length) && !paper.ai_available" style="color: var(--text-muted); font-style: italic; padding: 10px 0;">
             <p>{{ isZh ? '未配置 AI API Key，无法生成总结。请在设置中配置。' : 'AI API Key not configured.' }}</p>
         </div>
     </template>
@@ -91,6 +88,9 @@ const PaperCardTemplate = `
         </el-button>
         <el-button v-if="inCollection" size="small" text type="danger" @click="$emit('remove-from-collection', paper.id)">
             <el-icon><Delete /></el-icon> {{ t('paper.removeFromCollection') }}
+        </el-button>
+        <el-button size="small" text @click="expanded = !expanded">
+            {{ expanded ? t('paper.collapse') : t('paper.expandDetail') }}
         </el-button>
     </div>
 </div>
