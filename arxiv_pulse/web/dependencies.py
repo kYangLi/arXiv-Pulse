@@ -4,7 +4,7 @@ FastAPI dependencies - 共享依赖注入
 
 from functools import lru_cache
 
-from arxiv_pulse.models import Database
+from arxiv_pulse.core import Database
 
 
 @lru_cache

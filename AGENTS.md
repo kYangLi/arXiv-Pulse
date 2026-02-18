@@ -67,7 +67,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from arxiv_pulse.config import Config
-from arxiv_pulse.models import Database, Paper
+from arxiv_pulse.core import Database
+from arxiv_pulse.models import Paper
 from arxiv_pulse.i18n import t, get_translation_prompt
 ```
 

@@ -4,7 +4,7 @@ AI Client 单例服务
 
 from functools import lru_cache
 
-from arxiv_pulse.config import Config
+from arxiv_pulse.core import Config
 
 
 @lru_cache

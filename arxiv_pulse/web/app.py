@@ -10,7 +10,8 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine
 
-from arxiv_pulse.models import Base, Database
+from arxiv_pulse.core import Database
+from arxiv_pulse.models import Base
 from arxiv_pulse.web.api import cache, chat, collections, config, export, papers, stats, tasks
 
 
