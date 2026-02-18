@@ -145,17 +145,17 @@
                         @keyup.enter="handleHomeSearch"
                     >
                         <template #prefix>
-                            <el-icon :class="{ 'is-loading': homeSearching }"><Search /></el-icon>
+                            <el-icon :class="{ 'searching': homeSearching }"><Search /></el-icon>
                         </template>
                         <template #suffix>
                             <div class="search-suffix">
                                 <el-icon v-if="homeSearching" class="search-stop-btn" @click="stopHomeSearch" :title="currentLang === 'zh' ? '停止搜索' : 'Stop search'">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                                         <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
                                         <rect x="8" y="8" width="8" height="8" rx="1"/>
                                     </svg>
                                 </el-icon>
-                                <el-icon v-if="homeQuery && !homeSearching" class="search-clear-btn" @click="homeQuery = ''" :title="currentLang === 'zh' ? '清空' : 'Clear'">
+                                <el-icon v-if="homeQuery" class="search-clear-btn" @click="homeQuery = ''" :title="currentLang === 'zh' ? '清空' : 'Clear'">
                                     <CircleClose />
                                 </el-icon>
                             </div>
