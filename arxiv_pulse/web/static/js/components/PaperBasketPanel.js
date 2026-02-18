@@ -49,8 +49,8 @@ const PaperBasketPanelTemplate = `
                     <template #dropdown>
                         <el-dropdown-menu>
                             <el-dropdown-item command="markdown">Markdown</el-dropdown-item>
-                            <el-dropdown-item command="pdf">PDF</el-dropdown-item>
-                            <el-dropdown-item command="pdf_original">PDF (Original)</el-dropdown-item>
+                            <el-dropdown-item command="pdf">{{ t('basket.exportPdfSummary') }}</el-dropdown-item>
+                            <el-dropdown-item command="pdf_original">{{ t('basket.exportPdfOriginal') }}</el-dropdown-item>
                             <el-dropdown-item command="csv">CSV</el-dropdown-item>
                             <el-dropdown-item command="bibtex">BibTeX</el-dropdown-item>
                         </el-dropdown-menu>

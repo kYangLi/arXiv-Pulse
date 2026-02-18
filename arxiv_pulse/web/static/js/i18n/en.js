@@ -188,6 +188,8 @@ const i18nEn = {
         empty: 'Basket is empty',
         emptyHint: 'Click "Mark" on paper cards to add papers',
         export: 'Export',
+        exportPdfSummary: 'PDF(Summary)',
+        exportPdfOriginal: 'PDFs(Original)',
         addToCollection: 'Collection',
         copyLinks: 'Copy Links',
         clear: 'Clear',

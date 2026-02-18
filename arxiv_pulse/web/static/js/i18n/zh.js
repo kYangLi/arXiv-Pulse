@@ -188,6 +188,8 @@ const i18nZh = {
         empty: '暂存篮是空的',
         emptyHint: '点击论文卡片的"暂存"按钮添加论文',
         export: '导出',
+        exportPdfSummary: 'PDF(汇总)',
+        exportPdfOriginal: 'PDFs(原文)',
         addToCollection: '论文集',
         copyLinks: '复制链接',
         clear: '清空',
