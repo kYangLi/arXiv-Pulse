@@ -765,17 +765,17 @@
         .paper-index {
             color: var(--text-muted);
             font-size: 13px;
-            font-weight: 400;
-            min-width: 24px;
-            padding-top: 4px;
-            opacity: 0.6;
+            font-weight: 600;
+            margin-left: auto;
+            opacity: 0.5;
+            flex-shrink: 0;
         }
         .paper-index-list {
             color: var(--text-muted);
             font-size: 12px;
-            font-weight: 400;
+            font-weight: 600;
             min-width: 20px;
-            opacity: 0.6;
+            opacity: 0.5;
         }
         .paper-header .el-checkbox {
             margin-top: 4px;

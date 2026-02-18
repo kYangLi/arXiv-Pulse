@@ -852,6 +852,12 @@
                     recentLogs.value.push({ type: 'info', message: currentLang.value === 'zh' ? '更新已停止' : 'Update stopped' });
                 }
 
+                const showBackToTop = ref(false);
+
+                function scrollToTop() {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+
                 function bringToFront(panel) {
                     if (panel === 'cart') {
                         cartZIndex.value = Math.max(cartZIndex.value, chatZIndex.value) + 1;
@@ -2400,16 +2406,11 @@
                     // Handle ESC key to close panels
                     window.addEventListener('keydown', handleEscKey);
                     
-                    // Back to top functionality
-                    const showBackToTop = ref(false);
+                    // Back to top scroll listener
                     const handleScroll = () => {
                         showBackToTop.value = window.scrollY > 300;
                     };
                     window.addEventListener('scroll', handleScroll, { passive: true });
-                    
-                    const scrollToTop = () => {
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                    };
                 });
 
                 return {
