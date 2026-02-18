@@ -23,12 +23,13 @@ Refactor the ArXiv-Pulse project to improve code organization, modularity, and m
 - **Computed in stores**: `filteredCollections` is a computed property in collectionStore that can be accessed via storeToRefs.
 - **LSP errors**: SQLAlchemy Column type errors in Python files are false positives - code works at runtime.
 - **Migration strategy**: Using `storeToRefs()` allows keeping same variable names in setup(), so template bindings don't need changes.
+- **Pinia/VueDemi**: Pinia requires VueDemi shim. Must expose all Vue reactivity APIs (effectScope, hasInjectionContext, etc.) globally.
+- **PaperCard props**: Pass `t` and `currentLang` as props to avoid Pinia initialization timing issues.
+- **configStore.t()**: All `t()` calls in JavaScript code must use `configStore.t()` instead of local `t()`.
 
 ## Accomplished
 
-### Completed (Sessions 1-6):
-
-**Backend service layer**:
+### Backend service layer:
 - `services/paper_service.py` - Paper data enhancement
 - `services/translation_service.py` - Translation logic
 - `services/ai_client.py` - AI API client abstraction
@@ -36,49 +37,33 @@ Refactor the ArXiv-Pulse project to improve code organization, modularity, and m
 - `utils/time.py` - Time formatting utilities
 - `web/dependencies.py` - FastAPI dependencies
 
-**Frontend API layer**:
-- `js/services/api.js` (121 lines) - unified API calls
+### Frontend API layer:
+- `js/services/api.js` (125 lines) - unified API calls
 
-**Vue component**:
-- `js/components/PaperCard.js` (312 lines)
+### Vue component:
+- `js/components/PaperCard.js` (315 lines) - Paper card with i18n props
 
-**Pinia stores** (fully integrated):
-- `js/stores/configStore.js` (336 lines) - Config, settings, categories, i18n, field selector
+### Pinia stores (fully integrated - 1469 lines total):
+- `js/stores/configStore.js` (341 lines) - Config, settings, categories, i18n, field selector
 - `js/stores/paperStore.js` (359 lines) - Papers, cart, search, export
 - `js/stores/collectionStore.js` (302 lines) - Collections, collection papers
 - `js/stores/chatStore.js` (321 lines) - Chat sessions, messages
 - `js/stores/uiStore.js` (146 lines) - Navigation, sync, cache
 
-**Store integration completed**:
+### Store integration completed:
 - All store properties migrated via `storeToRefs()`
-- All store methods integrated (checkInitStatus, fetchConfig, saveSettings, etc.)
+- All store methods integrated
 - Removed duplicate ref() declarations
 - Removed duplicate computed properties
 - Removed duplicate function definitions
-- index.html reduced to 3372 lines (-52% from 7035)
-
-### Key refactorings this session:
-
-1. **configStore full migration**:
-   - `showSetup`, `setupStep`, `setupConfig`, `testingAI`
-   - `showSettings`, `savingSettings`, `settingsConfig`
-   - `arxivCategories`, `allCategories`, `currentLang`
-   - `showFieldSelector`, `fieldSelectorSource`, `tempSelectedFields`, etc.
-   - `filteredCategories`, `advancedQueriesLines`, `parsedCodeResult`
-   - Functions: `t()`, `setLanguage()`, `getFieldTranslation()`, `checkInitStatus()`, `fetchCategories()`, `testSetupAI()`, `fetchConfig()`, `saveSettings()`, `saveApiKey()`, `testAIConnection()`, `openFieldSelector()`, etc.
-
-2. **Removed global scope duplicates**:
-   - Removed `currentLang`, `t()`, `setLanguage()`, `getFieldTranslation()` outside setup()
-   - Removed `arxivCategories`, `allCategories`, `defaultFields` outside setup()
-
-3. **Removed duplicate local refs**:
-   - Removed duplicate `syncStatus`, `syncing`, `syncYearsBack`, `syncForce` (already in uiStore)
+- VueDemi shim created for Pinia compatibility
+- PaperCard component receives `t` and `currentLang` as props
 
 ## File Size Progress
 
 | File | Original | Current | Reduction |
 |------|----------|---------|-----------|
-| index.html | 7035 | 3372 | **-52%** |
+| index.html | 7035 | 3452 | **-51%** |
 | papers.py | 1069 | 812 | **-24%** |
 
 ## Current Project Structure
@@ -97,6 +82,9 @@ arxiv_pulse/
 │   ├── dependencies.py
 │   └── static/
 │       ├── css/main.css
+│       ├── libs/
+│       │   ├── pinia/pinia.iife.js
+│       │   └── vue/vue.global.prod.js
 │       └── js/
 │           ├── components/PaperCard.js
 │           ├── i18n/zh.js, en.js
@@ -110,19 +98,25 @@ arxiv_pulse/
 │           └── utils/export.js
 ```
 
-## Next Steps
+## Remaining Work (Optional)
 
-1. **Test the application** - Run `pulse serve .` and verify all functionality
-2. **Extract more Vue components** - Now that stores are integrated, extract:
-   - ChatWidget component
-   - FieldSelector component
-   - SettingsDrawer component
-3. **Consider Vite build system** - For Vue SFC support and better DX
-4. **Optimize re-renders** - Review computed properties for unnecessary updates
+1. **Extract more Vue components** - Now that stores are integrated:
+   - ChatWidget component (~200 lines)
+   - FieldSelector component (~150 lines)
+   - SettingsDrawer component (~200 lines)
+
+2. **Consider Vite build system** - For Vue SFC support and better DX
+
+3. **Optimize re-renders** - Review computed properties for unnecessary updates
 
 ## Testing Commands
 
 ```bash
+# Lint
 black --check . && ruff check .
-pulse serve .
+
+# Run tests from tests directory
+cd tests
+../.venv/bin/python test_navigation.py
+../.venv/bin/python test_field_selector.py
 ```
