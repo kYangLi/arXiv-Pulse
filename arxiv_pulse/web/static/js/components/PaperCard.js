@@ -129,9 +129,9 @@ const PaperCardSetup = (props) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
-        const wrapText = (text, maxWidth, fontSize) => {
+        const wrapText = (text, maxWidth, fontSize, fontFamily = 'sans-serif', fontWeight = 'normal') => {
             if (!text) return [];
-            ctx.font = `${fontSize * scale}px sans-serif`;
+            ctx.font = `${fontWeight} ${fontSize * scale}px ${fontFamily}`;
             const chars = text.split('');
             const result = [];
             let current = '';
@@ -151,7 +151,7 @@ const PaperCardSetup = (props) => {
         let y = padding;
         const elements = [];
         
-        const titleLines = wrapText(props.paper.title, width - padding * 2, 20);
+        const titleLines = wrapText(props.paper.title, width - padding * 2, 20, 'Georgia, "Noto Serif SC", serif', 'bold');
         titleLines.forEach(line => {
             elements.push({ type: 'text', text: line, font: `bold ${20 * scale}px Georgia, "Noto Serif SC", serif`, color: '#1e3a5f', y: y });
             y += 32 * scale;
