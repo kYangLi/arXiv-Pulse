@@ -126,25 +126,25 @@ pulse serve . --host 0.0.0.0 --allow-non-localhost-access-with-plaintext-transmi
 
 ```
 arxiv_pulse/
-├── cli.py                     # CLI entry point
-├── config.py                  # Configuration management
-├── models.py                  # Database models
-├── arxiv_crawler.py           # arXiv API interactions
-├── summarizer.py              # Paper summarizer
-├── search_engine.py           # Enhanced search engine
-├── i18n/                      # Internationalization
-│   ├── zh.py                  # Chinese translations
-│   └── en.py                  # English translations
-└── web/
-    ├── app.py                 # FastAPI application
-    ├── static/index.html      # Vue 3 frontend
-    └── api/                   # API endpoints
+├── core/                   # Core infrastructure (Config, Database, Lock)
+├── models/                 # SQLAlchemy ORM models
+├── services/               # Business logic (AI, translation, papers)
+├── crawler/                # ArXiv API crawler
+├── ai/                     # Paper summarizer, report generator
+├── search/                 # AI-powered search engine
+├── cli/                    # Command-line interface
+├── web/                    # FastAPI web application
+│   ├── app.py             # FastAPI app
+│   ├── api/               # API endpoints
+│   └── static/            # Vue 3 frontend (components, stores, i18n)
+└── i18n/                   # Backend translations
 
 Data Directory/
-├── data/
-│   └── arxiv_papers.db        # SQLite database
-└── web.log                    # Service log
+├── data/arxiv_papers.db    # SQLite database
+└── web.log                 # Service log
 ```
+
+For detailed architecture, see [DEV.md](DEV.md).
 
 ## 🔧 API Endpoints
 

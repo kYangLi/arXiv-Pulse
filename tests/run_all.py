@@ -8,7 +8,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 TEST_FILES = [
     "test_01_init.py",
     "test_02_navigation.py",

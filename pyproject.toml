@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arxiv-pulse"
-version = "1.0.3"
+version = "1.1.0"
 authors = [
     {name = "Yang Li, OpenCode, GLM-5", email = "lyang.1915@gmail.com"},
 ]
@@ -16,7 +16,7 @@ keywords = [
     "density functional theory", "force fields", "condensed matter physics"
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
