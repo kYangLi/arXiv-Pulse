@@ -1219,7 +1219,6 @@
         .collection-list-item {
             padding: 12px 16px;
             border-bottom: 1px solid var(--border-light);
-            cursor: pointer;
             transition: background 0.2s;
         }
         .collection-list-item:hover {
@@ -1228,12 +1227,41 @@
         .collection-list-item:last-child {
             border-bottom: none;
         }
+        .list-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
         .list-item-title {
             font-size: 14px;
             font-weight: 500;
             color: var(--text-primary);
             margin-bottom: 4px;
             line-height: 1.4;
+            cursor: pointer;
+            flex: 1;
+        }
+        .list-item-title:hover {
+            color: var(--primary);
+        }
+        .list-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .arxiv-link {
+            font-size: 12px;
+            color: var(--primary);
+            text-decoration: none;
+            padding: 2px 8px;
+            background: var(--bg-subtle);
+            border-radius: 4px;
+        }
+        .arxiv-link:hover {
+            background: var(--primary);
+            color: white;
         }
         .list-item-meta {
             font-size: 12px;

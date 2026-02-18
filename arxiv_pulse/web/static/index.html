@@ -1754,7 +1754,8 @@
                         const res = await API.export.collection({
                             collection_id: collectionId,
                             format: format,
-                            include_summary: true
+                            include_summary: true,
+                            language: isZh ? 'zh' : 'en'
                         });
                         if (!res.ok) throw new Error('Export failed');
                         const blob = await res.blob();

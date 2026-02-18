@@ -116,7 +116,8 @@ const usePaperStore = defineStore('paper', () => {
             API.export.papers({ 
                 paper_ids: papersWithId.map(p => p.id), 
                 format: 'pdf',
-                include_summary: true 
+                include_summary: true,
+                language: isZh ? 'zh' : 'en'
             }).then(res => {
                 if (res.ok) {
                     return res.blob();
@@ -192,7 +193,8 @@ const usePaperStore = defineStore('paper', () => {
             API.export.papers({ 
                 paper_ids: papersWithId.map(p => p.id), 
                 format: format,
-                include_summary: true 
+                include_summary: true,
+                language: isZh ? 'zh' : 'en'
             }).then(async res => {
                 if (!res.ok) throw new Error('Export failed');
                 const content = await res.text();
