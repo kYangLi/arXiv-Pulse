@@ -649,7 +649,7 @@
         </div>
 
         <!-- Field Selector Dialog Component -->
-        <field-selector-dialog />
+        <field-selector-dialog></field-selector-dialog>
 
         <!-- Bottom Navigation Bar -->
         <div v-if="!showSetup" class="bottom-nav" @mouseenter="(e) => e.currentTarget.style.cursor='default'">
@@ -690,7 +690,7 @@
             @start-drag="startDragCart"
             @bring-to-front="bringToFront('cart')"
             @add-to-collection="addCartToCollection"
-        />
+        ></paper-basket-panel>
 
         <!-- Floating Buttons Left (Language + Settings) -->
         <div v-if="!showSetup" class="floating-buttons-left">
