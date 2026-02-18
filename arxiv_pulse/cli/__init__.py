@@ -142,7 +142,8 @@ def _signal_handler(signum, frame):
     is_flag=True,
     help="允许绑定非 localhost 地址（会显示安全警告）",
 )
-def start(directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk):
+@click.option("-y", "--yes", is_flag=True, help="跳过确认提示")
+def start(directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk, yes):
     """启动 Web 服务 (同 serve)
 
     \b
@@ -159,9 +160,11 @@ def start(directory, host, port, foreground, force, allow_non_localhost_access_w
     \b
     远程访问 (有安全风险):
         pulse start --host 0.0.0.0 \\
-          --allow-non-localhost-access-with-plaintext-transmission-risk
+          --allow-non-localhost-access-with-plaintext-transmission-risk -y
     """
-    _do_serve(directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk)
+    _do_serve(
+        directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk, yes
+    )
 
 
 @cli.command()
@@ -175,7 +178,8 @@ def start(directory, host, port, foreground, force, allow_non_localhost_access_w
     is_flag=True,
     help="允许绑定非 localhost 地址（会显示安全警告）",
 )
-def serve(directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk):
+@click.option("-y", "--yes", is_flag=True, help="跳过确认提示")
+def serve(directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk, yes):
     """启动 Web 服务
 
     \b
@@ -192,9 +196,11 @@ def serve(directory, host, port, foreground, force, allow_non_localhost_access_w
     \b
     远程访问 (有安全风险):
         pulse serve --host 0.0.0.0 \\
-          --allow-non-localhost-access-with-plaintext-transmission-risk
+          --allow-non-localhost-access-with-plaintext-transmission-risk -y
     """
-    _do_serve(directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk)
+    _do_serve(
+        directory, host, port, foreground, force, allow_non_localhost_access_with_plaintext_transmission_risk, yes
+    )
 
 
 def _do_serve(directory, host, port, foreground, force, allow_non_localhost=False, skip_confirmation=False):

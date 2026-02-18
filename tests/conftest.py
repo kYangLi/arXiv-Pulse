@@ -58,6 +58,8 @@ def start_init_server(port: int, data_dir: Path) -> subprocess.Popen:
             "--host",
             "0.0.0.0",
             "--allow-non-localhost-access-with-plaintext-transmission-risk",
+            "-y",
+            "-f",
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
