@@ -348,13 +348,17 @@
             color: var(--primary);
         }
         .home-search-box .el-input__prefix .searching {
-            animation: search-orbit 1.2s ease-in-out infinite;
+            animation: search-orbit 1.6s ease-in-out infinite;
         }
         @keyframes search-orbit {
             0% { transform: translate(3px, 0); }
-            25% { transform: translate(0, -3px); }
+            12.5% { transform: translate(2.1px, 2.1px); }
+            25% { transform: translate(0, 3px); }
+            37.5% { transform: translate(-2.1px, 2.1px); }
             50% { transform: translate(-3px, 0); }
-            75% { transform: translate(0, 3px); }
+            62.5% { transform: translate(-2.1px, -2.1px); }
+            75% { transform: translate(0, -3px); }
+            87.5% { transform: translate(2.1px, -2.1px); }
             100% { transform: translate(3px, 0); }
         }
         .search-stop-btn {
