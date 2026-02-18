@@ -34,7 +34,7 @@ Refactor the ArXiv-Pulse project to improve code organization, modularity, and m
 
 | File | Original | Current | Reduction |
 |------|----------|---------|-----------|
-| index.html | 7035 | 3452 | **-51%** |
+| index.html | 7035 | 3028 | **-57%** |
 | papers.py | 1069 | 812 | **-24%** |
 
 ### Completed Modules
@@ -50,12 +50,15 @@ Refactor the ArXiv-Pulse project to improve code organization, modularity, and m
 **Frontend API layer**:
 - `js/services/api.js` (125 lines) - unified API calls
 
-**Vue component**:
+**Vue components** (540 lines total):
 - `js/components/PaperCard.js` (315 lines) - Paper card with i18n props
+- `js/components/FieldSelectorDialog.js` (210 lines) - Field selector dialog
+- `js/components/PaperBasketPanel.js` (115 lines) - Paper basket with drag
+- `js/components/SettingsDrawer.js` (115 lines) - Settings drawer
 
-**Pinia stores** (1469 lines total):
-- `js/stores/configStore.js` (341 lines) - Config, settings, categories, i18n, field selector
-- `js/stores/paperStore.js` (359 lines) - Papers, cart, search, export
+**Pinia stores** (1560 lines total):
+- `js/stores/configStore.js` (355 lines) - Config, settings, categories, i18n, field selector
+- `js/stores/paperStore.js` (500 lines) - Papers, cart, search, export
 - `js/stores/collectionStore.js` (302 lines) - Collections, collection papers
 - `js/stores/chatStore.js` (321 lines) - Chat sessions, messages
 - `js/stores/uiStore.js` (146 lines) - Navigation, sync, cache
@@ -78,15 +81,13 @@ Reasons:
 
 ### Overview
 
-Extract 5 components from index.html:
+Extract 2 remaining components from index.html:
 
 | Component | Template Lines | Setup Lines | Total | Store Dependency |
 |-----------|---------------|-------------|-------|------------------|
-| FieldSelectorDialog | 154 | ~50 | ~200 | configStore |
-| PaperBasketPanel | 70 | ~30 | ~100 | paperStore, configStore.t |
-| ChatWidget | 200 | ~80 | ~280 | chatStore, configStore.t |
-| SettingsDrawer | 80 | ~40 | ~120 | configStore |
 | CollectionDialogs | 155 | ~50 | ~200 | collectionStore, configStore.t |
+| ChatWidget | 200 | ~80 | ~280 | chatStore, configStore.t |
+| **Total** | **355** | **~130** | **~480** | |
 | **Total** | **659** | **~250** | **~900** | |
 
 **Expected final index.html**: ~2500 lines (64% reduction from 7035)
@@ -474,21 +475,21 @@ const confirmMerge = () => { /* merge papers */ };
 
 ## Implementation Order
 
-1. **Clean up** - Delete empty `arxiv_pulse/web/services/` directory
+1. ~~**Clean up** - Delete empty `arxiv_pulse/web/services/` directory~~ ✅
 
-2. **FieldSelectorDialog** - Most self-contained, good starting point
-   - Create `js/components/FieldSelectorDialog.js`
-   - Update index.html to use component
+2. ~~**FieldSelectorDialog** - Most self-contained, good starting point~~ ✅
+   - ~~Create `js/components/FieldSelectorDialog.js`~~
+   - ~~Update index.html to use component~~
    - Add test in `tests/test_field_selector_component.py`
 
-3. **PaperBasketPanel** - Simple, clear dependencies
-   - Create `js/components/PaperBasketPanel.js`
-   - Update index.html
+3. ~~**PaperBasketPanel** - Simple, clear dependencies~~ ✅
+   - ~~Create `js/components/PaperBasketPanel.js`~~
+   - ~~Update index.html~~
    - Add test in `tests/test_basket_component.py`
 
-4. **SettingsDrawer** - Medium complexity
-   - Create `js/components/SettingsDrawer.js`
-   - Update index.html
+4. ~~**SettingsDrawer** - Medium complexity~~ ✅
+   - ~~Create `js/components/SettingsDrawer.js`~~
+   - ~~Update index.html~~
    - Add test in `tests/test_settings_component.py`
 
 5. **CollectionDialogs** - Multiple dialogs, more complex
@@ -623,11 +624,11 @@ arxiv_pulse/
 │       └── js/
 │           ├── components/
 │           │   ├── PaperCard.js           ✓
-│           │   ├── FieldSelectorDialog.js
-│           │   ├── PaperBasketPanel.js
-│           │   ├── SettingsDrawer.js
-│           │   ├── CollectionDialogs.js
-│           │   └── ChatWidget.js
+│           │   ├── FieldSelectorDialog.js ✓
+│           │   ├── PaperBasketPanel.js    ✓
+│           │   ├── SettingsDrawer.js      ✓
+│           │   ├── CollectionDialogs.js   (TODO)
+│           │   └── ChatWidget.js          (TODO)
 │           ├── stores/
 │           │   ├── configStore.js         ✓
 │           │   ├── paperStore.js          ✓
@@ -641,7 +642,7 @@ arxiv_pulse/
 │           │   └── en.js
 │           └── utils/
 │               └── export.js              ✓
-└── index.html                            # Main Vue app (~2500 lines after refactor)
+└── index.html                            # Main Vue app (3028 lines, 57% reduction)
 
 tests/
 ├── test_navigation.py                    ✓
