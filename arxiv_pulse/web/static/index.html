@@ -164,6 +164,8 @@
                             :paper="paper"
                             :collections="collections"
                             :in-cart="isInCart(paper.arxiv_id)"
+                            :t="configStore.t"
+                            :current-lang="currentLang"
                             @add-to-collection="addToCollection"
                             @add-to-cart="addToCart"
                             @remove-from-cart="removeFromCartByArxivId"
@@ -246,6 +248,8 @@
                             :paper="paper"
                             :collections="collections"
                             :in-cart="isInCart(paper.arxiv_id)"
+                            :t="configStore.t"
+                            :current-lang="currentLang"
                             @add-to-collection="addToCollection"
                             @add-to-cart="addToCart"
                             @remove-from-cart="removeFromCartByArxivId"
@@ -670,6 +674,8 @@
                                 :collections="collections"
                                 :in-collection="true"
                                 :in-cart="isInCart(paper.arxiv_id)"
+                                :t="configStore.t"
+                                :current-lang="currentLang"
                                 @add-to-collection="addToCollection"
                                 @remove-from-collection="removePaperFromCollection"
                                 @add-to-cart="addToCart"
@@ -3429,7 +3435,7 @@
 
         // Register paper-card component AFTER Pinia is installed
         app.component('paper-card', {
-            props: ['paper', 'collections', 'inCollection', 'inCart'],
+            props: ['paper', 'collections', 'inCollection', 'inCart', 't', 'currentLang'],
             emits: ['add-to-collection', 'remove-from-collection', 'download-card', 'analyze-paper', 'add-to-cart', 'remove-from-cart'],
             template: PaperCardTemplate,
             setup: PaperCardSetup

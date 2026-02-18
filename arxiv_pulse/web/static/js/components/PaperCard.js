@@ -94,45 +94,10 @@ const PaperCardTemplate = `
 const PaperCardSetup = (props) => {
     const expanded = ref(false);
     
-    // Get currentLang from global scope (set by main app)
-    const currentLang = computed(() => {
-        try {
-            const store = useConfigStore();
-            return store.currentLang || 'zh';
-        } catch (e) {
-            return window.currentLang || 'zh';
-        }
-    });
-    
+    // Use props for i18n (passed from parent)
+    const t = props.t || ((key) => key);
+    const currentLang = ref(props.currentLang || 'zh');
     const isZh = computed(() => currentLang.value === 'zh');
-    
-    // Translation function
-    const t = (key) => {
-        try {
-            const store = useConfigStore();
-            return store.t(key);
-        } catch (e) {
-            // Fallback i18n
-            const fallbacks = {
-                'paper.arxiv': 'arXiv',
-                'paper.pdf': 'PDF',
-                'paper.card': 'Card',
-                'paper.bookmark': 'Bookmark',
-                'paper.bookmarked': 'Bookmarked',
-                'paper.analyze': 'Analyze',
-                'paper.addToCollection': 'Add to Collection',
-                'paper.removeFromCollection': 'Remove',
-                'paper.collapse': 'Collapse',
-                'paper.expandDetail': 'Expand',
-                'paper.aiSummary': isZh.value ? 'AI 总结' : 'AI Summary',
-                'paper.keyFindings': isZh.value ? '关键发现' : 'Key Findings',
-                'paper.keywords': isZh.value ? '关键词' : 'Keywords',
-                'paper.abstract': 'Abstract',
-                'paper.chineseTranslation': isZh.value ? '中文翻译' : 'Chinese Translation'
-            };
-            return fallbacks[key] || key;
-        }
-    };
     
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
