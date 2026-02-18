@@ -143,21 +143,17 @@
                         :placeholder="t('home.searchPlaceholder')"
                         size="large"
                         @keyup.enter="handleHomeSearch"
+                        clearable
                     >
                         <template #prefix>
                             <el-icon :class="{ 'searching': homeSearching }"><Search /></el-icon>
                         </template>
-                        <template #suffix>
-                            <div class="search-suffix">
-                                <el-icon v-if="homeSearching" class="search-stop-btn" @click="stopHomeSearch" :title="currentLang === 'zh' ? '停止搜索' : 'Stop search'">
-                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                                        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
-                                        <rect x="8" y="8" width="8" height="8" rx="1"/>
-                                    </svg>
-                                </el-icon>
-                                <el-icon v-if="homeQuery" class="search-clear-btn" @click="homeQuery = ''" :title="currentLang === 'zh' ? '清空' : 'Clear'">
-                                    <CircleClose />
-                                </el-icon>
+                        <template #suffix v-if="homeSearching">
+                            <div class="search-stop-btn" @click="stopHomeSearch" :title="currentLang === 'zh' ? '停止搜索' : 'Stop search'">
+                                <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                                    <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                                    <rect x="7" y="7" width="10" height="10" rx="2"/>
+                                </svg>
                             </div>
                         </template>
                     </el-input>
