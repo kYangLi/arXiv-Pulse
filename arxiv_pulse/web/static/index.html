@@ -444,7 +444,7 @@
                                                                 Markdown (.md)
                                                             </el-dropdown-item>
                                                             <el-dropdown-item @click.stop="exportCollectionWithId(collection.id, 'pdf')">
-                                                                {{ t('export.pdfDoc') }}
+                                                                {{ t('basket.exportPdfSummary') }}
                                                             </el-dropdown-item>
                                                             <el-dropdown-item @click.stop="exportCollectionWithId(collection.id, 'csv')">
                                                                 {{ t('export.csvTable') }}
@@ -1739,6 +1739,17 @@
                 async function exportCollectionWithId(collectionId, format) {
                     const collection = collections.value.find(c => c.id === collectionId);
                     if (!collection) return;
+                    const isZh = currentLang.value === 'zh';
+                    
+                    let loadingMsg = null;
+                    if (format === 'pdf') {
+                        loadingMsg = ElementPlus.ElMessage({
+                            message: isZh ? '正在生成汇总 PDF，请耐心等待...' : 'Generating summary PDF, please wait...',
+                            type: 'info',
+                            duration: 0
+                        });
+                    }
+                    
                     try {
                         const res = await API.export.collection({
                             collection_id: collectionId,
@@ -1754,9 +1765,11 @@
                         a.download = `collection_${collection.name.replace(/\s+/g, '_')}.${ext}`;
                         a.click();
                         window.URL.revokeObjectURL(url);
-                        ElementPlus.ElMessage.success('导出成功');
+                        if (loadingMsg) loadingMsg.close();
+                        ElementPlus.ElMessage.success(isZh ? '导出成功' : 'Export successful');
                     } catch (e) {
-                        ElementPlus.ElMessage.error('导出失败');
+                        if (loadingMsg) loadingMsg.close();
+                        ElementPlus.ElMessage.error(isZh ? '导出失败' : 'Export failed');
                     }
                 }
 

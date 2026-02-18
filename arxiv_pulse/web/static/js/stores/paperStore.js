@@ -96,17 +96,23 @@ const usePaperStore = defineStore('paper', () => {
         return paperCart.value.some(p => p.arxiv_id === arxivId);
     }
     
-    function exportCart(format) {
+    function exportCart(format, configStore) {
         if (paperCart.value.length === 0) return;
         
         const papersWithId = paperCart.value.filter(p => p.id);
         const filename = `papers_export_${Date.now()}`;
+        const isZh = configStore?.currentLang === 'zh';
         
         if (format === 'pdf') {
             if (papersWithId.length === 0) {
-                ElementPlus.ElMessage.warning('PDF 导出需要论文已保存到数据库，请先同步论文');
+                ElementPlus.ElMessage.warning(isZh ? 'PDF 导出需要论文已保存到数据库，请先同步论文' : 'PDF export requires papers saved in database. Please sync first');
                 return;
             }
+            const loadingMsg = ElementPlus.ElMessage({
+                message: isZh ? '正在生成汇总 PDF，请耐心等待...' : 'Generating summary PDF, please wait...',
+                type: 'info',
+                duration: 0
+            });
             API.export.papers({ 
                 paper_ids: papersWithId.map(p => p.id), 
                 format: 'pdf',
@@ -117,20 +123,23 @@ const usePaperStore = defineStore('paper', () => {
                 }
                 throw new Error('Export failed');
             }).then(blob => {
+                loadingMsg.close();
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = `${filename}.pdf`;
                 a.click();
                 URL.revokeObjectURL(url);
+                ElementPlus.ElMessage.success(isZh ? 'PDF 导出成功' : 'PDF exported successfully');
             }).catch(() => {
-                ElementPlus.ElMessage.error('导出失败');
+                loadingMsg.close();
+                ElementPlus.ElMessage.error(isZh ? '导出失败' : 'Export failed');
             });
             return;
         }
         
         if (format === 'pdf_original') {
-            ElementPlus.ElMessage.info(`开始下载 ${paperCart.value.length} 个 PDF 原文...`);
+            ElementPlus.ElMessage.info(isZh ? `开始下载 ${paperCart.value.length} 个 PDF 原文...` : `Downloading ${paperCart.value.length} original PDFs...`);
             let successCount = 0;
             const downloadNext = async (index) => {
                 if (index >= paperCart.value.length) {
@@ -175,30 +184,24 @@ const usePaperStore = defineStore('paper', () => {
             URL.revokeObjectURL(url);
         };
         
-        let content = '';
-        
-        if (format === 'markdown') {
-            content = paperCart.value.map(p => {
-                return `## ${p.title}\n\n**arXiv:** ${p.arxiv_id}\n**作者:** ${p.authors?.map(a => a.name).join(', ') || 'N/A'}\n**日期:** ${p.published || 'N/A'}\n\n**摘要:**\n${p.abstract || ''}\n\n${p.summary_text ? '**AI 总结:**\n' + p.summary_text : ''}\n\n---\n`;
-            }).join('\n');
-            downloadFile(content, `${filename}.md`, 'text/markdown');
-        } else if (format === 'csv') {
-            const header = 'arxiv_id,title,authors,published,abstract\n';
-            const rows = paperCart.value.map(p => {
-                const title = (p.title || '').replace(/"/g, '""');
-                const authors = (p.authors?.map(a => a.name).join('; ') || '').replace(/"/g, '""');
-                const abstract = (p.abstract || '').replace(/"/g, '""').replace(/\n/g, ' ');
-                return `"${p.arxiv_id}","${title}","${authors}","${p.published || ''}","${abstract}"`;
-            }).join('\n');
-            downloadFile(header + rows, `${filename}.csv`, 'text/csv');
-        } else if (format === 'bibtex') {
-            content = paperCart.value.map(p => {
-                const year = p.published ? new Date(p.published).getFullYear() : new Date().getFullYear();
-                const firstAuthor = p.authors?.[0]?.name?.split(' ').pop() || 'Unknown';
-                const key = `${firstAuthor}${year}${p.arxiv_id.replace('.', '')}`;
-                return `@article{${key},\n  title={${p.title || 'Untitled'}},\n  author={${p.authors?.map(a => a.name).join(' and ') || 'Unknown'}},\n  journal={arXiv preprint arXiv:${p.arxiv_id}},\n  year={${year}},\n  eprint={${p.arxiv_id}}\n}`;
-            }).join('\n\n');
-            downloadFile(content, `${filename}.bib`, 'application/x-bibtex');
+        if (format === 'markdown' || format === 'csv' || format === 'bibtex') {
+            if (papersWithId.length === 0) {
+                ElementPlus.ElMessage.warning(isZh ? '导出需要论文已保存到数据库，请先同步论文' : 'Export requires papers saved in database. Please sync first');
+                return;
+            }
+            API.export.papers({ 
+                paper_ids: papersWithId.map(p => p.id), 
+                format: format,
+                include_summary: true 
+            }).then(async res => {
+                if (!res.ok) throw new Error('Export failed');
+                const content = await res.text();
+                const ext = format === 'markdown' ? 'md' : format === 'bibtex' ? 'bib' : format;
+                downloadFile(content, `${filename}.${ext}`, format === 'markdown' ? 'text/markdown' : format === 'csv' ? 'text/csv' : 'application/x-bibtex');
+                ElementPlus.ElMessage.success(isZh ? '导出成功' : 'Export successful');
+            }).catch(() => {
+                ElementPlus.ElMessage.error(isZh ? '导出失败' : 'Export failed');
+            });
         }
     }
     

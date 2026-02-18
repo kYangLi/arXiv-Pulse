@@ -76,7 +76,7 @@ const PaperBasketPanelSetup = (props) => {
     const configStore = useConfigStore();
     
     const { paperCart } = storeToRefs(paperStore);
-    const { removeFromCart, clearCart, exportCart, copyCartLinks } = paperStore;
+    const { removeFromCart, clearCart, copyCartLinks } = paperStore;
     const { t, currentLang } = configStore;
     
     const panelRef = ref(null);
@@ -86,13 +86,17 @@ const PaperBasketPanelSetup = (props) => {
         return new Date(dateStr).toLocaleDateString('zh-CN');
     };
     
+    const handleExportCart = (format) => {
+        paperStore.exportCart(format, configStore);
+    };
+    
     return {
         paperCart,
         panelRef,
         formatDate,
         removeFromCart,
         clearCart,
-        exportCart,
+        exportCart: handleExportCart,
         copyCartLinks,
         t,
         currentLang
