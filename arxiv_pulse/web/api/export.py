@@ -153,7 +153,7 @@ def get_figure_data(arxiv_id: str, session) -> dict[str, Any] | None:
 
 def get_translation(paper: Paper) -> dict[str, str]:
     """Get translations for paper title and abstract"""
-    from arxiv_pulse.web.api.papers import translate_text
+    from arxiv_pulse.services.translation_service import translate_text
 
     return {
         "title_translation": translate_text(paper.title) if paper.title else "",
@@ -169,12 +169,18 @@ def get_paper_summary_data(paper: Paper) -> dict[str, Any]:
     try:
         data = json.loads(paper.summary)
         result = {}
-        if "summary" in data:
-            result["summary"] = data["summary"]
-        if "keywords" in data:
-            result["keywords"] = data["keywords"]
         if "key_findings" in data:
             result["key_findings"] = data["key_findings"]
+        if "methodology" in data:
+            result["methodology"] = data["methodology"]
+        if "keywords" in data:
+            result["keywords"] = data["keywords"]
+        if "summary" in data:
+            result["summary"] = data["summary"]
+        if "relevance" in data:
+            result["relevance"] = data["relevance"]
+        if "impact" in data:
+            result["impact"] = data["impact"]
         return result
     except Exception:
         return {"summary": paper.summary}
@@ -207,12 +213,17 @@ def generate_markdown(papers: list[Paper], include_summary: bool, collection_nam
             lines.append(paper.abstract + "\n")
 
         if include_summary and paper.summary:
-            lines.append("### AI 总结\n")
+            lines.append("### AI 分析\n")
             summary_data = get_paper_summary_data(paper)
-            if "summary" in summary_data:
-                lines.append(summary_data["summary"] + "\n")
-            if "keywords" in summary_data:
-                lines.append(f"**关键词**: {', '.join(summary_data['keywords'])}\n")
+            if summary_data.get("key_findings"):
+                lines.append("**关键发现:**\n")
+                for finding in summary_data["key_findings"][:5]:
+                    lines.append(f"- {finding}\n")
+                lines.append("")
+            if summary_data.get("methodology"):
+                lines.append(f"**研究方法:** {summary_data['methodology']}\n")
+            if summary_data.get("keywords"):
+                lines.append(f"**关键词:** {', '.join(summary_data['keywords'])}\n")
 
         lines.append("---\n")
 
@@ -366,6 +377,16 @@ def generate_pdf(papers: list[Paper], include_summary: bool, session, collection
         .key-findings li {
             font-size: 9pt;
             margin-bottom: 2pt;
+            color: #5a6c7d;
+        }
+        .methodology {
+            font-size: 10pt;
+            color: #409EFF;
+            background: #f5f8fc;
+            padding: 8pt;
+            border-radius: 4pt;
+            margin-top: 6pt;
+            border-left: 3px solid #409EFF;
         }
         .figure {
             text-align: center;
@@ -423,16 +444,17 @@ def generate_pdf(papers: list[Paper], include_summary: bool, session, collection
 
         if include_summary and paper.summary:
             summary_data = get_paper_summary_data(paper)
-            if summary_data.get("summary"):
-                html_parts.append('<div class="section-title">AI 总结</div>')
-                summary_escaped = (
-                    summary_data["summary"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-                )
-                html_parts.append(f'<div class="summary">{summary_escaped}</div>')
 
             if summary_data.get("keywords"):
                 keywords_str = ", ".join(summary_data["keywords"])
                 html_parts.append(f'<div class="keywords">关键词: {keywords_str}</div>')
+
+            if summary_data.get("methodology"):
+                html_parts.append('<div class="section-title">研究方法</div>')
+                method_escaped = (
+                    summary_data["methodology"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                )
+                html_parts.append(f'<div class="methodology">{method_escaped}</div>')
 
             if summary_data.get("key_findings"):
                 html_parts.append('<div class="section-title">关键发现</div>')
