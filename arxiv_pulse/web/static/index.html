@@ -145,7 +145,7 @@
                         @keyup.enter="handleHomeSearch"
                     >
                         <template #prefix>
-                            <el-icon :class="{ 'is-loading': homeSearching }"><Search v-if="!homeSearching" /><Loading v-else /></el-icon>
+                            <el-icon :class="{ 'is-loading': homeSearching }"><Search /></el-icon>
                         </template>
                         <template #suffix>
                             <div class="search-suffix">
