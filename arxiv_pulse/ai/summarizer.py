@@ -31,8 +31,60 @@ class PaperSummarizer:
             output.warn("AI API密钥未设置，使用基础总结")
 
     def extract_keywords(self, text: str, max_keywords: int = 10) -> list[str]:
-        """Extract keywords from text using simple heuristics"""
-        words = re.findall(r"\b[A-Za-z][a-z]{3,}\b", text.lower())
+        """Extract keywords from text, preserving common phrases"""
+        common_phrases = [
+            "deep learning",
+            "machine learning",
+            "neural network",
+            "neural networks",
+            "density functional",
+            "density functional theory",
+            "molecular dynamics",
+            "quantum mechanics",
+            "ab initio",
+            "first principles",
+            "force field",
+            "force fields",
+            "graph neural network",
+            "convolutional neural network",
+            "reinforcement learning",
+            "transfer learning",
+            "supervised learning",
+            "unsupervised learning",
+            "semi-supervised",
+            "computational materials",
+            "materials design",
+            "high throughput",
+            "structure prediction",
+            "energy storage",
+            "battery materials",
+            "electronic structure",
+            "band gap",
+            "phase transition",
+            "crystal structure",
+            "atomistic simulation",
+            "interatomic potential",
+            "potential energy surface",
+            "training data",
+            "training set",
+            "test set",
+            "validation set",
+            "feature engineering",
+            "hyperparameter",
+            "optimization algorithm",
+            "gradient descent",
+            "activation function",
+            "loss function",
+            "training process",
+        ]
+
+        text_lower = text.lower()
+        found_phrases = []
+        for phrase in common_phrases:
+            if phrase in text_lower:
+                found_phrases.append(phrase)
+
+        single_words = re.findall(r"\b[A-Za-z][a-z]{4,}\b", text_lower)
         common_words = {
             "this",
             "that",
@@ -56,17 +108,34 @@ class PaperSummarizer:
             "found",
             "propose",
             "proposed",
+            "however",
+            "therefore",
+            "furthermore",
+            "moreover",
+            "between",
+            "through",
+            "within",
+            "without",
+            "these",
+            "those",
+            "where",
+            "when",
+            "while",
         }
 
         word_freq = {}
-        for word in words:
-            if word not in common_words and len(word) > 3:
+        phrase_words = set()
+        for phrase in found_phrases:
+            phrase_words.update(phrase.split())
+
+        for word in single_words:
+            if word not in common_words and word not in phrase_words and len(word) > 4:
                 word_freq[word] = word_freq.get(word, 0) + 1
 
         sorted_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
-        keywords = [word for word, _ in sorted_words[:max_keywords]]
+        single_keywords = [word for word, _ in sorted_words[: max_keywords - len(found_phrases)]]
 
-        return keywords
+        return found_phrases + single_keywords
 
     def basic_summary(self, paper: Paper) -> str:
         """Generate basic summary without AI"""

@@ -21,7 +21,52 @@ const PaperCardTemplate = `
         </span>
     </div>
     <div class="paper-category" v-if="paper.category_explanation">{{ paper.category_explanation }}</div>
-    <div v-if="!expanded" class="paper-abstract-preview">{{ paper.abstract?.slice(0, 200) }}...</div>
+    
+    <div class="abstract-section">
+        <p class="abstract-text" :class="{ 'abstract-collapsed': !expanded }">{{ paper.abstract }}</p>
+        <el-button size="small" text @click="expanded = !expanded" class="expand-btn">
+            {{ expanded ? t('paper.collapse') : t('paper.expandDetail') }}
+        </el-button>
+    </div>
+    
+    <template v-if="expanded">
+        <div v-if="paper.abstract_translation" class="translation-section">
+            <h4>{{ t('paper.chineseTranslation') }}</h4>
+            <p>{{ paper.abstract_translation }}</p>
+        </div>
+        <div v-else-if="!paper.ai_available" class="translation-section" style="color: var(--text-muted); font-style: italic;">
+            <h4>{{ t('paper.chineseTranslation') }}</h4>
+            <p>{{ isZh ? '未配置 AI API Key，无法翻译。请在设置中配置。' : 'AI API Key not configured.' }}</p>
+        </div>
+        
+        <div v-if="paper.keywords?.length" class="paper-keywords">
+            <h4>{{ t('paper.keywords') }}</h4>
+            <div class="keywords-list">
+                <el-tag v-for="kw in paper.keywords" :key="kw" size="small" type="info">{{ kw }}</el-tag>
+            </div>
+        </div>
+        
+        <div v-if="paper.figure_url" class="paper-figure">
+            <img :src="paper.figure_url" @click="openImage(paper.figure_url)" />
+        </div>
+        
+        <div v-if="paper.methodology" class="methodology-section">
+            <h4>{{ t('paper.methodology') }}</h4>
+            <p>{{ paper.methodology }}</p>
+        </div>
+        
+        <div v-if="paper.key_findings?.length" class="key-findings">
+            <h4>{{ t('paper.keyFindings') }}</h4>
+            <ul>
+                <li v-for="(finding, i) in paper.key_findings" :key="i">{{ finding }}</li>
+            </ul>
+        </div>
+        
+        <div v-if="!paper.key_findings?.length && !paper.methodology && !paper.keywords?.length && !paper.ai_available" style="color: var(--text-muted); font-style: italic; padding: 10px 0;">
+            <p>{{ isZh ? '未配置 AI API Key，无法生成总结。请在设置中配置。' : 'AI API Key not configured.' }}</p>
+        </div>
+    </template>
+    
     <div class="paper-actions">
         <el-button size="small" text type="primary" @click="openArxiv(paper.arxiv_id)">
             <el-icon><Promotion /></el-icon> {{ t('paper.arxiv') }}
@@ -44,48 +89,9 @@ const PaperCardTemplate = `
         <el-button size="small" text type="primary" @click="$emit('add-to-collection', paper)">
             <el-icon><Folder /></el-icon> {{ t('paper.addToCollection') }}
         </el-button>
-        <el-button size="small" text @click="expanded = !expanded">
-            {{ expanded ? t('paper.collapse') : t('paper.expandDetail') }}
-        </el-button>
         <el-button v-if="inCollection" size="small" text type="danger" @click="$emit('remove-from-collection', paper.id)">
             <el-icon><Delete /></el-icon> {{ t('paper.removeFromCollection') }}
         </el-button>
-    </div>
-    <div v-if="expanded" class="paper-detail">
-        <div v-if="paper.key_findings?.length" class="key-findings">
-            <h4>{{ t('paper.keyFindings') }}</h4>
-            <ul>
-                <li v-for="(finding, i) in paper.key_findings" :key="i">{{ finding }}</li>
-            </ul>
-        </div>
-        <div v-if="paper.methodology" class="methodology-section">
-            <h4>{{ t('paper.methodology') }}</h4>
-            <p>{{ paper.methodology }}</p>
-        </div>
-        <div v-if="paper.keywords?.length" class="paper-keywords">
-            <h4>{{ t('paper.keywords') }}</h4>
-            <div class="keywords-list">
-                <el-tag v-for="kw in paper.keywords" :key="kw" size="small" type="info">{{ kw }}</el-tag>
-            </div>
-        </div>
-        <div v-if="!paper.key_findings?.length && !paper.methodology && !paper.keywords?.length && !paper.ai_available" style="color: var(--text-muted); font-style: italic; padding: 10px 0;">
-            <p>{{ isZh ? '未配置 AI API Key，无法生成总结。请在设置中配置。' : 'AI API Key not configured. Please configure in Settings.' }}</p>
-        </div>
-        <div v-if="paper.figure_url" class="paper-figure">
-            <img :src="paper.figure_url" @click="openImage(paper.figure_url)" />
-        </div>
-        <div class="abstract-section">
-            <h4>{{ t('paper.abstract') }}</h4>
-            <p>{{ paper.abstract }}</p>
-            <div v-if="paper.abstract_translation" class="translation">
-                <h4>{{ t('paper.chineseTranslation') }}</h4>
-                <p>{{ paper.abstract_translation }}</p>
-            </div>
-            <div v-else-if="!paper.ai_available" class="translation" style="color: var(--text-muted); font-style: italic;">
-                <h4>{{ t('paper.chineseTranslation') }}</h4>
-                <p>{{ isZh ? '未配置 AI API Key，无法翻译。请在设置中配置。' : 'AI API Key not configured. Please configure in Settings.' }}</p>
-            </div>
-        </div>
     </div>
 </div>
 `;
@@ -173,28 +179,25 @@ const PaperCardSetup = (props) => {
         elements.push({ type: 'divider', y: y });
         y += 20 * scale;
         
-        if (props.paper.key_findings?.length) {
-            elements.push({ type: 'section-title', text: '关键发现', y: y });
-            y += 28 * scale;
-            props.paper.key_findings.forEach(finding => {
-                const findingLines = wrapText(`• ${finding}`, width - padding * 2 - 20 * scale, 14);
-                findingLines.forEach(line => {
-                    elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#5a6c7d', y: y });
-                    y += 22 * scale;
-                });
-            });
-            y += 12 * scale;
-        }
+        elements.push({ type: 'section-title', text: '摘要 (Abstract)', y: y });
+        y += 28 * scale;
         
-        if (props.paper.methodology) {
-            elements.push({ type: 'section-title', text: '研究方法', y: y });
+        const abstractLines = wrapText(props.paper.abstract || '', width - padding * 2, 14);
+        abstractLines.forEach(line => {
+            elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#444', y: y });
+            y += 22 * scale;
+        });
+        y += 16 * scale;
+        
+        if (props.paper.abstract_translation) {
+            elements.push({ type: 'section-title', text: t('paper.chineseTranslation'), y: y });
             y += 28 * scale;
-            const methodLines = wrapText(props.paper.methodology, width - padding * 2, 14);
-            methodLines.forEach(line => {
-                elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#409EFF', y: y });
+            const transAbstractLines = wrapText(props.paper.abstract_translation, width - padding * 2, 14);
+            transAbstractLines.forEach(line => {
+                elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#555', y: y });
                 y += 22 * scale;
             });
-            y += 12 * scale;
+            y += 16 * scale;
         }
         
         if (props.paper.keywords?.length) {
@@ -206,7 +209,7 @@ const PaperCardSetup = (props) => {
                 elements.push({ type: 'text', text: line, font: `${13 * scale}px sans-serif`, color: '#c9a227', y: y });
                 y += 20 * scale;
             });
-            y += 12 * scale;
+            y += 16 * scale;
         }
         
         if (props.paper.figure_url) {
@@ -227,23 +230,26 @@ const PaperCardSetup = (props) => {
             } catch (e) {}
         }
         
-        elements.push({ type: 'section-title', text: '摘要 (Abstract)', y: y });
-        y += 28 * scale;
-        
-        const abstractLines = wrapText(props.paper.abstract || '', width - padding * 2, 14);
-        abstractLines.forEach(line => {
-            elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#444', y: y });
-            y += 22 * scale;
-        });
-        y += 12 * scale;
-        
-        if (props.paper.abstract_translation) {
-            elements.push({ type: 'section-title', text: t('paper.chineseTranslation'), y: y });
+        if (props.paper.methodology) {
+            elements.push({ type: 'section-title', text: '研究方法', y: y });
             y += 28 * scale;
-            const transAbstractLines = wrapText(props.paper.abstract_translation, width - padding * 2, 14);
-            transAbstractLines.forEach(line => {
-                elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#555', y: y });
+            const methodLines = wrapText(props.paper.methodology, width - padding * 2, 14);
+            methodLines.forEach(line => {
+                elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#409EFF', y: y });
                 y += 22 * scale;
+            });
+            y += 16 * scale;
+        }
+        
+        if (props.paper.key_findings?.length) {
+            elements.push({ type: 'section-title', text: '关键发现', y: y });
+            y += 28 * scale;
+            props.paper.key_findings.forEach(finding => {
+                const findingLines = wrapText(`• ${finding}`, width - padding * 2 - 20 * scale, 14);
+                findingLines.forEach(line => {
+                    elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#5a6c7d', y: y });
+                    y += 22 * scale;
+                });
             });
             y += 12 * scale;
         }

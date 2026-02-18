@@ -745,11 +745,42 @@
         }
         .paper-relevance { font-size: 14px; }
         .paper-relevance .star { color: var(--accent); }
-        .paper-abstract-preview { 
+        .abstract-section { 
+            margin-bottom: 16px; 
+        }
+        .abstract-text {
             color: var(--text-secondary); 
             font-size: 14px; 
             line-height: 1.7; 
-            margin-bottom: 16px; 
+            margin: 0;
+        }
+        .abstract-text.abstract-collapsed {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .abstract-section .expand-btn {
+            margin-top: 8px;
+            padding: 4px 8px;
+        }
+        .translation-section {
+            background: #f8f9fa;
+            padding: 16px 20px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+        }
+        .translation-section h4 {
+            color: var(--primary);
+            font-size: 14px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .translation-section p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.7;
+            margin: 0;
         }
         .paper-actions { 
             display: flex; 
@@ -869,25 +900,6 @@
             transition: transform 0.3s ease;
         }
         .paper-figure img:hover { transform: scale(1.02); }
-        .abstract-section { margin-bottom: 20px; }
-        .abstract-section h4 { 
-            color: var(--primary); 
-            font-size: 14px; 
-            margin-bottom: 12px; 
-            font-weight: 600;
-        }
-        .abstract-section p { 
-            color: var(--text-secondary); 
-            font-size: 14px; 
-            line-height: 1.8; 
-        }
-        .abstract-section .translation { 
-            background: #f5faf5; 
-            padding: 16px 20px; 
-            border-radius: var(--radius-sm); 
-            margin-top: 16px;
-            border-left: 3px solid #67c23a;
-        }
         
         /* Search Options */
         .search-options { 
