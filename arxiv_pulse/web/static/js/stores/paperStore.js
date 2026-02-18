@@ -96,7 +96,144 @@ const usePaperStore = defineStore('paper', () => {
         return paperCart.value.some(p => p.arxiv_id === arxivId);
     }
     
-    async function fetchStats() {
+    function exportCart(format) {
+        if (paperCart.value.length === 0) return;
+        
+        const papersWithId = paperCart.value.filter(p => p.id);
+        const filename = `papers_export_${Date.now()}`;
+        
+        if (format === 'pdf') {
+            if (papersWithId.length === 0) {
+                ElementPlus.ElMessage.warning('PDF 导出需要论文已保存到数据库，请先同步论文');
+                return;
+            }
+            API.export.papers({ 
+                paper_ids: papersWithId.map(p => p.id), 
+                format: 'pdf',
+                include_summary: true 
+            }).then(res => {
+                if (res.ok) {
+                    return res.blob();
+                }
+                throw new Error('Export failed');
+            }).then(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${filename}.pdf`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }).catch(() => {
+                ElementPlus.ElMessage.error('导出失败');
+            });
+            return;
+        }
+        
+        if (format === 'pdf_original') {
+            ElementPlus.ElMessage.info(`开始下载 ${paperCart.value.length} 个 PDF 原文...`);
+            let successCount = 0;
+            const downloadNext = async (index) => {
+                if (index >= paperCart.value.length) {
+                    if (successCount > 0) {
+                        ElementPlus.ElMessage.success(`已下载 ${successCount} 个 PDF 原文`);
+                    } else {
+                        ElementPlus.ElMessage.error('下载失败');
+                    }
+                    return;
+                }
+                const paper = paperCart.value[index];
+                try {
+                    const res = await API.papers.pdf(paper.arxiv_id);
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const safeId = paper.arxiv_id.replace(/[\/\\]/g, '_');
+                        a.download = `${safeId}.pdf`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        successCount++;
+                        await new Promise(r => setTimeout(r, 300));
+                    }
+                } catch (e) {
+                    console.error(`Failed to download ${paper.arxiv_id}:`, e);
+                }
+                downloadNext(index + 1);
+            };
+            downloadNext(0);
+            return;
+        }
+        
+        const downloadFile = (content, filename, mimeType) => {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+        
+        let content = '';
+        
+        if (format === 'markdown') {
+            content = paperCart.value.map(p => {
+                return `## ${p.title}\n\n**arXiv:** ${p.arxiv_id}\n**作者:** ${p.authors?.map(a => a.name).join(', ') || 'N/A'}\n**日期:** ${p.published || 'N/A'}\n\n**摘要:**\n${p.abstract || ''}\n\n${p.summary_text ? '**AI 总结:**\n' + p.summary_text : ''}\n\n---\n`;
+            }).join('\n');
+            downloadFile(content, `${filename}.md`, 'text/markdown');
+        } else if (format === 'csv') {
+            const header = 'arxiv_id,title,authors,published,abstract\n';
+            const rows = paperCart.value.map(p => {
+                const title = (p.title || '').replace(/"/g, '""');
+                const authors = (p.authors?.map(a => a.name).join('; ') || '').replace(/"/g, '""');
+                const abstract = (p.abstract || '').replace(/"/g, '""').replace(/\n/g, ' ');
+                return `"${p.arxiv_id}","${title}","${authors}","${p.published || ''}","${abstract}"`;
+            }).join('\n');
+            downloadFile(header + rows, `${filename}.csv`, 'text/csv');
+        } else if (format === 'bibtex') {
+            content = paperCart.value.map(p => {
+                const year = p.published ? new Date(p.published).getFullYear() : new Date().getFullYear();
+                const firstAuthor = p.authors?.[0]?.name?.split(' ').pop() || 'Unknown';
+                const key = `${firstAuthor}${year}${p.arxiv_id.replace('.', '')}`;
+                return `@article{${key},\n  title={${p.title || 'Untitled'}},\n  author={${p.authors?.map(a => a.name).join(' and ') || 'Unknown'}},\n  journal={arXiv preprint arXiv:${p.arxiv_id}},\n  year={${year}},\n  eprint={${p.arxiv_id}}\n}`;
+            }).join('\n\n');
+            downloadFile(content, `${filename}.bib`, 'application/x-bibtex');
+        }
+    }
+    
+    function copyCartLinks() {
+        if (paperCart.value.length === 0) return;
+        const links = paperCart.value.map(p => `https://arxiv.org/abs/${p.arxiv_id}`).join('\n');
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(links).then(() => {
+                ElementPlus.ElMessage.success(`已复制 ${paperCart.value.length} 个链接`);
+            }).catch(() => {
+                const textarea = document.createElement('textarea');
+                textarea.value = links;
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                ElementPlus.ElMessage.success(`已复制 ${paperCart.value.length} 个链接`);
+            });
+        } else {
+            const textarea = document.createElement('textarea');
+            textarea.value = links;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            ElementPlus.ElMessage.success(`已复制 ${paperCart.value.length} 个链接`);
+        }
+    }
+    
+    return {
         try {
             const res = await API.stats.get();
             stats.value = await res.json();
@@ -352,7 +489,7 @@ const usePaperStore = defineStore('paper', () => {
         paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex,
         stats, fieldStats,
         toggleRecentSelection, toggleAllRecent, toggleSearchSelection, toggleAllSearch,
-        toggleHomeSelection, addToCart, removeFromCart, clearCart, isInCart,
+        toggleHomeSelection, addToCart, removeFromCart, clearCart, isInCart, exportCart, copyCartLinks,
         fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers,
         searchPapers, startHomeSearch, exportPapers
     };

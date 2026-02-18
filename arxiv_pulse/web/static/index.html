@@ -760,77 +760,16 @@
             </div>
         </div>
 
-        <!-- Paper Basket Panel -->
-        <transition name="panel">
-            <div v-if="!showSetup && showCart" 
-                 class="cart-panel" 
-                 ref="cartPanelRef"
-                 :style="{ position: 'fixed', left: cartPosition.x + 'px', top: cartPosition.y + 'px', zIndex: cartZIndex }"
-                 @mousedown="startDragCart"
-                 @click="bringToFront('cart')">
-                <div class="cart-header">
-                    <h3>
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                            <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
-                        </svg>
-                        {{ t('basket.title') }}
-                        <span v-if="paperCart.length > 0" style="opacity: 0.7; font-weight: 400;">({{ paperCart.length }})</span>
-                    </h3>
-                    <div class="collapse-btn" @click.stop="showCart = false" :title="currentLang === 'zh' ? '收起' : 'Collapse'">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
-                        </svg>
-                    </div>
-                </div>
-                <div class="cart-body">
-                    <div v-if="paperCart.length === 0" class="cart-empty">
-                        <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor" style="opacity: 0.5;">
-                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-                        </svg>
-                        <p style="margin-top: 12px; color: var(--text-muted);">{{ t('basket.empty') }}</p>
-                        <p style="font-size: 12px; color: var(--text-muted);">{{ t('basket.emptyHint') }}</p>
-                    </div>
-                    <div v-for="(paper, index) in paperCart" :key="paper.arxiv_id" class="cart-item">
-                        <div class="cart-item-info">
-                            <div class="cart-item-title">{{ paper.title }}</div>
-                            <div class="cart-item-meta">{{ paper.arxiv_id }} · {{ formatDate(paper.published) }}</div>
-                        </div>
-                        <div class="cart-item-actions">
-                            <el-button text size="small" @click="removeFromCart(index)" :title="t('common.delete')">
-                                <el-icon><Delete /></el-icon>
-                            </el-button>
-                        </div>
-                    </div>
-                </div>
-                <div v-if="paperCart.length > 0" class="cart-footer">
-                    <div class="cart-actions">
-                        <el-dropdown @command="exportCart" placement="top">
-                            <el-button type="primary" plain>
-                                <el-icon><Download /></el-icon> {{ t('basket.export') }}
-                            </el-button>
-                            <template #dropdown>
-                                <el-dropdown-menu>
-                                    <el-dropdown-item command="markdown">Markdown</el-dropdown-item>
-                                    <el-dropdown-item command="pdf">PDF</el-dropdown-item>
-                                    <el-dropdown-item command="pdf_original">PDF (Original)</el-dropdown-item>
-                                    <el-dropdown-item command="csv">CSV</el-dropdown-item>
-                                    <el-dropdown-item command="bibtex">BibTeX</el-dropdown-item>
-                                </el-dropdown-menu>
-                            </template>
-                        </el-dropdown>
-                        <el-button @click="addCartToCollection" plain>
-                            <el-icon><Folder /></el-icon> {{ t('basket.addToCollection') }}
-                        </el-button>
-                        <el-button @click="copyCartLinks" type="info" plain>
-                            <el-icon><Tickets /></el-icon> {{ t('basket.copyLinks') }}
-                        </el-button>
-                        <el-button @click="clearCart" type="danger" plain>
-                            <el-icon><Delete /></el-icon> {{ t('basket.clear') }}
-                        </el-button>
-                    </div>
-                </div>
-            </div>
-        </transition>
+        <!-- Paper Basket Panel Component -->
+        <paper-basket-panel 
+            :show="!showSetup && showCart"
+            :position="cartPosition"
+            :z-index="cartZIndex"
+            @update:show="showCart = $event"
+            @start-drag="startDragCart"
+            @bring-to-front="bringToFront('cart')"
+            @add-to-collection="addCartToCollection"
+        />
 
         <!-- Floating Buttons Left (Language + Settings) -->
         <div v-if="!showSetup" class="floating-buttons-left">
@@ -1136,6 +1075,7 @@
     <script src="js/stores/uiStore.js"></script>
     <script src="js/components/PaperCard.js"></script>
     <script src="js/components/FieldSelectorDialog.js"></script>
+    <script src="js/components/PaperBasketPanel.js"></script>
     <script>
         // Vue and Pinia APIs already exposed globally by earlier scripts
         const { createApp } = Vue;
@@ -3017,145 +2957,11 @@
                     return paperCart.value.some(p => p.arxiv_id === arxivId);
                 }
 
-                async function exportCart(format) {
-                    if (paperCart.value.length === 0) return;
-                    
-                    const papersWithId = paperCart.value.filter(p => p.id);
-                    const filename = `papers_export_${Date.now()}`;
-                    
-                    if (format === 'pdf') {
-                        if (papersWithId.length === 0) {
-                            ElementPlus.ElMessage.warning('PDF 导出需要论文已保存到数据库，请先同步论文');
-                            return;
-                        }
-                        try {
-                            const res = await API.export.papers({ 
-                                paper_ids: papersWithId.map(p => p.id), 
-                                format: 'pdf',
-                                include_summary: true 
-                            });
-                            if (res.ok) {
-                                const blob = await res.blob();
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `${filename}.pdf`;
-                                a.click();
-                                URL.revokeObjectURL(url);
-                            } else {
-                                ElementPlus.ElMessage.error('导出失败');
-                            }
-                        } catch (e) {
-                            ElementPlus.ElMessage.error('导出失败');
-                        }
-                        return;
-                    }
-                    
-                    if (format === 'pdf_original') {
-                        ElementPlus.ElMessage.info(`开始下载 ${paperCart.value.length} 个 PDF 原文...`);
-                        let successCount = 0;
-                        for (const paper of paperCart.value) {
-                            try {
-                                const res = await API.papers.pdf(paper.arxiv_id);
-                                if (res.ok) {
-                                    const blob = await res.blob();
-                                    const url = URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    const safeId = paper.arxiv_id.replace(/[\/\\]/g, '_');
-                                    a.download = `${safeId}.pdf`;
-                                    a.click();
-                                    URL.revokeObjectURL(url);
-                                    successCount++;
-                                    await new Promise(r => setTimeout(r, 300));
-                                } else {
-                                    console.error(`Failed to download ${paper.arxiv_id}: HTTP ${res.status}`);
-                                }
-                            } catch (e) {
-                                console.error(`Failed to download ${paper.arxiv_id}:`, e);
-                            }
-                        }
-                        if (successCount > 0) {
-                            ElementPlus.ElMessage.success(`已下载 ${successCount} 个 PDF 原文`);
-                        } else {
-                            ElementPlus.ElMessage.error('下载失败');
-                        }
-                        return;
-                    }
-                    
-                    let content = '';
-                    
-                    if (format === 'markdown') {
-                        content = paperCart.value.map(p => {
-                            return `## ${p.title}\n\n**arXiv:** ${p.arxiv_id}\n**作者:** ${p.authors?.map(a => a.name).join(', ') || 'N/A'}\n**日期:** ${p.published || 'N/A'}\n\n**摘要:**\n${p.abstract || ''}\n\n${p.summary_text ? '**AI 总结:**\n' + p.summary_text : ''}\n\n---\n`;
-                        }).join('\n');
-                        downloadFile(content, `${filename}.md`, 'text/markdown');
-                    } else if (format === 'csv') {
-                        const header = 'arxiv_id,title,authors,published,abstract\n';
-                        const rows = paperCart.value.map(p => {
-                            const title = (p.title || '').replace(/"/g, '""');
-                            const authors = (p.authors?.map(a => a.name).join('; ') || '').replace(/"/g, '""');
-                            const abstract = (p.abstract || '').replace(/"/g, '""').replace(/\n/g, ' ');
-                            return `"${p.arxiv_id}","${title}","${authors}","${p.published || ''}","${abstract}"`;
-                        }).join('\n');
-                        downloadFile(header + rows, `${filename}.csv`, 'text/csv');
-                    } else if (format === 'bibtex') {
-                        content = paperCart.value.map(p => {
-                            const year = p.published ? new Date(p.published).getFullYear() : new Date().getFullYear();
-                            const firstAuthor = p.authors?.[0]?.name?.split(' ').pop() || 'Unknown';
-                            const key = `${firstAuthor}${year}${p.arxiv_id.replace('.', '')}`;
-                            return `@article{${key},\n  title={${p.title || 'Untitled'}},\n  author={${p.authors?.map(a => a.name).join(' and ') || 'Unknown'}},\n  journal={arXiv preprint arXiv:${p.arxiv_id}},\n  year={${year}},\n  eprint={${p.arxiv_id}}\n}`;
-                        }).join('\n\n');
-                        downloadFile(content, `${filename}.bib`, 'application/x-bibtex');
-                    }
-                }
-
                 function addCartToCollection() {
                     if (paperCart.value.length === 0) return;
                     selectedPaper.value = null;
                     selectedCollectionId.value = null;
                     showAddToCollection.value = true;
-                }
-
-                function copyCartLinks() {
-                    if (paperCart.value.length === 0) return;
-                    const links = paperCart.value.map(p => `https://arxiv.org/abs/${p.arxiv_id}`).join('\n');
-                    
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(links).then(() => {
-                            ElementPlus.ElMessage.success(`已复制 ${paperCart.value.length} 个链接`);
-                        }).catch(() => {
-                            fallbackCopy(links);
-                        });
-                    } else {
-                        fallbackCopy(links);
-                    }
-                    
-                    function fallbackCopy(text) {
-                        const textarea = document.createElement('textarea');
-                        textarea.value = text;
-                        textarea.style.position = 'fixed';
-                        textarea.style.left = '-9999px';
-                        document.body.appendChild(textarea);
-                        textarea.select();
-                        try {
-                            document.execCommand('copy');
-                            ElementPlus.ElMessage.success(`已复制 ${paperCart.value.length} 个链接`);
-                        } catch (e) {
-                            ElementPlus.ElMessage.error('复制失败，请手动复制');
-                        }
-                        document.body.removeChild(textarea);
-                    }
-                }
-
-                function downloadFile(content, filename, mimeType) {
-                    const blob = new Blob([content], { type: mimeType });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = filename;
-                    a.click();
-                    URL.revokeObjectURL(url);
                 }
 
                 onMounted(() => {
@@ -3248,8 +3054,8 @@
                     toggleChatFullscreen, startResizeChat,
                     paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex,
                     startDragCart, startDragChat,
-                    addToCart, removeFromCart, removeFromCartByArxivId, clearCart, isInCart, exportCart,
-                    addCartToCollection, copyCartLinks,
+                    addToCart, removeFromCart, removeFromCartByArxivId, clearCart, isInCart,
+                    addCartToCollection,
                     scrollToBottom, handleChatScroll,
                     bringToFront, handleEscKey,
                     t: configStore.t, currentLang, toggleLanguage, i18n, getFieldTranslation: configStore.getFieldTranslation,
@@ -3278,6 +3084,14 @@
         app.component('field-selector-dialog', {
             template: FieldSelectorDialogTemplate,
             setup: FieldSelectorDialogSetup
+        });
+
+        // Register paper-basket-panel component
+        app.component('paper-basket-panel', {
+            props: ['show', 'position', 'zIndex'],
+            emits: ['update:show', 'start-drag', 'bring-to-front', 'add-to-collection'],
+            template: PaperBasketPanelTemplate,
+            setup: PaperBasketPanelSetup
         });
 
         if (window.ElementPlusIconsVue) {
