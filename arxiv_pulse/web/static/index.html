@@ -142,16 +142,27 @@
                         v-model="homeQuery" 
                         :placeholder="t('home.searchPlaceholder')"
                         size="large"
-                        @keyup.enter="startHomeSearch"
+                        @keyup.enter="handleHomeSearch"
                         clearable
                     >
                         <template #prefix>
                             <el-icon><Search /></el-icon>
                         </template>
+                        <template #suffix v-if="homeSearching">
+                            <el-button 
+                                size="small" 
+                                type="danger" 
+                                circle 
+                                @click="stopHomeSearch"
+                                :title="currentLang === 'zh' ? '停止搜索' : 'Stop search'"
+                            >
+                                <el-icon><Close /></el-icon>
+                            </el-button>
+                        </template>
                     </el-input>
                 </div>
                     
-                    <div v-if="homeLogs.length > 0" class="logs-container" style="margin-top: 20px; max-height: 200px; max-width: 680px; width: 100%;">
+                    <div v-if="homeLogs.length > 0" class="logs-container home-logs" ref="homeLogsContainerRef" @scroll="handleHomeLogsScroll" style="margin-top: 16px; max-height: 100px; max-width: 680px; width: 100%;">
                         <div v-for="(log, index) in homeLogs" :key="index" class="log-line" :class="log.type">
                             > {{ log.message }}
                         </div>
@@ -739,9 +750,13 @@
                 const { 
                     stats, fieldStats, recentPapers, loadingRecent, loadingProgress, loadingTotal, loadingController,
                     updatingRecent, recentLogs, recentDays, recentNeedSync,
-                    homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
+                    homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds, homeController, homeLogsContainer, homeUserScrolledUp,
                     paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex
                 } = storeToRefs(paperStore);
+                
+                const { 
+                    startHomeSearch, stopHomeSearch, scrollHomeLogsToBottom
+                } = paperStore;
                 
                 // chatStore properties
                 const {
@@ -762,6 +777,19 @@
                     { icon: '💡', text: 'What are the latest advances in this field' },
                     { icon: '⚖️', text: 'Compare the similarities and differences' },
                 ]);
+
+                const homeLogsContainerRef = ref(null);
+                
+                function handleHomeSearch() {
+                    startHomeSearch(configStore);
+                }
+                
+                function handleHomeLogsScroll() {
+                    const el = homeLogsContainerRef.value;
+                    if (!el) return;
+                    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 10;
+                    homeUserScrolledUp.value = !isAtBottom;
+                }
 
                 function bringToFront(panel) {
                     if (panel === 'cart') {
@@ -1807,55 +1835,6 @@
                     }
                 }
 
-                async function startHomeSearch() {
-                    if (!homeQuery.value.trim()) return;
-                    
-                    homeSearching.value = true;
-                    homeLogs.value = [];
-                    homeResults.value = [];
-                    homeSelectedIds.value = [];
-                    
-                    try {
-                        const params = new URLSearchParams({ q: homeQuery.value });
-                        const response = await API.papers.quick(params.toString());
-                        const reader = response.body.getReader();
-                        const decoder = new TextDecoder();
-                        let buffer = '';
-                        
-                        while (true) {
-                            const { done, value } = await reader.read();
-                            if (done) break;
-                            
-                            buffer += decoder.decode(value, { stream: true });
-                            const lines = buffer.split('\n');
-                            buffer = lines.pop() || '';
-                            
-                            for (const line of lines) {
-                                if (line.startsWith('data: ')) {
-                                    try {
-                                        const data = JSON.parse(line.slice(6));
-                                        if (data.type === 'log') {
-                                            homeLogs.value.push({ type: 'info', message: data.message });
-                                        } else if (data.type === 'result') {
-                                            homeResults.value.push(data.paper);
-                                        } else if (data.type === 'done') {
-                                            if (data.total === 0) {
-                                                homeLogs.value.push({ type: 'info', message: '未找到匹配的论文' });
-                                            }
-                                        } else if (data.type === 'error') {
-                                            homeLogs.value.push({ type: 'error', message: data.message });
-                                        }
-                                    } catch (e) {}
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        homeLogs.value.push({ type: 'error', message: `搜索失败: ${e.message}` });
-                    } finally {
-                        homeSearching.value = false;
-                    }
-                }
-
                 async function exportHome(format) {
                     if (homeSelectedIds.value.length === 0) return;
                     try {
@@ -2389,7 +2368,7 @@
                     openEditCollection, confirmDeleteCollection, duplicateCollection, openCollectionDetail, showMergeConfirm,
                     toggleRecentSelect, toggleRecentSelectAll, toggleSearchSelect, toggleSearchSelectAll,
                     exportRecent, exportSearch, exportCollection, exportCollectionWithId,
-                    navigateTo, navigateToHome, onTabChange, startHomeSearch, toggleHomeSelect, exportHome,
+                    navigateTo, navigateToHome, onTabChange, handleHomeSearch, stopHomeSearch, homeLogsContainerRef, handleHomeLogsScroll, toggleHomeSelect, exportHome,
                     chatExpanded, chatPosition, chatPanelRef, chatZIndex,
                     chatFullscreen, chatSize, chatAnimating,
                     selectedChatPapers, chatTyping, chatProgress, showChatSidebar,

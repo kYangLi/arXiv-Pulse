@@ -1007,6 +1007,10 @@
         }
         .log-line.success { color: #68d391; }
         .log-line.error { color: #fc8181; }
+        .home-logs {
+            max-height: 100px;
+            padding: 12px 16px;
+        }
         
         /* Cache Management */
         .cache-management {

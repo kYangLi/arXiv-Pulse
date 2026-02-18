@@ -15,6 +15,9 @@ const usePaperStore = defineStore('paper', () => {
     const homeLogs = ref([]);
     const homeResults = ref([]);
     const homeSelectedIds = ref([]);
+    const homeController = ref(null);
+    const homeLogsContainer = ref(null);
+    const homeUserScrolledUp = ref(false);
     
     const searchQuery = ref('');
     const searching = ref(false);
@@ -415,17 +418,39 @@ const usePaperStore = defineStore('paper', () => {
         }
     }
     
+    function scrollHomeLogsToBottom() {
+        if (homeLogsContainer.value && !homeUserScrolledUp.value) {
+            homeLogsContainer.value.scrollTop = homeLogsContainer.value.scrollHeight;
+        }
+    }
+    
+    function stopHomeSearch() {
+        if (homeController.value) {
+            homeController.value.abort();
+            homeController.value = null;
+        }
+        homeSearching.value = false;
+    }
+    
     async function startHomeSearch(configStore) {
         if (!homeQuery.value.trim()) return;
+        
+        if (homeSearching.value) {
+            const isZh = configStore?.currentLang === 'zh';
+            ElementPlus.ElMessage.warning(isZh ? '前序搜索任务进行中...' : 'Previous search is in progress...');
+            return;
+        }
         
         homeSearching.value = true;
         homeLogs.value = [];
         homeResults.value = [];
         homeSelectedIds.value = [];
+        homeUserScrolledUp.value = false;
+        homeController.value = new AbortController();
         
         try {
             const params = new URLSearchParams({ q: homeQuery.value });
-            const response = await API.papers.quick(params.toString());
+            const response = await API.papers.quick(params.toString(), homeController.value.signal);
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
@@ -444,23 +469,32 @@ const usePaperStore = defineStore('paper', () => {
                             const data = JSON.parse(line.slice(6));
                             if (data.type === 'log') {
                                 homeLogs.value.push({ type: 'info', message: data.message });
+                                scrollHomeLogsToBottom();
                             } else if (data.type === 'result') {
                                 homeResults.value.push(data.paper);
                             } else if (data.type === 'done') {
                                 if (data.total === 0) {
-                                    homeLogs.value.push({ type: 'info', message: '未找到匹配的论文' });
+                                    homeLogs.value.push({ type: 'info', message: configStore?.currentLang === 'zh' ? '未找到匹配的论文' : 'No matching papers found' });
+                                    scrollHomeLogsToBottom();
                                 }
                             } else if (data.type === 'error') {
                                 homeLogs.value.push({ type: 'error', message: data.message });
+                                scrollHomeLogsToBottom();
                             }
                         } catch (e) {}
                     }
                 }
             }
         } catch (e) {
-            homeLogs.value.push({ type: 'error', message: `搜索失败: ${e.message}` });
+            if (e.name === 'AbortError') {
+                homeLogs.value.push({ type: 'info', message: configStore?.currentLang === 'zh' ? '搜索已取消' : 'Search cancelled' });
+            } else {
+                homeLogs.value.push({ type: 'error', message: `搜索失败: ${e.message}` });
+            }
+            scrollHomeLogsToBottom();
         } finally {
             homeSearching.value = false;
+            homeController.value = null;
         }
     }
     
@@ -509,13 +543,13 @@ const usePaperStore = defineStore('paper', () => {
     return {
         recentPapers, loadingRecent, loadingProgress, loadingTotal, loadingController,
         updatingRecent, recentLogs, recentDays, recentNeedSync, recentSelectedIds,
-        homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
+        homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds, homeController, homeLogsContainer, homeUserScrolledUp,
         searchQuery, searching, searchLogs, searchResults, searchSelectedIds,
         paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex,
         stats, fieldStats,
         toggleRecentSelection, toggleAllRecent, toggleSearchSelection, toggleAllSearch,
         toggleHomeSelection, addToCart, removeFromCart, clearCart, isInCart, exportCart, copyCartLinks,
         fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers,
-        searchPapers, startHomeSearch, exportPapers, updatePaperCollectionIds
+        searchPapers, startHomeSearch, stopHomeSearch, scrollHomeLogsToBottom, exportPapers, updatePaperCollectionIds
     };
 });
