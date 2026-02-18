@@ -9,6 +9,9 @@ const usePaperStore = defineStore('paper', () => {
     const recentDays = ref('7');
     const recentNeedSync = ref(true);
     const recentSelectedIds = ref([]);
+    const recentLogsContainer = ref(null);
+    const recentUserScrolledUp = ref(false);
+    const recentUpdateController = ref(null);
     
     const homeQuery = ref('');
     const homeSearching = ref(false);
@@ -318,9 +321,19 @@ const usePaperStore = defineStore('paper', () => {
         }
     }
     
+    function stopUpdateRecent() {
+        if (recentUpdateController.value) {
+            recentUpdateController.value.abort();
+            recentUpdateController.value = null;
+        }
+        updatingRecent.value = false;
+    }
+    
     async function updateRecentPapers(configStore) {
         updatingRecent.value = true;
         recentLogs.value = [];
+        recentUserScrolledUp.value = false;
+        recentUpdateController.value = new AbortController();
         
         try {
             const params = new URLSearchParams({
@@ -328,7 +341,7 @@ const usePaperStore = defineStore('paper', () => {
                 limit: configStore.settingsConfig.recent_papers_limit || 64
             });
             
-            const response = await API.papers.recentUpdate(params.toString());
+            const response = await API.papers.recentUpdate(params.toString(), recentUpdateController.value.signal);
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
@@ -351,6 +364,7 @@ const usePaperStore = defineStore('paper', () => {
                                 recentPapers.value.unshift(data.paper);
                             } else if (data.type === 'done') {
                                 recentNeedSync.value = false;
+                                recentLogs.value.push({ type: 'success', message: configStore?.currentLang === 'zh' ? '更新完成' : 'Update completed' });
                             } else if (data.type === 'error') {
                                 recentLogs.value.push({ type: 'error', message: data.message });
                             }
@@ -359,9 +373,14 @@ const usePaperStore = defineStore('paper', () => {
                 }
             }
         } catch (e) {
-            recentLogs.value.push({ type: 'error', message: `更新失败: ${e.message}` });
+            if (e.name === 'AbortError') {
+                recentLogs.value.push({ type: 'info', message: configStore?.currentLang === 'zh' ? '更新已取消' : 'Update cancelled' });
+            } else {
+                recentLogs.value.push({ type: 'error', message: `更新失败: ${e.message}` });
+            }
         } finally {
             updatingRecent.value = false;
+            recentUpdateController.value = null;
         }
     }
     
@@ -469,17 +488,15 @@ const usePaperStore = defineStore('paper', () => {
                             const data = JSON.parse(line.slice(6));
                             if (data.type === 'log') {
                                 homeLogs.value.push({ type: 'info', message: data.message });
-                                scrollHomeLogsToBottom();
                             } else if (data.type === 'result') {
                                 homeResults.value.push(data.paper);
                             } else if (data.type === 'done') {
                                 if (data.total === 0) {
                                     homeLogs.value.push({ type: 'info', message: configStore?.currentLang === 'zh' ? '未找到匹配的论文' : 'No matching papers found' });
-                                    scrollHomeLogsToBottom();
                                 }
+                                homeLogs.value.push({ type: 'success', message: configStore?.currentLang === 'zh' ? '搜索完成' : 'Search completed' });
                             } else if (data.type === 'error') {
                                 homeLogs.value.push({ type: 'error', message: data.message });
-                                scrollHomeLogsToBottom();
                             }
                         } catch (e) {}
                     }
@@ -491,7 +508,6 @@ const usePaperStore = defineStore('paper', () => {
             } else {
                 homeLogs.value.push({ type: 'error', message: `搜索失败: ${e.message}` });
             }
-            scrollHomeLogsToBottom();
         } finally {
             homeSearching.value = false;
             homeController.value = null;
@@ -542,14 +558,14 @@ const usePaperStore = defineStore('paper', () => {
     
     return {
         recentPapers, loadingRecent, loadingProgress, loadingTotal, loadingController,
-        updatingRecent, recentLogs, recentDays, recentNeedSync, recentSelectedIds,
+        updatingRecent, recentLogs, recentDays, recentNeedSync, recentSelectedIds, recentLogsContainer, recentUserScrolledUp, recentUpdateController,
         homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds, homeController, homeLogsContainer, homeUserScrolledUp,
         searchQuery, searching, searchLogs, searchResults, searchSelectedIds,
         paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex,
         stats, fieldStats,
         toggleRecentSelection, toggleAllRecent, toggleSearchSelection, toggleAllSearch,
         toggleHomeSelection, addToCart, removeFromCart, clearCart, isInCart, exportCart, copyCartLinks,
-        fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers,
-        searchPapers, startHomeSearch, stopHomeSearch, scrollHomeLogsToBottom, exportPapers, updatePaperCollectionIds
+        fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers, stopUpdateRecent,
+        searchPapers, startHomeSearch, stopHomeSearch, exportPapers, updatePaperCollectionIds
     };
 });

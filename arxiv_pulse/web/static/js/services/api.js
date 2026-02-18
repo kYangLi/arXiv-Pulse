@@ -31,7 +31,7 @@ const API = {
 
     papers: {
         recentCacheStream: (params) => fetch(`${API_BASE}/papers/recent/cache/stream?${params}`),
-        recentUpdate: (params) => fetch(`${API_BASE}/papers/recent/update?${params}`, { method: 'POST' }),
+        recentUpdate: (params, signal) => fetch(`${API_BASE}/papers/recent/update?${params}`, { method: 'POST', signal }),
         searchStream: (params) => fetch(`${API_BASE}/papers/search/stream?${params}`),
         quick: (params, signal) => fetch(`${API_BASE}/papers/quick?${params}`, { signal }),
         pdf: (arxivId) => fetch(`${API_BASE}/papers/pdf/${arxivId}`)

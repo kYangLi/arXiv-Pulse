@@ -1077,6 +1077,28 @@
             max-height: 100px;
             padding: 12px 16px;
         }
+        .recent-logs {
+            max-height: 100px;
+            padding: 12px 16px;
+        }
+        .stop-btn-recent {
+            cursor: pointer;
+            color: #909399;
+            transition: all 0.25s ease;
+            padding: 6px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 8px;
+        }
+        .stop-btn-recent:hover {
+            color: #f56c6c;
+            background: rgba(245, 108, 108, 0.1);
+        }
+        .stop-btn-recent svg {
+            display: block;
+        }
         
         /* Cache Management */
         .cache-management {
