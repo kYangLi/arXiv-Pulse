@@ -301,30 +301,29 @@
 
                     <div class="sync-options">
                         <h3>{{ t('sync.syncSettings') }}</h3>
-                        <el-form label-position="top">
-                            <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-end;">
-                                <el-form-item :label="t('sync.yearsBack')">
-                                    <el-select v-model="syncYearsBack" style="width: 120px;">
-                                        <el-option v-for="item in syncYearsBackOptions" :key="item.value" :label="item.label" :value="item.value" />
-                                    </el-select>
-                                </el-form-item>
-                                <el-form-item>
-                                    <div style="display: flex; align-items: center; gap: 6px;">
-                                        <span style="font-size: 14px; color: var(--text-secondary);">{{ t('sync.forceSync') }}</span>
-                                        <el-tooltip :content="t('sync.forceSyncHint')" placement="top" max-width="300">
-                                            <el-icon style="cursor: help; color: var(--text-muted);"><QuestionFilled /></el-icon>
-                                        </el-tooltip>
-                                    </div>
-                                    <el-switch v-model="syncForce" style="margin-top: 4px;" />
-                                </el-form-item>
-                                <el-form-item label=" ">
-                                    <el-button type="primary" @click="startSync" :loading="syncing">
-                                        <el-icon><Refresh /></el-icon> {{ t('sync.startSync') }}
-                                    </el-button>
-                                </el-form-item>
+                        <div class="sync-form-row">
+                            <div class="sync-form-item">
+                                <label class="sync-label">{{ t('sync.yearsBack') }}</label>
+                                <el-select v-model="syncYearsBack" style="width: 100px;">
+                                    <el-option v-for="item in syncYearsBackOptions" :key="item.value" :label="item.label" :value="item.value" />
+                                </el-select>
                             </div>
-                        </el-form>
-                        <p style="color: var(--text-muted); font-size: 12px; margin-top: 8px;">
+                            <div class="sync-form-item">
+                                <label class="sync-label">
+                                    {{ t('sync.forceSync') }}
+                                    <el-tooltip :content="t('sync.forceSyncHint')" placement="top" :show-after="300">
+                                        <span class="help-icon">?</span>
+                                    </el-tooltip>
+                                </label>
+                                <el-switch v-model="syncForce" />
+                            </div>
+                            <div class="sync-form-item">
+                                <el-button type="primary" @click="startSync" :loading="syncing">
+                                    <el-icon><Refresh /></el-icon> {{ t('sync.startSync') }}
+                                </el-button>
+                            </div>
+                        </div>
+                        <p class="sync-hint">
                             {{ currentLang === 'zh' ? '同步年份覆盖默认设置。全局默认在左下角设置中配置。' : 'Sync years override default. Configure global defaults in Settings.' }}
                         </p>
                     </div>

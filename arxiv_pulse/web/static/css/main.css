@@ -1071,6 +1071,47 @@
             font-size: 15px;
             font-weight: 600;
         }
+        .sync-form-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+        .sync-form-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .sync-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .help-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border: 1.5px solid var(--text-muted);
+            border-radius: 50%;
+            cursor: help;
+            transition: all 0.2s;
+        }
+        .help-icon:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        .sync-hint {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 12px;
+        }
         
         /* Logs */
         .logs-container { 
