@@ -157,115 +157,94 @@ const CollectionDialogsTemplate = `
     </div>
 `;
 
-const CollectionDialogsSetup = {
-    props: {
-        collections: {
-            type: Array,
-            default: () => []
-        },
-        paperCart: {
-            type: Array,
-            default: () => []
-        },
-        t: {
-            type: Function,
-            required: true
-        },
-        currentLang: {
-            type: String,
-            default: 'zh'
-        }
-    },
-    emits: ['add-to-cart', 'remove-from-cart'],
-    setup(props, { emit }) {
-        const collectionStore = useCollectionStore();
-        const configStore = useConfigStore();
-        const uiStore = useUiStore();
-        
-        const {
-            viewingCollection, collectionPapers,
-            collectionCurrentPage, collectionTotalCount, collectionTotalPages,
-            collectionPaperSearch, loadingCollectionPapers, useAiSearch, aiSearching,
-            collectionViewMode, collectionSearchQuery, collectionSortBy, collectionSortOrder,
-            showCreateCollection, savingCollection, editingCollection, newCollection,
-            showDeleteConfirm, deletingCollection, deletingCollectionInProgress,
-            showMergeConfirmDialog, mergingFromCollection, mergingToCollection, mergingInProgress,
-            selectedCollectionId, showCollectionDetail, showAddToCollection, selectedPaper, addingToCollection
-        } = storeToRefs(collectionStore);
-        
-        function formatRelativeTime(dateStr) {
-            return uiStore.formatRelativeTime(dateStr, configStore);
-        }
-        
-        function isInCart(arxivId) {
-            return props.paperCart.some(p => p.arxiv_id === arxivId);
-        }
-        
-        function addToCart(paper) {
-            emit('add-to-cart', paper);
-        }
-        
-        function removeFromCartByArxivId(arxivId) {
-            emit('remove-from-cart', arxivId);
-        }
-        
-        async function saveCollection() {
-            await collectionStore.saveNewCollection(configStore);
-        }
-        
-        function cancelCollectionDialog() {
-            collectionStore.cancelCollectionDialog();
-        }
-        
-        async function confirmAddToCollection() {
-            await collectionStore.confirmAddToCollection(configStore, props.paperCart);
-        }
-        
-        function addToCollection(paper) {
-            collectionStore.addToCollection(paper);
-        }
-        
-        async function removePaperFromCollection(paperId) {
-            await collectionStore.removePaperFromCollection(paperId, configStore);
-        }
-        
-        async function performSearch() {
-            await collectionStore.performSearch(configStore);
-        }
-        
-        function toggleSortOrder() {
-            collectionStore.toggleSortOrder(configStore);
-        }
-        
-        function openPaperUrl(url) {
-            collectionStore.openPaperUrl(url);
-        }
-        
-        async function loadCollectionPage() {
-            await collectionStore.loadCollectionPage(configStore);
-        }
-        
-        async function deleteCollection() {
-            await collectionStore.deleteCollection(configStore);
-        }
-        
-        async function mergePapers() {
-            await collectionStore.mergePapers(configStore);
-        }
-        
-        return {
-            showCreateCollection, editingCollection, newCollection, savingCollection,
-            showAddToCollection, selectedPaper, selectedCollectionId, addingToCollection,
-            showCollectionDetail, viewingCollection, collectionTotalCount, collectionPapers,
-            loadingCollectionPapers, aiSearching, useAiSearch, collectionPaperSearch,
-            collectionSortBy, collectionSortOrder, collectionViewMode, collectionCurrentPage, collectionTotalPages,
-            showDeleteConfirm, deletingCollection, deletingCollectionInProgress,
-            showMergeConfirmDialog, mergingFromCollection, mergingToCollection, mergingInProgress,
-            formatRelativeTime,
-            isInCart, addToCart, removeFromCartByArxivId,
-            saveCollection, cancelCollectionDialog, confirmAddToCollection,
-            addToCollection, removePaperFromCollection, performSearch, toggleSortOrder,
-            openPaperUrl, loadCollectionPage, deleteCollection, mergePapers
-        };
+const CollectionDialogsSetup = (props, { emit }) => {
+    const collectionStore = useCollectionStore();
+    const configStore = useConfigStore();
+    const uiStore = useUiStore();
+    
+    const {
+        viewingCollection, collectionPapers,
+        collectionCurrentPage, collectionTotalCount, collectionTotalPages,
+        collectionPaperSearch, loadingCollectionPapers, useAiSearch, aiSearching,
+        collectionViewMode, collectionSearchQuery, collectionSortBy, collectionSortOrder,
+        showCreateCollection, savingCollection, editingCollection, newCollection,
+        showDeleteConfirm, deletingCollection, deletingCollectionInProgress,
+        showMergeConfirmDialog, mergingFromCollection, mergingToCollection, mergingInProgress,
+        selectedCollectionId, showCollectionDetail, showAddToCollection, selectedPaper, addingToCollection
+    } = storeToRefs(collectionStore);
+    
+    function formatRelativeTime(dateStr) {
+        return uiStore.formatRelativeTime(dateStr, configStore);
     }
+    
+    function isInCart(arxivId) {
+        return props.paperCart.some(p => p.arxiv_id === arxivId);
+    }
+    
+    function addToCart(paper) {
+        emit('add-to-cart', paper);
+    }
+    
+    function removeFromCartByArxivId(arxivId) {
+        emit('remove-from-cart', arxivId);
+    }
+    
+    async function saveCollection() {
+        await collectionStore.saveNewCollection(configStore);
+    }
+    
+    function cancelCollectionDialog() {
+        collectionStore.cancelCollectionDialog();
+    }
+    
+    async function confirmAddToCollection() {
+        await collectionStore.confirmAddToCollection(configStore, props.paperCart);
+    }
+    
+    function addToCollection(paper) {
+        collectionStore.addToCollection(paper);
+    }
+    
+    async function removePaperFromCollection(paperId) {
+        await collectionStore.removePaperFromCollection(paperId, configStore);
+    }
+    
+    async function performSearch() {
+        await collectionStore.performSearch(configStore);
+    }
+    
+    function toggleSortOrder() {
+        collectionStore.toggleSortOrder(configStore);
+    }
+    
+    function openPaperUrl(url) {
+        collectionStore.openPaperUrl(url);
+    }
+    
+    async function loadCollectionPage() {
+        await collectionStore.loadCollectionPage(configStore);
+    }
+    
+    async function deleteCollection() {
+        await collectionStore.deleteCollection(configStore);
+    }
+    
+    async function mergePapers() {
+        await collectionStore.mergePapers(configStore);
+    }
+    
+    return {
+        showCreateCollection, editingCollection, newCollection, savingCollection,
+        showAddToCollection, selectedPaper, selectedCollectionId, addingToCollection,
+        showCollectionDetail, viewingCollection, collectionTotalCount, collectionPapers,
+        loadingCollectionPapers, aiSearching, useAiSearch, collectionPaperSearch,
+        collectionSortBy, collectionSortOrder, collectionViewMode, collectionCurrentPage, collectionTotalPages,
+        showDeleteConfirm, deletingCollection, deletingCollectionInProgress,
+        showMergeConfirmDialog, mergingFromCollection, mergingToCollection, mergingInProgress,
+        formatRelativeTime,
+        isInCart, addToCart, removeFromCartByArxivId,
+        saveCollection, cancelCollectionDialog, confirmAddToCollection,
+        addToCollection, removePaperFromCollection, performSearch, toggleSortOrder,
+        openPaperUrl, loadCollectionPage, deleteCollection, mergePapers
+    };
 };

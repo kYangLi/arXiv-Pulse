@@ -190,57 +190,45 @@ const ChatWidgetTemplate = `
     </transition>
 `;
 
-const ChatWidgetSetup = {
-    props: {
-        show: Boolean,
-        position: Object,
-        size: Object,
-        zIndex: Number,
-        fullscreen: Boolean,
-        animating: Boolean,
-        currentLang: String
-    },
-    emits: ['update:show', 'update:fullscreen', 'bring-to-front', 'start-drag', 'start-resize'],
-    setup(props, { emit }) {
-        const chatStore = useChatStore();
-        const configStore = useConfigStore();
-        
-        const {
-            chatSessions, currentChatSession, chatMessages, chatInput,
-            selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
-            chatMessagesContainer, quickPrompts
-        } = storeToRefs(chatStore);
-        
-        const {
-            createNewChat, selectChatSession, deleteChatSession, clearAllChatSessions,
-            sendChatMessage, sendQuickPrompt, removeSelectedChatPaper,
-            formatChatMessage, formatChatTime, handleChatScroll
-        } = chatStore;
-        
-        function t(key, params) {
-            return configStore.t(key, params);
-        }
-        
-        function onMouseDown(e) {
-            if (e.target.closest('.collapse-btn') || e.target.closest('.el-button') || e.target.closest('.chat-resize-handle')) return;
-            emit('start-drag', e);
-        }
-        
-        function toggleFullscreen() {
-            emit('update:fullscreen', !props.fullscreen);
-        }
-        
-        function onResizeStart(direction, e) {
-            emit('start-resize', direction, e);
-        }
-        
-        return {
-            showChatSidebar, chatSessions, currentChatSession, chatMessages, chatInput,
-            selectedChatPapers, chatTyping, chatProgress, chatMessagesContainer, quickPrompts,
-            t, createNewChat, selectChatSession, deleteChatSession, clearAllChatSessions,
-            sendChatMessage, sendQuickPrompt, removeSelectedChatPaper,
-            formatChatMessage, formatChatTime, handleChatScroll,
-            onMouseDown, toggleFullscreen, onResizeStart
-        };
+const ChatWidgetSetup = (props, { emit }) => {
+    const chatStore = useChatStore();
+    const configStore = useConfigStore();
+    
+    const {
+        chatSessions, currentChatSession, chatMessages, chatInput,
+        selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
+        chatMessagesContainer, quickPrompts
+    } = storeToRefs(chatStore);
+    
+    const {
+        createNewChat, selectChatSession, deleteChatSession, clearAllChatSessions,
+        sendChatMessage, sendQuickPrompt, removeSelectedChatPaper,
+        formatChatMessage, formatChatTime, handleChatScroll
+    } = chatStore;
+    
+    function t(key, params) {
+        return configStore.t(key, params);
     }
+    
+    function onMouseDown(e) {
+        if (e.target.closest('.collapse-btn') || e.target.closest('.el-button') || e.target.closest('.chat-resize-handle')) return;
+        emit('start-drag', e);
+    }
+    
+    function toggleFullscreen() {
+        emit('update:fullscreen', !props.fullscreen);
+    }
+    
+    function onResizeStart(direction, e) {
+        emit('start-resize', direction, e);
+    }
+    
+    return {
+        showChatSidebar, chatSessions, currentChatSession, chatMessages, chatInput,
+        selectedChatPapers, chatTyping, chatProgress, chatMessagesContainer, quickPrompts,
+        t, createNewChat, selectChatSession, deleteChatSession, clearAllChatSessions,
+        sendChatMessage, sendQuickPrompt, removeSelectedChatPaper,
+        formatChatMessage, formatChatTime, handleChatScroll,
+        onMouseDown, toggleFullscreen, onResizeStart
+    };
 };
