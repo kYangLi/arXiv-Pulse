@@ -64,7 +64,7 @@ def extract_key_findings(summary: str | None) -> list[str]:
 def summarize_and_cache_paper(paper: Paper) -> bool:
     """总结论文并保存到数据库"""
     try:
-        from arxiv_pulse.summarizer import PaperSummarizer
+        from arxiv_pulse.ai import PaperSummarizer
 
         summarizer = PaperSummarizer()
         return summarizer.summarize_paper(paper)

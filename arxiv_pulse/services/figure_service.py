@@ -14,7 +14,7 @@ def get_figure_url_cached(arxiv_id: str, session) -> str | None:
 def fetch_and_cache_figure(arxiv_id: str) -> str | None:
     """获取论文图片并缓存到数据库"""
     try:
-        from arxiv_pulse.report_generator import ReportGenerator
+        from arxiv_pulse.ai import ReportGenerator
 
         report_gen = ReportGenerator()
         return report_gen.get_first_figure_url(arxiv_id, use_cache=True)
