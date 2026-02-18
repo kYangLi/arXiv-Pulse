@@ -3,9 +3,9 @@
 ## Goal
 
 Refactor the ArXiv-Pulse project to improve code organization, modularity, and maintainability:
-- Reduce index.html from 7035 lines (monolithic Vue app) to ~2500 lines
-- Create modular Vue components with Pinia stores
-- Ensure all functionality works correctly with comprehensive tests
+- Reduce index.html from 7035 lines (monolithic Vue app) to ~2500 lines ✅
+- Create modular Vue components with Pinia stores ✅
+- Ensure all functionality works correctly with comprehensive tests ✅
 
 ## Instructions
 
@@ -27,6 +27,7 @@ Refactor the ArXiv-Pulse project to improve code organization, modularity, and m
 - **PaperCard props**: Pass `t` and `currentLang` as props to avoid Pinia initialization timing issues.
 - **configStore.t()**: All `t()` calls in JavaScript code must use `configStore.t()` instead of local `t()`.
 - **Optional chaining**: Use `?.` for potentially null refs in templates (e.g., `cacheStats?.translations || 0`).
+- **Self-closing tags**: HTML5 browsers don't recognize self-closing tags for custom Vue components. Use explicit closing tags (e.g., `<settings-drawer></settings-drawer>` NOT `<settings-drawer />`).
 
 ## Current Progress
 
@@ -34,7 +35,7 @@ Refactor the ArXiv-Pulse project to improve code organization, modularity, and m
 
 | File | Original | Current | Reduction |
 |------|----------|---------|-----------|
-| index.html | 7035 | 3028 | **-57%** |
+| index.html | 7035 | 2456 | **-65%** ✅ |
 | papers.py | 1069 | 812 | **-24%** |
 
 ### Completed Modules
@@ -50,17 +51,19 @@ Refactor the ArXiv-Pulse project to improve code organization, modularity, and m
 **Frontend API layer**:
 - `js/services/api.js` (125 lines) - unified API calls
 
-**Vue components** (540 lines total):
+**Vue components** (1070 lines total):
 - `js/components/PaperCard.js` (315 lines) - Paper card with i18n props
 - `js/components/FieldSelectorDialog.js` (210 lines) - Field selector dialog
 - `js/components/PaperBasketPanel.js` (115 lines) - Paper basket with drag
 - `js/components/SettingsDrawer.js` (115 lines) - Settings drawer
+- `js/components/CollectionDialogs.js` (270 lines) - Collection dialogs (5 dialogs)
+- `js/components/ChatWidget.js` (260 lines) - AI chat window with sidebar
 
-**Pinia stores** (1560 lines total):
+**Pinia stores** (1620 lines total):
 - `js/stores/configStore.js` (355 lines) - Config, settings, categories, i18n, field selector
 - `js/stores/paperStore.js` (500 lines) - Papers, cart, search, export
-- `js/stores/collectionStore.js` (302 lines) - Collections, collection papers
-- `js/stores/chatStore.js` (321 lines) - Chat sessions, messages
+- `js/stores/collectionStore.js` (340 lines) - Collections, collection papers, dialogs
+- `js/stores/chatStore.js` (322 lines) - Chat sessions, messages, formatting
 - `js/stores/uiStore.js` (146 lines) - Navigation, sync, cache
 
 ### i18n Decision
@@ -77,20 +80,16 @@ Reasons:
 
 ---
 
-## Remaining Work: Frontend Component Extraction
+## Refactoring Complete ✅
 
-### Overview
+All planned components have been extracted:
+1. ✅ FieldSelectorDialog
+2. ✅ PaperBasketPanel
+3. ✅ SettingsDrawer
+4. ✅ CollectionDialogs
+5. ✅ ChatWidget
 
-Extract 2 remaining components from index.html:
-
-| Component | Template Lines | Setup Lines | Total | Store Dependency |
-|-----------|---------------|-------------|-------|------------------|
-| CollectionDialogs | 155 | ~50 | ~200 | collectionStore, configStore.t |
-| ChatWidget | 200 | ~80 | ~280 | chatStore, configStore.t |
-| **Total** | **355** | **~130** | **~480** | |
-| **Total** | **659** | **~250** | **~900** | |
-
-**Expected final index.html**: ~2500 lines (64% reduction from 7035)
+**Final index.html**: 2456 lines (65% reduction from original 7035 lines)
 
 ---
 
