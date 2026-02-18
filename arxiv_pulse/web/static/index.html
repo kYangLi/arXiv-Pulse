@@ -570,12 +570,28 @@
 
         <!-- Floating Buttons Left (Language + Settings) -->
         <div v-if="!showSetup" class="floating-buttons-left">
-            <el-tooltip :content="currentLang === 'zh' ? '回到顶层' : 'Back to top'" placement="right" :show-after="500">
-                <el-button v-show="showBackToTop" circle class="back-to-top-btn" @click="scrollToTop">
-                    <el-icon><Top /></el-icon>
+            <el-tooltip :content="currentLang === 'zh' ? '系统语言' : 'System Language'" placement="right" :show-after="500">
+                <el-button circle class="lang-btn" @click="toggleLanguage">
+                    {{ currentLang === 'zh' ? 'EN' : '中' }}
                 </el-button>
             </el-tooltip>
-            <el-tooltip :content="currentLang === 'zh' ? '暂存篮' : 'Basket'" placement="right" :show-after="500">
+            <el-tooltip :content="currentLang === 'zh' ? '设置' : 'Settings'" placement="right" :show-after="500">
+                <el-button circle class="settings-btn" @click="showSettings = true">
+                    <el-icon><Setting /></el-icon>
+                </el-button>
+            </el-tooltip>
+        </div>
+
+        <!-- Floating Buttons Right (Back to Top + Cart + Chat) -->
+        <div v-if="!showSetup" class="floating-buttons-right">
+            <el-tooltip :content="currentLang === 'zh' ? '回到顶层' : 'Back to top'" placement="left" :show-after="500">
+                <el-button v-show="showBackToTop" circle class="back-to-top-btn" @click="scrollToTop">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" style="stroke: currentColor; stroke-width: 2; fill: none;">
+                        <path d="M12 19V5M5 12l7-7 7 7"/>
+                    </svg>
+                </el-button>
+            </el-tooltip>
+            <el-tooltip :content="currentLang === 'zh' ? '暂存篮' : 'Basket'" placement="left" :show-after="500">
                 <el-badge :value="paperCart.length" :hidden="paperCart.length === 0" :max="9">
                     <el-button circle class="cart-fab-btn" @click="showCart = !showCart">
                         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
@@ -584,7 +600,7 @@
                     </el-button>
                 </el-badge>
             </el-tooltip>
-            <el-tooltip :content="currentLang === 'zh' ? 'AI助手' : 'AI Assistant'" placement="right" :show-after="500">
+            <el-tooltip :content="currentLang === 'zh' ? 'AI助手' : 'AI Assistant'" placement="left" :show-after="500">
                 <el-badge :value="chatUnreadCount" :hidden="chatUnreadCount === 0" :max="9">
                     <el-button circle class="chat-fab-btn" @click="toggleChat">
                         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
@@ -592,20 +608,6 @@
                         </svg>
                     </el-button>
                 </el-badge>
-            </el-tooltip>
-        </div>
-
-        <!-- Floating Buttons Right (Language + Settings) -->
-        <div v-if="!showSetup" class="floating-buttons-right">
-            <el-tooltip :content="currentLang === 'zh' ? '系统语言' : 'System Language'" placement="left" :show-after="500">
-                <el-button circle class="lang-btn" @click="toggleLanguage">
-                    {{ currentLang === 'zh' ? 'EN' : '中' }}
-                </el-button>
-            </el-tooltip>
-            <el-tooltip :content="currentLang === 'zh' ? '设置' : 'Settings'" placement="left" :show-after="500">
-                <el-button circle class="settings-btn" @click="showSettings = true">
-                    <el-icon><Setting /></el-icon>
-                </el-button>
             </el-tooltip>
         </div>
 

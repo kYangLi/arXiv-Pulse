@@ -114,37 +114,39 @@ const CollectionDialogsTemplate = `
                     </template>
                     <template v-else>
                         <div v-for="(paper, idx) in collectionPapers" :key="paper.id" class="collection-list-item">
-                            <div class="list-item-header">
-                                <span class="paper-index-list">{{ idx + 1 }}</span>
-                                <div class="list-item-title" @click="openPaperUrl(paper.arxiv_url)">{{ paper.title }}</div>
-                                <div class="list-item-actions">
-                                    <a :href="'https://arxiv.org/abs/' + paper.arxiv_id" target="_blank" class="arxiv-link" @click.stop>{{ paper.arxiv_id }}</a>
-                                    <el-button 
-                                        v-if="!isInCart(paper.arxiv_id)" 
-                                        size="small" 
-                                        text 
-                                        type="warning"
-                                        @click.stop="addToCart(paper)"
-                                        :title="currentLang === 'zh' ? '暂存' : 'Mark'"
-                                    >
-                                        <el-icon><Star /></el-icon>
-                                    </el-button>
-                                    <el-button 
-                                        v-else 
-                                        size="small" 
-                                        type="warning" 
-                                        plain
-                                        @click.stop="removeFromCartByArxivId(paper.arxiv_id)"
-                                        :title="currentLang === 'zh' ? '取消暂存' : 'Unmark'"
-                                    >
-                                        <el-icon><StarFilled /></el-icon>
-                                    </el-button>
+                            <span class="paper-index-list">{{ idx + 1 }}</span>
+                            <div class="list-item-content">
+                                <div class="list-item-header">
+                                    <div class="list-item-title" @click="openPaperUrl(paper.arxiv_url)">{{ paper.title }}</div>
+                                    <div class="list-item-actions">
+                                        <a :href="'https://arxiv.org/abs/' + paper.arxiv_id" target="_blank" class="arxiv-link" @click.stop>{{ paper.arxiv_id }}</a>
+                                        <el-button 
+                                            v-if="!isInCart(paper.arxiv_id)" 
+                                            size="small" 
+                                            text 
+                                            type="warning"
+                                            @click.stop="addToCart(paper)"
+                                            :title="currentLang === 'zh' ? '暂存' : 'Mark'"
+                                        >
+                                            <el-icon><Star /></el-icon>
+                                        </el-button>
+                                        <el-button 
+                                            v-else 
+                                            size="small" 
+                                            type="warning" 
+                                            plain
+                                            @click.stop="removeFromCartByArxivId(paper.arxiv_id)"
+                                            :title="currentLang === 'zh' ? '取消暂存' : 'Unmark'"
+                                        >
+                                            <el-icon><StarFilled /></el-icon>
+                                        </el-button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="list-item-meta">
-                                <span>{{ paper.authors?.map(a => a.name).slice(0, 3).join(', ') }}{{ paper.authors?.length > 3 ? '...' : '' }}</span>
-                                <span>·</span>
-                                <span>{{ paper.published?.slice(0, 10) }}</span>
+                                <div class="list-item-meta">
+                                    <span>{{ paper.authors?.map(a => a.name).slice(0, 3).join(', ') }}{{ paper.authors?.length > 3 ? '...' : '' }}</span>
+                                    <span>·</span>
+                                    <span>{{ paper.published?.slice(0, 10) }}</span>
+                                </div>
                             </div>
                         </div>
                     </template>
