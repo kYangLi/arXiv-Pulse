@@ -207,7 +207,8 @@ marimo/_lsp/
 __marimo__/
 
 # Project specific
-tests/
+tests/data/
+tests/*.log
 data/
 .pulse.lock
 web.log
