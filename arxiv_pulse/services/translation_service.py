@@ -3,6 +3,7 @@ Translation service - 文本翻译服务
 """
 
 from arxiv_pulse.config import Config
+
 from arxiv_pulse.web.dependencies import get_db
 
 
