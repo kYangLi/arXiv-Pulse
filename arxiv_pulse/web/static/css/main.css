@@ -348,7 +348,7 @@
             color: var(--primary);
         }
         .home-search-box .el-input__prefix .searching {
-            animation: search-orbit 1.2s linear infinite;
+            animation: search-orbit 1.2s ease-in-out infinite;
         }
         @keyframes search-orbit {
             0% { transform: translate(3px, 0); }
@@ -361,19 +361,16 @@
             cursor: pointer;
             color: #909399;
             transition: all 0.25s ease;
-            padding: 4px;
+            padding: 6px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 8px;
-            border: 1.5px solid transparent;
+            margin-right: 6px;
         }
         .search-stop-btn:hover {
             color: #f56c6c;
-            border-color: #f56c6c;
-            background: rgba(245, 108, 108, 0.08);
-            transform: scale(1.05);
+            background: rgba(245, 108, 108, 0.1);
         }
         .search-stop-btn svg {
             display: block;
