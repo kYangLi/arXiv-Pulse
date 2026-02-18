@@ -316,39 +316,39 @@
                     <!-- Cache Management Section -->
                     <div class="cache-management">
                         <h3>{{ t('cache.title') }}</h3>
-                        <div class="cache-grid">
-                            <div class="cache-item">
-                                <div class="cache-info">
-                                    <span class="cache-label">{{ t('cache.translations') }}</span>
-                                    <span class="cache-count">{{ cacheStats.translations }} {{ currentLang === 'zh' ? '条' : 'entries' }}</span>
-                                </div>
-                                <el-button size="small" @click="clearCache('translations')" :loading="cacheClearing === 'translations'">
-                                    {{ t('cache.clear') }}
-                                </el-button>
-                            </div>
-                            <div class="cache-item">
-                                <div class="cache-info">
-                                    <span class="cache-label">{{ t('cache.summaries') }}</span>
-                                    <span class="cache-count">{{ cacheStats.summaries }} {{ currentLang === 'zh' ? '篇' : 'papers' }}</span>
-                                </div>
-                                <el-button size="small" @click="clearCache('summaries')" :loading="cacheClearing === 'summaries'">
-                                    {{ t('cache.clear') }}
-                                </el-button>
-                            </div>
-                            <div class="cache-item">
-                                <div class="cache-info">
-                                    <span class="cache-label">{{ t('cache.figures') }}</span>
-                                    <span class="cache-count">{{ cacheStats.figures }} {{ currentLang === 'zh' ? '条' : 'entries' }}</span>
-                                </div>
-                                <el-button size="small" @click="clearCache('figures')" :loading="cacheClearing === 'figures'">
-                                    {{ t('cache.clear') }}
-                                </el-button>
-                            </div>
-                            <div class="cache-item">
-                                <div class="cache-info">
-                                    <span class="cache-label">{{ t('cache.contents') }}</span>
-                                    <span class="cache-count">{{ cacheStats.contents }} {{ currentLang === 'zh' ? '条' : 'entries' }}</span>
-                                </div>
+                         <div class="cache-grid">
+                             <div class="cache-item">
+                                 <div class="cache-info">
+                                     <span class="cache-label">{{ t('cache.translations') }}</span>
+                                     <span class="cache-count">{{ cacheStats?.translations || 0 }} {{ currentLang === 'zh' ? '条' : 'entries' }}</span>
+                                 </div>
+                                 <el-button size="small" @click="clearCache('translations')" :loading="cacheClearing === 'translations'">
+                                     {{ t('cache.clear') }}
+                                 </el-button>
+                             </div>
+                             <div class="cache-item">
+                                 <div class="cache-info">
+                                     <span class="cache-label">{{ t('cache.summaries') }}</span>
+                                     <span class="cache-count">{{ cacheStats?.summaries || 0 }} {{ currentLang === 'zh' ? '篇' : 'papers' }}</span>
+                                 </div>
+                                 <el-button size="small" @click="clearCache('summaries')" :loading="cacheClearing === 'summaries'">
+                                     {{ t('cache.clear') }}
+                                 </el-button>
+                             </div>
+                             <div class="cache-item">
+                                 <div class="cache-info">
+                                     <span class="cache-label">{{ t('cache.figures') }}</span>
+                                     <span class="cache-count">{{ cacheStats?.figures || 0 }} {{ currentLang === 'zh' ? '条' : 'entries' }}</span>
+                                 </div>
+                                 <el-button size="small" @click="clearCache('figures')" :loading="cacheClearing === 'figures'">
+                                     {{ t('cache.clear') }}
+                                 </el-button>
+                             </div>
+                             <div class="cache-item">
+                                 <div class="cache-info">
+                                     <span class="cache-label">{{ t('cache.contents') }}</span>
+                                     <span class="cache-count">{{ cacheStats?.contents || 0 }} {{ currentLang === 'zh' ? '条' : 'entries' }}</span>
+                                 </div>
                                 <el-button size="small" @click="clearCache('contents')" :loading="cacheClearing === 'contents'">
                                     {{ t('cache.clear') }}
                                 </el-button>
