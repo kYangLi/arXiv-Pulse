@@ -1201,18 +1201,37 @@
 
     <script src="libs/vue/vue.global.prod.js"></script>
     <script>
-        // VueDemi shim for Vue 3
+        // Expose Vue reactivity APIs globally for Pinia stores
+        var ref = Vue.ref;
+        var computed = Vue.computed;
+        var reactive = Vue.reactive;
+        var watch = Vue.watch;
+        var watchEffect = Vue.watchEffect;
+        var onMounted = Vue.onMounted;
+        var onUnmounted = Vue.onUnmounted;
+        var nextTick = Vue.nextTick;
+        var toRef = Vue.toRef;
+        var toRefs = Vue.toRefs;
+        var unref = Vue.unref;
+        var isRef = Vue.isRef;
+        
+        // VueDemi shim for Vue 3 - exposes all Vue reactivity APIs Pinia needs
         var VueDemi = (function() {
             var Vue = window.Vue;
             if (!Vue) {
-                console.error('Vue is not loaded. Available globals:', Object.keys(window).filter(k => k.toLowerCase().includes('vue')));
+                console.error('Vue is not loaded');
                 throw new Error('Vue is not loaded');
             }
-            return {
+            var exports = {
                 ref: Vue.ref,
                 computed: Vue.computed,
                 watch: Vue.watch,
                 watchEffect: Vue.watchEffect,
+                watchPostEffect: Vue.watchPostEffect,
+                watchSyncEffect: Vue.watchSyncEffect,
+                effectScope: Vue.effectScope,
+                onScopeDispose: Vue.onScopeDispose,
+                getCurrentScope: Vue.getCurrentScope,
                 onMounted: Vue.onMounted,
                 onUnmounted: Vue.onUnmounted,
                 onBeforeUnmount: Vue.onBeforeUnmount,
@@ -1220,21 +1239,33 @@
                 inject: Vue.inject,
                 reactive: Vue.reactive,
                 readonly: Vue.readonly,
+                shallowReactive: Vue.shallowReactive,
+                shallowReadonly: Vue.shallowReadonly,
                 toRaw: Vue.toRaw,
                 toRefs: Vue.toRefs,
+                toRef: Vue.toRef,
                 isRef: Vue.isRef,
                 unref: Vue.unref,
                 isReactive: Vue.isReactive,
                 isReadonly: Vue.isReadonly,
+                isShallow: Vue.isShallow,
+                markRaw: Vue.markRaw,
                 nextTick: Vue.nextTick,
                 defineComponent: Vue.defineComponent,
+                getCurrentInstance: Vue.getCurrentInstance,
                 version: Vue.version || '3',
                 set: function(target, key, value) { target[key] = value; },
                 del: function(target, key) { delete target[key]; }
             };
+            exports.Vue = Vue;
+            return exports;
         })();
     </script>
     <script src="libs/pinia/pinia.iife.js"></script>
+    <script>
+        // Expose Pinia's defineStore globally for stores
+        var defineStore = Pinia.defineStore;
+    </script>
     <script src="libs/element-plus/index.full.js"></script>
     <script src="libs/element-plus/icons.iife.min.js"></script>
     <script src="libs/echarts/echarts.min.js"></script>
