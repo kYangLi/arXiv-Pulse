@@ -86,7 +86,14 @@ def enhance_paper_data(paper: Paper, session=None, translation_service=None) -> 
         try:
             summary_data = json.loads(paper.summary)
             data["summary_data"] = summary_data
-            data["summary_text"] = summary_data.get("summary", "") or summary_data.get("methodology", "") or ""
+            summary_text = summary_data.get("summary", "")
+            if not summary_text:
+                summary_text = summary_data.get("methodology", "")
+            if not summary_text:
+                summary_text = summary_data.get("relevance", "")
+            if not summary_text:
+                summary_text = summary_data.get("impact", "")
+            data["summary_text"] = summary_text
             data["key_findings"] = summary_data.get("key_findings", [])[:5]
             data["keywords"] = summary_data.get("keywords", [])[:10]
         except (json.JSONDecodeError, TypeError):

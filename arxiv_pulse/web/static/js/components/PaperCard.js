@@ -60,10 +60,6 @@ const PaperCardTemplate = `
             <h4>{{ t('paper.aiSummary') }}</h4>
             <p>{{ isZh ? '未配置 AI API Key，无法生成总结。请在设置中配置。' : 'AI API Key not configured. Please configure in Settings.' }}</p>
         </div>
-        <div v-else class="ai-summary-section" style="color: var(--text-muted); font-style: italic;">
-            <h4>{{ t('paper.aiSummary') }}</h4>
-            <p>{{ isZh ? '暂无 AI 总结' : 'No AI summary available' }}</p>
-        </div>
         <div v-if="paper.key_findings?.length" class="key-findings">
             <h4>{{ t('paper.keyFindings') }}</h4>
             <ul>
