@@ -236,14 +236,65 @@ const useCollectionStore = defineStore('collection', () => {
     async function duplicateCollection(collection, configStore) {
         savingCollection.value = true;
         try {
-            const res = await API.collections.create({
-                name: `${collection.name} (copy)`,
-                description: collection.description,
-                color: collection.color
-            });
-            if (res.ok) {
-                ElementPlus.ElMessage.success(configStore.currentLang === 'zh' ? '复制成功' : 'Duplicated');
-                fetchCollections();
+            let baseName = collection.name;
+            let newName = `${baseName} (copy)`;
+            let attempts = 0;
+            let res;
+            
+            while (attempts < 10) {
+                res = await API.collections.create({
+                    name: newName,
+                    description: collection.description,
+                    color: collection.color
+                });
+                
+                if (res.ok) {
+                    const newCollection = await res.json();
+                    
+                    const detailRes = await API.collections.get(collection.id);
+                    if (detailRes.ok) {
+                        const detail = await detailRes.json();
+                        if (detail.papers && detail.papers.length > 0) {
+                            const paperIds = detail.papers.map(p => p.id);
+                            await API.collections.addPapersBatch(newCollection.id, paperIds);
+                        }
+                    }
+                    
+                    ElementPlus.ElMessage.success(configStore.currentLang === 'zh' ? '复制成功' : 'Duplicated');
+                    fetchCollections();
+                    break;
+                } else if (res.status === 400) {
+                    const data = await res.json();
+                    if (data.detail && data.detail.includes('已存在')) {
+                        attempts++;
+                        newName = `${baseName} (copy ${attempts + 1})`;
+                    } else {
+                        ElementPlus.ElMessage.error(data.detail || (configStore.currentLang === 'zh' ? '复制失败' : 'Failed to duplicate'));
+                        break;
+                    }
+                } else {
+                    ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '复制失败' : 'Failed to duplicate');
+                    break;
+                }
+            }
+            
+            if (attempts >= 10) {
+                ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '复制失败：无法生成唯一名称' : 'Failed: cannot generate unique name');
+            }
+        } catch (e) {
+            ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '复制失败' : 'Failed to duplicate');
+        } finally {
+            savingCollection.value = false;
+        }
+    }
+                } else {
+                    ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '复制失败' : 'Failed to duplicate');
+                    break;
+                }
+            }
+            
+            if (attempts >= 10) {
+                ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '复制失败：无法生成唯一名称' : 'Failed: cannot generate unique name');
             }
         } catch (e) {
             ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '复制失败' : 'Failed to duplicate');
