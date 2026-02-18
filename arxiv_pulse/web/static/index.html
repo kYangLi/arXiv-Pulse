@@ -779,22 +779,22 @@
                     startHomeSearch(configStore);
                 }
                 
+                const homeLogsContainerRef = ref(null);
+                
                 function handleHomeLogsScroll(e) {
                     const el = e.target;
                     const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 10;
                     homeUserScrolledUp.value = !isAtBottom;
                 }
                 
-                const homeLogsContainerRef = ref(null);
-                
-                watch(homeLogs, () => {
+                watch(() => homeLogs.value.length, () => {
                     nextTick(() => {
                         const el = homeLogsContainerRef.value;
                         if (el && !homeUserScrolledUp.value) {
                             el.scrollTop = el.scrollHeight;
                         }
                     });
-                }, { flush: 'post' });
+                });
 
                 function bringToFront(panel) {
                     if (panel === 'cart') {
