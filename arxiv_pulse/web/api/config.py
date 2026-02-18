@@ -230,7 +230,7 @@ async def initial_sync():
     import asyncio
     import uuid
 
-    from arxiv_pulse.arxiv_crawler import ArXivCrawler
+    from arxiv_pulse.crawler import ArXivCrawler
 
     db = get_db()
 

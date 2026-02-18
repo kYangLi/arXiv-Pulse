@@ -10,11 +10,10 @@ from fastapi import APIRouter, HTTPException, Query
 
 from arxiv_pulse.config import Config
 from arxiv_pulse.models import Paper
+from arxiv_pulse.services.category_service import get_category_explanation
+from arxiv_pulse.services.figure_service import fetch_and_cache_figure, get_figure_url_cached
 from arxiv_pulse.services.paper_service import (
     enhance_paper_data,
-    fetch_and_cache_figure,
-    get_category_explanation,
-    get_figure_url_cached,
     summarize_and_cache_paper,
 )
 from arxiv_pulse.utils import sse_event, sse_response
@@ -226,7 +225,7 @@ async def update_recent_papers(
             await asyncio.sleep(0.1)
 
             try:
-                from arxiv_pulse.arxiv_crawler import ArXivCrawler
+                from arxiv_pulse.crawler import ArXivCrawler
 
                 crawler = ArXivCrawler()
                 queries = Config.SEARCH_QUERIES
@@ -328,7 +327,7 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
     async def event_generator():
         import asyncio
 
-        from arxiv_pulse.arxiv_crawler import ArXivCrawler
+        from arxiv_pulse.crawler import ArXivCrawler
 
         db = get_db()
         arxiv_id = parse_arxiv_id(q)

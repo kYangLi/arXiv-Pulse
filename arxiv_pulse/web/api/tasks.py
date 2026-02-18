@@ -126,7 +126,7 @@ async def start_sync_stream(
         await asyncio.sleep(0.1)
 
         try:
-            from arxiv_pulse.arxiv_crawler import ArXivCrawler
+            from arxiv_pulse.crawler import ArXivCrawler
 
             crawler = ArXivCrawler()
 
@@ -245,7 +245,7 @@ async def get_task(task_id: str):
 
 async def run_sync_task(task_id: str, data: SyncTaskCreate):
     """Background task for syncing papers"""
-    from arxiv_pulse.arxiv_crawler import ArXivCrawler
+    from arxiv_pulse.crawler import ArXivCrawler
 
     with get_db().get_session() as session:
         task = session.query(SyncTask).filter_by(id=task_id).first()
