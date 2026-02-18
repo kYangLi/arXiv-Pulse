@@ -348,31 +348,35 @@
             color: var(--primary);
         }
         .home-search-box .el-input__prefix .searching {
-            animation: search-orbit 1.5s ease-in-out infinite;
+            animation: search-orbit 1.2s linear infinite;
         }
         @keyframes search-orbit {
-            0% { transform: translate(0, 0); }
-            25% { transform: translate(4px, -4px); }
-            50% { transform: translate(0, -8px); }
-            75% { transform: translate(-4px, -4px); }
-            100% { transform: translate(0, 0); }
+            0% { transform: translate(3px, 0); }
+            25% { transform: translate(0, -3px); }
+            50% { transform: translate(-3px, 0); }
+            75% { transform: translate(0, 3px); }
+            100% { transform: translate(3px, 0); }
         }
         .search-stop-btn {
             cursor: pointer;
-            color: #f56c6c;
-            transition: all 0.2s ease;
-            padding: 2px;
+            color: #909399;
+            transition: all 0.25s ease;
+            padding: 4px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 4px;
+            margin-right: 8px;
+            border: 1.5px solid transparent;
         }
         .search-stop-btn:hover {
-            color: #fff;
-            background: #f56c6c;
-            transform: scale(1.1);
-            box-shadow: 0 2px 8px rgba(245, 108, 108, 0.4);
+            color: #f56c6c;
+            border-color: #f56c6c;
+            background: rgba(245, 108, 108, 0.08);
+            transform: scale(1.05);
+        }
+        .search-stop-btn svg {
+            display: block;
         }
         .home-stats {
             display: flex;
