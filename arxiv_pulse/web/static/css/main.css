@@ -348,24 +348,20 @@
             color: var(--primary);
         }
         .home-search-box .el-input__prefix .searching {
-            animation: search-orbit 1.6s ease-in-out infinite;
+            animation: search-orbit 1.6s linear infinite;
         }
         @keyframes search-orbit {
             0% { transform: translate(3px, 0); }
-            6% { transform: translate(2.77px, 1.15px); }
-            12% { transform: translate(2.12px, 2.12px); }
-            20% { transform: translate(1.15px, 2.77px); }
-            28% { transform: translate(0, 3px); }
-            36% { transform: translate(-1.15px, 2.77px); }
-            44% { transform: translate(-2.12px, 2.12px); }
-            50% { transform: translate(-2.77px, 1.15px); }
-            54% { transform: translate(-3px, 0); }
-            56% { transform: translate(-2.77px, -1.15px); }
-            58% { transform: translate(-2.12px, -2.12px); }
-            62% { transform: translate(0, -3px); }
-            66% { transform: translate(2.12px, -2.12px); }
-            70% { transform: translate(2.77px, -1.15px); }
-            74% { transform: translate(3px, 0); }
+            10% { transform: translate(2.77px, 1.15px); }
+            20% { transform: translate(2.12px, 2.12px); }
+            30% { transform: translate(1.15px, 2.77px); }
+            40% { transform: translate(0, 3px); }
+            50% { transform: translate(-2.12px, 2.12px); }
+            60% { transform: translate(-3px, 0); }
+            68% { transform: translate(-2.12px, -2.12px); }
+            76% { transform: translate(0, -3px); }
+            84% { transform: translate(2.12px, -2.12px); }
+            92% { transform: translate(2.77px, -1.15px); }
             100% { transform: translate(3px, 0); }
         }
         .search-stop-btn {
