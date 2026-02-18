@@ -143,26 +143,27 @@
                         :placeholder="t('home.searchPlaceholder')"
                         size="large"
                         @keyup.enter="handleHomeSearch"
-                        clearable
                     >
                         <template #prefix>
-                            <el-icon><Search /></el-icon>
+                            <el-icon :class="{ 'is-loading': homeSearching }"><Search v-if="!homeSearching" /><Loading v-else /></el-icon>
                         </template>
-                        <template #suffix v-if="homeSearching">
-                            <el-button 
-                                size="small" 
-                                type="danger" 
-                                circle 
-                                @click="stopHomeSearch"
-                                :title="currentLang === 'zh' ? '停止搜索' : 'Stop search'"
-                            >
-                                <el-icon><Close /></el-icon>
-                            </el-button>
+                        <template #suffix>
+                            <div class="search-suffix">
+                                <el-icon v-if="homeSearching" class="search-stop-btn" @click="stopHomeSearch" :title="currentLang === 'zh' ? '停止搜索' : 'Stop search'">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                                        <rect x="8" y="8" width="8" height="8" rx="1"/>
+                                    </svg>
+                                </el-icon>
+                                <el-icon v-if="homeQuery && !homeSearching" class="search-clear-btn" @click="homeQuery = ''" :title="currentLang === 'zh' ? '清空' : 'Clear'">
+                                    <CircleClose />
+                                </el-icon>
+                            </div>
                         </template>
                     </el-input>
                 </div>
                     
-                    <div v-if="homeLogs.length > 0" class="logs-container home-logs" ref="homeLogsContainerRef" @scroll="handleHomeLogsScroll" style="margin-top: 16px; max-height: 100px; max-width: 680px; width: 100%;">
+                    <div v-if="homeLogs.length > 0" class="logs-container home-logs" ref="homeLogsContainer" @scroll="handleHomeLogsScroll" style="margin-top: 16px; max-height: 100px; max-width: 680px; width: 100%;">
                         <div v-for="(log, index) in homeLogs" :key="index" class="log-line" :class="log.type">
                             > {{ log.message }}
                         </div>
@@ -778,18 +779,22 @@
                     { icon: '⚖️', text: 'Compare the similarities and differences' },
                 ]);
 
-                const homeLogsContainerRef = ref(null);
-                
                 function handleHomeSearch() {
                     startHomeSearch(configStore);
                 }
                 
                 function handleHomeLogsScroll() {
-                    const el = homeLogsContainerRef.value;
+                    const el = homeLogsContainer.value;
                     if (!el) return;
                     const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 10;
                     homeUserScrolledUp.value = !isAtBottom;
                 }
+                
+                watch(homeLogs, () => {
+                    nextTick(() => {
+                        scrollHomeLogsToBottom();
+                    });
+                }, { flush: 'post' });
 
                 function bringToFront(panel) {
                     if (panel === 'cart') {
@@ -2368,7 +2373,7 @@
                     openEditCollection, confirmDeleteCollection, duplicateCollection, openCollectionDetail, showMergeConfirm,
                     toggleRecentSelect, toggleRecentSelectAll, toggleSearchSelect, toggleSearchSelectAll,
                     exportRecent, exportSearch, exportCollection, exportCollectionWithId,
-                    navigateTo, navigateToHome, onTabChange, handleHomeSearch, stopHomeSearch, homeLogsContainerRef, handleHomeLogsScroll, toggleHomeSelect, exportHome,
+                    navigateTo, navigateToHome, onTabChange, handleHomeSearch, stopHomeSearch, homeLogsContainer, handleHomeLogsScroll, toggleHomeSelect, exportHome,
                     chatExpanded, chatPosition, chatPanelRef, chatZIndex,
                     chatFullscreen, chatSize, chatAnimating,
                     selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
