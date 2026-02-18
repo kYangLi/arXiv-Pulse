@@ -1281,7 +1281,8 @@
     <script src="js/stores/uiStore.js"></script>
     <script src="js/components/PaperCard.js"></script>
     <script>
-        const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+        // Vue and Pinia APIs already exposed globally by earlier scripts
+        const { createApp } = Vue;
         const { createPinia, storeToRefs } = Pinia;
         
         const i18n = { zh: i18nZh, en: i18nEn };
