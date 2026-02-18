@@ -1627,6 +1627,10 @@
                     collectionStore.openCollectionDetail(collection, configStore);
                 }
 
+                function showMergeConfirm(fromCollection, toCollection) {
+                    collectionStore.showMergeConfirm(fromCollection, toCollection);
+                }
+
                 function toggleRecentSelect(paperId) {
                     const idx = recentSelectedIds.value.indexOf(paperId);
                     if (idx >= 0) {
@@ -2368,7 +2372,7 @@
                     fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers, startSearch, fetchCollections,
                     getSelectedFieldsTooltip, hasSelectedFields,
                     fetchSyncStatus, startSync,
-                    openEditCollection, confirmDeleteCollection, duplicateCollection, openCollectionDetail,
+                    openEditCollection, confirmDeleteCollection, duplicateCollection, openCollectionDetail, showMergeConfirm,
                     toggleRecentSelect, toggleRecentSelectAll, toggleSearchSelect, toggleSearchSelectAll,
                     exportRecent, exportSearch, exportCollection, exportCollectionWithId,
                     navigateTo, navigateToHome, onTabChange, startHomeSearch, toggleHomeSelect, exportHome,
