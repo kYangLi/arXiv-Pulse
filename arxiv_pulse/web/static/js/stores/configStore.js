@@ -324,6 +324,19 @@ const useConfigStore = defineStore('config', () => {
         advancedQueriesText.value = '';
     }
     
+    function confirmFieldSelection() {
+        if (fieldSelectorSource.value === 'settings') {
+            settingsConfig.value.selected_fields = [...tempSelectedFields.value];
+            settingsConfig.value.search_queries = [...advancedQueriesLines.value];
+        } else if (fieldSelectorSource.value === 'init') {
+            setupConfig.value.selected_fields = [...tempSelectedFields.value];
+            setupConfig.value.search_queries = [...advancedQueriesLines.value];
+        } else if (fieldSelectorSource.value === 'recent') {
+            recentCategories.value = [...tempSelectedFields.value];
+        }
+        showFieldSelector.value = false;
+    }
+    
     return {
         showSetup, setupStep, testingAI, setupConfig,
         showSettings, savingSettings, settingsConfig,
@@ -336,6 +349,6 @@ const useConfigStore = defineStore('config', () => {
         checkInitStatus, fetchCategories, testSetupAI, fetchConfig,
         saveApiKey, testAIConnection, saveSettings,
         openFieldSelector, toggleFieldSelectorGroup, toggleTempField,
-        removeFromTempSelection, clearTempSelection
+        removeFromTempSelection, clearTempSelection, confirmFieldSelection
     };
 });
