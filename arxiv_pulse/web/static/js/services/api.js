@@ -82,10 +82,10 @@ const API = {
 
     cache: {
         stats: () => fetch(`${API_BASE}/cache/stats`),
-        clear: (types) => fetch(`${API_BASE}/cache/clear`, {
+        clear: (cacheType) => fetch(`${API_BASE}/cache/clear`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ types })
+            body: JSON.stringify({ cache_type: cacheType })
         })
     },
 

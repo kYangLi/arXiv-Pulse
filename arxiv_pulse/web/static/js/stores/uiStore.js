@@ -122,7 +122,7 @@ const useUiStore = defineStore('ui', () => {
         
         cacheClearing.value = type;
         try {
-            const res = await API.cache.clear([type]);
+            const res = await API.cache.clear(type);
             const data = await res.json();
             if (res.ok) {
                 ElementPlus.ElMessage.success(configStore.currentLang === 'zh' ? '已清理' : 'Cleared');

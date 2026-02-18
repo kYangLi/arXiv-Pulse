@@ -1593,7 +1593,7 @@
 
                     cacheClearing.value = type;
                     try {
-                        const res = await API.cache.clear([type]);
+                        const res = await API.cache.clear(type);
                         const data = await res.json();
                         if (data.success) {
                             const total = Object.values(data.cleared).reduce((a, b) => a + b, 0);
