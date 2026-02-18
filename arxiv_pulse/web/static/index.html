@@ -1632,12 +1632,12 @@
                         const date = new Date(info.updated_at);
                         return `缓存于 ${date.toLocaleString('zh-CN')}`;
                     }
-                    return t('sync.noCache');
+                    return configStore.t('sync.noCache');
                 });
 
                 const syncStatusText = computed(() => {
-                    if (!syncStatus.value?.last_sync) return t('sync.neverSynced');
-                    return syncStatus.value.last_sync.status === 'completed' ? t('sync.completed') : t('sync.inProgress');
+                    if (!syncStatus.value?.last_sync) return configStore.t('sync.neverSynced');
+                    return syncStatus.value.last_sync.status === 'completed' ? configStore.t('sync.completed') : configStore.t('sync.inProgress');
                 });
 
                 const syncStatusClass = computed(() => {
@@ -2215,13 +2215,13 @@
                     };
                     
                     const confirmMsg = type === 'all' 
-                        ? t('cache.confirmAll')
-                        : t('cache.confirmClear').replace('{type}', typeNames[type]);
+                        ? configStore.t('cache.confirmAll')
+                        : configStore.t('cache.confirmClear').replace('{type}', typeNames[type]);
                     
                     try {
-                        await ElementPlus.ElMessageBox.confirm(confirmMsg, t('common.confirm'), {
-                            confirmButtonText: t('common.confirm'),
-                            cancelButtonText: t('common.cancel'),
+                        await ElementPlus.ElMessageBox.confirm(confirmMsg, configStore.t('common.confirm'), {
+                            confirmButtonText: configStore.t('common.confirm'),
+                            cancelButtonText: configStore.t('common.cancel'),
                             type: 'warning'
                         });
                     } catch {
@@ -2234,15 +2234,15 @@
                         const data = await res.json();
                         if (data.success) {
                             const total = Object.values(data.cleared).reduce((a, b) => a + b, 0);
-                            ElementPlus.ElMessage.success(t('cache.cleared').replace('{count}', total));
+                            ElementPlus.ElMessage.success(configStore.t('cache.cleared').replace('{count}', total));
                             fetchCacheStats();
                             fetchStats();
                         } else {
-                            ElementPlus.ElMessage.error(t('cache.clearFailed'));
+                            ElementPlus.ElMessage.error(configStore.t('cache.clearFailed'));
                         }
                     } catch (e) {
                         console.error('Failed to clear cache:', e);
-                        ElementPlus.ElMessage.error(t('cache.clearFailed'));
+                        ElementPlus.ElMessage.error(configStore.t('cache.clearFailed'));
                     } finally {
                         cacheClearing.value = null;
                     }
@@ -2331,7 +2331,7 @@
                         const res = await API.collections.merge(mergingFromCollection.value.id, mergingToCollection.value.id);
                         if (res.ok) {
                             const data = await res.json();
-                            ElementPlus.ElMessage.success(t('collections.mergeSuccess', { count: data.merged_count, name: mergingToCollection.value.name }));
+                            ElementPlus.ElMessage.success(configStore.t('collections.mergeSuccess', { count: data.merged_count, name: mergingToCollection.value.name }));
                             showMergeConfirmDialog.value = false;
                             fetchCollections();
                         } else {
@@ -2371,12 +2371,12 @@
                                 collectionPapers.value = data.papers;
                                 collectionTotalCount.value = data.papers.length;
                                 collectionTotalPages.value = 1;
-                                ElementPlus.ElMessage.success(t('collections.aiResult', { count: data.papers.length }));
+                                ElementPlus.ElMessage.success(configStore.t('collections.aiResult', { count: data.papers.length }));
                             } else {
                                 collectionPapers.value = [];
                                 collectionTotalCount.value = 0;
                                 collectionTotalPages.value = 0;
-                                ElementPlus.ElMessage.info(t('collections.aiNoResult'));
+                                ElementPlus.ElMessage.info(configStore.t('collections.aiNoResult'));
                             }
                         } catch (e) {
                             console.error('AI search failed:', e);
@@ -3157,9 +3157,9 @@
                 function addToCart(paper) {
                     if (!paperCart.value.some(p => p.arxiv_id === paper.arxiv_id)) {
                         paperCart.value.push(paper);
-                        ElementPlus.ElMessage.success(t('basket.added'));
+                        ElementPlus.ElMessage.success(configStore.t('basket.added'));
                     } else {
-                        ElementPlus.ElMessage.info(t('basket.alreadyInCart'));
+                        ElementPlus.ElMessage.info(configStore.t('basket.alreadyInCart'));
                     }
                 }
 
@@ -3171,13 +3171,13 @@
                     const idx = paperCart.value.findIndex(p => p.arxiv_id === arxivId);
                     if (idx >= 0) {
                         paperCart.value.splice(idx, 1);
-                        ElementPlus.ElMessage.success(t('basket.removed'));
+                        ElementPlus.ElMessage.success(configStore.t('basket.removed'));
                     }
                 }
 
                 function clearCart() {
                     paperCart.value = [];
-                    ElementPlus.ElMessage.success(t('basket.cleared'));
+                    ElementPlus.ElMessage.success(configStore.t('basket.cleared'));
                 }
 
                 function isInCart(arxivId) {
