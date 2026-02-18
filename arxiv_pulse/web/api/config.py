@@ -10,7 +10,6 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from arxiv_pulse.config import Config
 from arxiv_pulse.constants import (
     ARXIV_CATEGORIES,
     DEFAULT_FIELDS,
@@ -18,6 +17,7 @@ from arxiv_pulse.constants import (
     get_field_display_name,
     get_queries_for_fields,
 )
+from arxiv_pulse.core import Config
 from arxiv_pulse.utils import sse_event, sse_response
 from arxiv_pulse.web.dependencies import get_db
 

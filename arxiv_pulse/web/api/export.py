@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel
 
-from arxiv_pulse.config import Config
+from arxiv_pulse.core import Config
 from arxiv_pulse.models import Collection, CollectionPaper, FigureCache, Paper
 from arxiv_pulse.web.dependencies import get_db
 

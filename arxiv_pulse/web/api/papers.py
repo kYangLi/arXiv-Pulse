@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Query
 
-from arxiv_pulse.config import Config
+from arxiv_pulse.core import Config
 from arxiv_pulse.models import Paper
 from arxiv_pulse.services.category_service import get_category_explanation
 from arxiv_pulse.services.figure_service import fetch_and_cache_figure, get_figure_url_cached

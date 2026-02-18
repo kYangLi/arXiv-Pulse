@@ -10,7 +10,7 @@ from sqlalchemy import and_, asc, desc, func, not_, or_
 from sqlalchemy.orm import Session
 
 from arxiv_pulse.models import Paper
-from arxiv_pulse.output_manager import output
+from arxiv_pulse.utils import output
 
 
 @dataclass

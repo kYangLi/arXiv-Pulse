@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from arxiv_pulse.config import Config
+from arxiv_pulse.core import Config
 from arxiv_pulse.models import Paper, RecentResult, SyncTask
 from arxiv_pulse.utils import sse_event, sse_response
 from arxiv_pulse.web.dependencies import get_db

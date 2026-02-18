@@ -386,7 +386,7 @@ class AISearchRequest(BaseModel):
 @router.post("/{collection_id}/ai-search")
 async def ai_search_papers(collection_id: int, data: AISearchRequest):
     """AI-powered search in collection papers (searches titles only)"""
-    from arxiv_pulse.config import Config
+    from arxiv_pulse.core import Config
 
     with get_db().get_session() as session:
         collection = session.query(Collection).filter_by(id=collection_id).first()

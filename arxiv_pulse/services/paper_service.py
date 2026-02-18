@@ -5,7 +5,7 @@ Paper service - 论文数据处理和增强
 import json
 from typing import Any
 
-from arxiv_pulse.config import Config
+from arxiv_pulse.core import Config
 from arxiv_pulse.models import CollectionPaper, FigureCache, Paper
 from arxiv_pulse.services.category_service import get_category_explanation
 from arxiv_pulse.services.figure_service import get_figure_url_cached

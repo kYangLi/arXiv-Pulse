@@ -7,9 +7,9 @@ from typing import Any
 import arxiv
 from tqdm import tqdm
 
-from arxiv_pulse.config import Config
-from arxiv_pulse.models import Database, Paper
-from arxiv_pulse.output_manager import output
+from arxiv_pulse.core import Config, Database
+from arxiv_pulse.models import Paper
+from arxiv_pulse.utils import output
 
 logger = logging.getLogger(__name__)
 

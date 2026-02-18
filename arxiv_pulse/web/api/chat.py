@@ -12,7 +12,7 @@ import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from arxiv_pulse.config import Config
+from arxiv_pulse.core import Config
 from arxiv_pulse.models import (
     ChatMessage,
     ChatSession,
