@@ -159,7 +159,7 @@
                     </el-input>
                 </div>
                     
-                    <div v-if="homeLogs.length > 0" class="logs-container home-logs" ref="homeLogsContainer" @scroll="handleHomeLogsScroll" style="margin-top: 16px; max-height: 100px; max-width: 680px; width: 100%;">
+                    <div v-if="homeLogs.length > 0" class="logs-container home-logs" ref="homeLogsContainerRef" @scroll="handleHomeLogsScroll" style="margin-top: 16px; max-height: 100px; max-width: 680px; width: 100%;">
                         <div v-for="(log, index) in homeLogs" :key="index" class="log-line" :class="log.type">
                             > {{ log.message }}
                         </div>
@@ -747,12 +747,12 @@
                 const { 
                     stats, fieldStats, recentPapers, loadingRecent, loadingProgress, loadingTotal, loadingController,
                     updatingRecent, recentLogs, recentDays, recentNeedSync,
-                    homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds, homeController, homeLogsContainer, homeUserScrolledUp,
+                    homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds, homeController, homeUserScrolledUp,
                     paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex
                 } = storeToRefs(paperStore);
                 
                 const { 
-                    startHomeSearch, stopHomeSearch, scrollHomeLogsToBottom
+                    startHomeSearch, stopHomeSearch
                 } = paperStore;
                 
                 // chatStore properties
@@ -779,16 +779,20 @@
                     startHomeSearch(configStore);
                 }
                 
-                function handleHomeLogsScroll() {
-                    const el = homeLogsContainer.value;
-                    if (!el) return;
+                function handleHomeLogsScroll(e) {
+                    const el = e.target;
                     const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 10;
                     homeUserScrolledUp.value = !isAtBottom;
                 }
                 
+                const homeLogsContainerRef = ref(null);
+                
                 watch(homeLogs, () => {
                     nextTick(() => {
-                        scrollHomeLogsToBottom();
+                        const el = homeLogsContainerRef.value;
+                        if (el && !homeUserScrolledUp.value) {
+                            el.scrollTop = el.scrollHeight;
+                        }
                     });
                 }, { flush: 'post' });
 
@@ -2369,7 +2373,7 @@
                     openEditCollection, confirmDeleteCollection, duplicateCollection, openCollectionDetail, showMergeConfirm,
                     toggleRecentSelect, toggleRecentSelectAll, toggleSearchSelect, toggleSearchSelectAll,
                     exportRecent, exportSearch, exportCollection, exportCollectionWithId,
-                    navigateTo, navigateToHome, onTabChange, handleHomeSearch, stopHomeSearch, homeLogsContainer, handleHomeLogsScroll, toggleHomeSelect, exportHome,
+                    navigateTo, navigateToHome, onTabChange, handleHomeSearch, stopHomeSearch, homeLogsContainerRef, handleHomeLogsScroll, toggleHomeSelect, exportHome,
                     chatExpanded, chatPosition, chatPanelRef, chatZIndex,
                     chatFullscreen, chatSize, chatAnimating,
                     selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
