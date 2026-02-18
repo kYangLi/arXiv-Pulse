@@ -210,8 +210,8 @@ const i18nEn = {
         clearAll: 'Clear All'
     },
     paper: {
-        aiSummary: 'AI Summary',
         keyFindings: 'Key Findings',
+        methodology: 'Methodology',
         keywords: 'Keywords',
         abstract: 'Abstract',
         chineseTranslation: 'Translation',

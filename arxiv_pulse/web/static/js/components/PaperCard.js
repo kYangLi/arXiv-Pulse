@@ -52,25 +52,24 @@ const PaperCardTemplate = `
         </el-button>
     </div>
     <div v-if="expanded" class="paper-detail">
-        <div v-if="paper.summary_text" class="ai-summary-section">
-            <h4>{{ t('paper.aiSummary') }}</h4>
-            <p class="summary-text" v-html="formatSummary(paper.summary_text)"></p>
-        </div>
-        <div v-else-if="!paper.ai_available" class="ai-summary-section" style="color: var(--text-muted); font-style: italic;">
-            <h4>{{ t('paper.aiSummary') }}</h4>
-            <p>{{ isZh ? '未配置 AI API Key，无法生成总结。请在设置中配置。' : 'AI API Key not configured. Please configure in Settings.' }}</p>
-        </div>
         <div v-if="paper.key_findings?.length" class="key-findings">
             <h4>{{ t('paper.keyFindings') }}</h4>
             <ul>
                 <li v-for="(finding, i) in paper.key_findings" :key="i">{{ finding }}</li>
             </ul>
         </div>
+        <div v-if="paper.methodology" class="methodology-section">
+            <h4>{{ t('paper.methodology') }}</h4>
+            <p>{{ paper.methodology }}</p>
+        </div>
         <div v-if="paper.keywords?.length" class="paper-keywords">
             <h4>{{ t('paper.keywords') }}</h4>
             <div class="keywords-list">
                 <el-tag v-for="kw in paper.keywords" :key="kw" size="small" type="info">{{ kw }}</el-tag>
             </div>
+        </div>
+        <div v-if="!paper.key_findings?.length && !paper.methodology && !paper.keywords?.length && !paper.ai_available" style="color: var(--text-muted); font-style: italic; padding: 10px 0;">
+            <p>{{ isZh ? '未配置 AI API Key，无法生成总结。请在设置中配置。' : 'AI API Key not configured. Please configure in Settings.' }}</p>
         </div>
         <div v-if="paper.figure_url" class="paper-figure">
             <img :src="paper.figure_url" @click="openImage(paper.figure_url)" />
@@ -174,21 +173,28 @@ const PaperCardSetup = (props) => {
         elements.push({ type: 'divider', y: y });
         y += 20 * scale;
         
-        if (props.paper.summary_text) {
-            elements.push({ type: 'section-title', text: 'AI 总结', y: y });
+        if (props.paper.key_findings?.length) {
+            elements.push({ type: 'section-title', text: '关键发现', y: y });
             y += 28 * scale;
-            const paragraphs = props.paper.summary_text.split('\n\n');
-            paragraphs.forEach(para => {
-                if (para.trim()) {
-                    const summaryLines = wrapText(para.trim(), width - padding * 2, 14);
-                    summaryLines.forEach(line => {
-                        elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#333', y: y });
-                        y += 22 * scale;
-                    });
-                    y += 8 * scale;
-                }
+            props.paper.key_findings.forEach(finding => {
+                const findingLines = wrapText(`• ${finding}`, width - padding * 2 - 20 * scale, 14);
+                findingLines.forEach(line => {
+                    elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#5a6c7d', y: y });
+                    y += 22 * scale;
+                });
             });
-            y += 4 * scale;
+            y += 12 * scale;
+        }
+        
+        if (props.paper.methodology) {
+            elements.push({ type: 'section-title', text: '研究方法', y: y });
+            y += 28 * scale;
+            const methodLines = wrapText(props.paper.methodology, width - padding * 2, 14);
+            methodLines.forEach(line => {
+                elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#409EFF', y: y });
+                y += 22 * scale;
+            });
+            y += 12 * scale;
         }
         
         if (props.paper.keywords?.length) {
@@ -199,19 +205,6 @@ const PaperCardSetup = (props) => {
             keywordLines.forEach(line => {
                 elements.push({ type: 'text', text: line, font: `${13 * scale}px sans-serif`, color: '#c9a227', y: y });
                 y += 20 * scale;
-            });
-            y += 12 * scale;
-        }
-        
-        if (props.paper.key_findings?.length) {
-            elements.push({ type: 'section-title', text: '关键发现', y: y });
-            y += 28 * scale;
-            props.paper.key_findings.forEach(finding => {
-                const findingLines = wrapText(`• ${finding}`, width - padding * 2 - 20 * scale, 14);
-                findingLines.forEach(line => {
-                    elements.push({ type: 'text', text: line, font: `${14 * scale}px sans-serif`, color: '#5a6c7d', y: y });
-                    y += 22 * scale;
-                });
             });
             y += 12 * scale;
         }

@@ -16,14 +16,14 @@ uplogs: up logs
 
 start_init: clean_init_data
 	@pulse serve init_data --host $(HOST) --port 33034 \
-                --allow-non-localhost-access-with-plaintext-transmission-risk
+                --allow-non-localhost-access-with-plaintext-transmission-risk -y
 
 stop_init:
 	@pulse stop init_data
 
 start:
 	@pulse serve $(DATA_DIR) --host $(HOST) --port $(PORT) \
-		--allow-non-localhost-access-with-plaintext-transmission-risk
+		--allow-non-localhost-access-with-plaintext-transmission-risk -y
 	@echo "服务已启动: http://$(HOST):$(PORT)"
 
 stop:

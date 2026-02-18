@@ -75,18 +75,17 @@ class PaperSummarizer:
 
         sentences = re.split(r"[.!?]+", abstract_str)
         if len(sentences) > 3:
-            summary = ". ".join(sentences[:3]) + "."
+            key_finding = ". ".join(sentences[:3]) + "."
         else:
-            summary = abstract_str[:500] + "..." if len(abstract_str) > 500 else abstract_str
+            key_finding = abstract_str[:500] + "..." if len(abstract_str) > 500 else abstract_str
 
         keywords = self.extract_keywords(f"{title_str} {abstract_str}")
 
         return json.dumps(
             {
-                "summary": summary,
+                "key_findings": [key_finding] if key_finding else [],
+                "methodology": "",
                 "keywords": keywords,
-                "method": "basic",
-                "key_findings": [],
             }
         )
 
@@ -112,18 +111,13 @@ Title: {paper.title}
 Abstract: {paper.abstract}
 
 Please provide:
-1. A concise summary paragraph (2-3 sentences)
-2. Key findings/contributions (bullet points)
-3. Methodology/approach used
-4. Relevance to condensed matter physics, DFT, machine learning, or force fields
-5. Potential impact/significance
+1. Key findings/conclusions (bullet points, most important)
+2. Methodology/approach used
+3. Relevant keywords (5-10)
 
 Please format your response as a JSON object with the following fields:
-- summary: string (2-3 sentence concise summary)
-- key_findings: array of strings
-- methodology: string
-- relevance: string
-- impact: string
+- key_findings: array of strings (bullet points of key findings and conclusions)
+- methodology: string (brief description of the approach)
 - keywords: array of relevant keywords (5-10)
 """
         system_msg = f"You are a research assistant specializing in summarizing physics and computational science papers. Write your response in {target_lang}."
@@ -200,11 +194,8 @@ Please format your response as a JSON object with the following fields:
                     summary_data = json.loads(result)
                 except json.JSONDecodeError:
                     summary_data = {
-                        "summary": "",
                         "key_findings": [],
                         "methodology": "",
-                        "relevance": "",
-                        "impact": "",
                         "keywords": self.extract_keywords(f"{paper.title} {paper.abstract}"),
                     }
 

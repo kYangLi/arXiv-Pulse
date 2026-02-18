@@ -837,6 +837,25 @@
             line-height: 1.7; 
             margin-bottom: 6px; 
         }
+        .methodology-section { 
+            background: #f5f8fc; 
+            padding: 16px 20px; 
+            border-radius: var(--radius-sm); 
+            margin-bottom: 20px;
+            border-left: 3px solid #409EFF;
+        }
+        .methodology-section h4 { 
+            color: #409EFF; 
+            font-size: 14px; 
+            margin-bottom: 10px; 
+            font-weight: 600;
+        }
+        .methodology-section p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.7;
+            margin: 0;
+        }
         .paper-figure { 
             margin-bottom: 20px; 
             text-align: center; 

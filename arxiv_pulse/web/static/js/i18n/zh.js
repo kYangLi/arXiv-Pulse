@@ -210,8 +210,8 @@ const i18nZh = {
         clearAll: '清空所有'
     },
     paper: {
-        aiSummary: 'AI 总结',
         keyFindings: '关键发现',
+        methodology: '研究方法',
         keywords: '关键词',
         abstract: '摘要',
         chineseTranslation: '摘要翻译',
