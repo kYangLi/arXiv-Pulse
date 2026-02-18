@@ -232,7 +232,7 @@
                             <el-button type="primary" @click="updateRecentPapers" :loading="updatingRecent" :disabled="updatingRecent">
                                 <el-icon><Refresh /></el-icon> {{ t('papers.update') }}
                             </el-button>
-                            <div v-if="updatingRecent" class="stop-btn-recent" @click="stopUpdateRecent" :title="currentLang === 'zh' ? '停止更新' : 'Stop update'">
+                            <div v-if="updatingRecent" class="stop-btn-recent" @click="stopUpdateRecent(configStore)" :title="currentLang === 'zh' ? '停止更新' : 'Stop update'">
                                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                                     <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
                                     <rect x="8" y="8" width="8" height="8" rx="1.5"/>

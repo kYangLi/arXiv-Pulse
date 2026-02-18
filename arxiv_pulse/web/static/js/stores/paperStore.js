@@ -321,12 +321,13 @@ const usePaperStore = defineStore('paper', () => {
         }
     }
     
-    function stopUpdateRecent() {
+    function stopUpdateRecent(configStore) {
         if (recentUpdateController.value) {
             recentUpdateController.value.abort();
             recentUpdateController.value = null;
         }
         updatingRecent.value = false;
+        recentLogs.value.push({ type: 'info', message: configStore?.currentLang === 'zh' ? '更新已停止' : 'Update stopped' });
     }
     
     async function updateRecentPapers(configStore) {
@@ -373,9 +374,7 @@ const usePaperStore = defineStore('paper', () => {
                 }
             }
         } catch (e) {
-            if (e.name === 'AbortError') {
-                recentLogs.value.push({ type: 'info', message: configStore?.currentLang === 'zh' ? '更新已取消' : 'Update cancelled' });
-            } else {
+            if (e.name !== 'AbortError') {
                 recentLogs.value.push({ type: 'error', message: `更新失败: ${e.message}` });
             }
         } finally {
