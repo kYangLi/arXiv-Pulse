@@ -233,7 +233,7 @@ const usePaperStore = defineStore('paper', () => {
         }
     }
     
-    return {
+    async function fetchStats() {
         try {
             const res = await API.stats.get();
             stats.value = await res.json();
