@@ -3423,6 +3423,11 @@
             }
         });
 
+        const pinia = createPinia();
+        app.use(pinia);
+        app.use(ElementPlus);
+
+        // Register paper-card component AFTER Pinia is installed
         app.component('paper-card', {
             props: ['paper', 'collections', 'inCollection', 'inCart'],
             emits: ['add-to-collection', 'remove-from-collection', 'download-card', 'analyze-paper', 'add-to-cart', 'remove-from-cart'],
@@ -3430,9 +3435,6 @@
             setup: PaperCardSetup
         });
 
-        const pinia = createPinia();
-        app.use(pinia);
-        app.use(ElementPlus);
         if (window.ElementPlusIconsVue) {
             for (const [key, component] of Object.entries(window.ElementPlusIconsVue)) {
                 app.component(key, component);
