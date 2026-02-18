@@ -95,8 +95,6 @@ def expand_bottom_nav(page: Page):
 
 def navigate_to(page: Page, target: str):
     """导航到指定页面"""
-    expand_bottom_nav(page)
-
     nav_map = {
         "home": "首页",
         "recent": "近期论文",
@@ -105,17 +103,22 @@ def navigate_to(page: Page, target: str):
     }
 
     target_text = nav_map.get(target, target)
-    btn = page.locator(f"text={target_text}")
 
-    for _ in range(3):
-        expand_bottom_nav(page)
-        if btn.count() > 0:
-            btn.first.click()
+    page.wait_for_timeout(300)
+    expand_bottom_nav(page)
+    page.wait_for_timeout(200)
+
+    nav_item = page.locator(f".nav-item:has-text('{target_text}')")
+
+    for attempt in range(5):
+        if nav_item.count() > 0:
+            nav_item.first.click()
             page.wait_for_timeout(500)
             return
+        expand_bottom_nav(page)
+        page.wait_for_timeout(300)
 
-    page.locator(f".nav-item:has-text('{target_text}')").first.click()
-    page.wait_for_timeout(500)
+    raise AssertionError(f"无法找到导航项: {target_text}")
 
 
 def get_console_errors(page: Page) -> list:

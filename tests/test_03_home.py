@@ -115,10 +115,9 @@ def test_field_filter_button(browser_page):
 
     print(f"\n访问 {BASE_URL} ...")
     page.goto(BASE_URL, wait_until="domcontentloaded")
-    page.wait_for_timeout(500)
-    page.wait_for_timeout(500)
+    page.wait_for_timeout(1000)
 
-    filter_btn = page.locator("button:has-text('筛选'), button:has-text('Filter'), text=筛选领域")
+    filter_btn = page.locator("button:has-text('筛选'), button:has-text('Filter')")
 
     if filter_btn.count() > 0:
         print("  [v] 领域筛选按钮显示")

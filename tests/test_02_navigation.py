@@ -57,14 +57,15 @@ def test_navigate_to_sync(browser_page):
 
     print(f"\n访问 {BASE_URL} ...")
     page.goto(BASE_URL, wait_until="domcontentloaded")
-    page.wait_for_timeout(500)
+    page.wait_for_timeout(1000)
 
     print("  导航到同步页...")
     navigate_to(page, "sync")
+    page.wait_for_timeout(500)
 
     page.screenshot(path="/tmp/navigation_sync.png")
 
-    sync_indicator = page.locator("text=数据管理, text=同步状态, text=同步设置, .sync-status-card")
+    sync_indicator = page.locator(".sync-status-card, .sync-options")
     assert sync_indicator.count() > 0, "同步页面未显示"
     print("  [v] 同步页导航成功")
 
@@ -75,14 +76,15 @@ def test_navigate_to_collections(browser_page):
 
     print(f"\n访问 {BASE_URL} ...")
     page.goto(BASE_URL, wait_until="domcontentloaded")
-    page.wait_for_timeout(500)
+    page.wait_for_timeout(1000)
 
     print("  导航到论文集页...")
     navigate_to(page, "collections")
+    page.wait_for_timeout(500)
 
     page.screenshot(path="/tmp/navigation_collections.png")
 
-    collections_title = page.locator("text=论文集, .collections-page-header")
+    collections_title = page.locator(".collections-page-header, .collections-grid")
     assert collections_title.count() > 0, "论文集页面未显示"
     print("  [v] 论文集页导航成功")
 

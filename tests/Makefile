@@ -5,11 +5,21 @@ PORT := 33033
 DATA_DIR := .
 
 up: start
+up_init: start_init
 
 dn: stop
+dn_init: stop_init
 down: stop
+down_init: stop_init
 
 uplogs: up logs
+
+start_init: clean_init_data
+	@pulse serve init_data --host $(HOST) --port 33034 \
+                --allow-non-localhost-access-with-plaintext-transmission-risk
+
+stop_init:
+	@pulse stop init_data
 
 start:
 	@pulse serve $(DATA_DIR) --host $(HOST) --port $(PORT) \
@@ -24,6 +34,9 @@ restart:
 
 status:
 	@pulse status || echo "服务未运行"
+
+clean_init_data:
+	rm -r ./init_data/data || echo "文件已清理"
 
 logs:
 	tail -f $(DATA_DIR)/web.log
