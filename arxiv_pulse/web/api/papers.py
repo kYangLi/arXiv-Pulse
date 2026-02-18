@@ -466,7 +466,7 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
 
         import arxiv as arxiv_lib
 
-        from arxiv_pulse.search_engine import SearchEngine, SearchFilter
+        from arxiv_pulse.search import SearchEngine, SearchFilter
 
         all_papers = []
         remote_total = 0
@@ -579,7 +579,7 @@ async def search_papers(
     days: int | None = None,
 ):
     """Search papers by query (basic search without AI parsing)"""
-    from arxiv_pulse.search_engine import SearchEngine, SearchFilter
+    from arxiv_pulse.search import SearchEngine, SearchFilter
 
     with get_db().get_session() as session:
         search_engine = SearchEngine(session)
@@ -680,7 +680,7 @@ async def search_papers_stream(
         yield sse_event("log", {"message": "正在数据库中搜索..."})
         await asyncio.sleep(0.1)
 
-        from arxiv_pulse.search_engine import SearchEngine, SearchFilter
+        from arxiv_pulse.search import SearchEngine, SearchFilter
 
         with get_db().get_session() as session:
             search_engine = SearchEngine(session)
