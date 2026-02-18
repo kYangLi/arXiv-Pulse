@@ -1,5 +1,5 @@
 const PaperCardTemplate = `
-<div class="paper-card" :data-arxiv-id="paper.arxiv_id">
+<div class="paper-card" :data-arxiv-id="paper.arxiv_id" ref="cardRef">
     <div class="paper-header">
         <div class="paper-title" @click="openArxiv(paper.arxiv_id)">{{ paper.title }}</div>
     </div>
@@ -89,7 +89,7 @@ const PaperCardTemplate = `
         <el-button v-if="inCollection" size="small" text type="danger" @click="$emit('remove-from-collection', paper.id)">
             <el-icon><Delete /></el-icon> {{ t('paper.removeFromCollection') }}
         </el-button>
-        <el-button size="small" text @click="expanded = !expanded">
+        <el-button size="small" text @click="toggleExpand">
             {{ expanded ? t('paper.collapse') : t('paper.expandDetail') }}
         </el-button>
     </div>
@@ -98,11 +98,22 @@ const PaperCardTemplate = `
 
 const PaperCardSetup = (props) => {
     const expanded = ref(false);
+    const cardRef = ref(null);
     
-    // Use props for i18n (passed from parent)
     const t = props.t || ((key) => key);
     const currentLang = ref(props.currentLang || 'zh');
     const isZh = computed(() => currentLang.value === 'zh');
+    
+    const toggleExpand = () => {
+        const wasExpanded = expanded.value;
+        expanded.value = !expanded.value;
+        
+        if (wasExpanded && cardRef.value) {
+            setTimeout(() => {
+                cardRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
+        }
+    };
     
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
@@ -310,5 +321,5 @@ const PaperCardSetup = (props) => {
         window.dispatchEvent(new CustomEvent('analyze-paper', { detail: props.paper }));
     };
     
-    return { expanded, formatDate, formatSummary, openArxiv, downloadPDF, openImage, downloadCard, analyzePaper, t, currentLang, isZh };
+    return { expanded, cardRef, toggleExpand, formatDate, formatSummary, openArxiv, downloadPDF, openImage, downloadCard, analyzePaper, t, currentLang, isZh };
 };

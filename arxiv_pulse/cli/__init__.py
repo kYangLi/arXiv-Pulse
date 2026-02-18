@@ -127,7 +127,7 @@ def _cleanup_lock():
 def _signal_handler(signum, frame):
     """Handle interrupt signals"""
     _cleanup_lock()
-    click.echo("\n服务已停止")
+    click.echo("\n服务已停止 / Service stopped")
     sys.exit(0)
 
 
@@ -268,31 +268,35 @@ def _do_serve(directory, host, port, foreground, force, allow_non_localhost=Fals
 
     if is_locked and not force:
         click.echo(f"\n{'=' * 50}")
-        click.secho("  ⚠️  服务已在运行中", fg="yellow", bold=True)
+        click.secho("  ⚠️  服务已在运行中 / Service already running", fg="yellow", bold=True)
         click.echo(f"{'=' * 50}\n")
         click.echo(lock.get_status_message(lock_info))
-        click.echo(f"\n如需强制启动新实例，请使用 --force 参数")
+        click.echo(f"\n如需强制启动新实例，请使用 --force 参数 / Use --force to start a new instance")
         if lock_info:
-            click.echo(f"或先停止当前服务: kill {lock_info.get('pid', '')}")
+            click.echo(f"或先停止当前服务 / Or stop current service: kill {lock_info.get('pid', '')}")
         sys.exit(1)
 
     if force and is_locked:
-        click.secho("\n⚠️  警告: 强制模式，将覆盖已有锁文件", fg="yellow")
+        click.secho(
+            "\n⚠️  警告: 强制模式，将覆盖已有锁文件 / Warning: Force mode, will overwrite lock file", fg="yellow"
+        )
         lock.release()
 
     if _is_port_in_use(host, port):
         click.echo(f"\n{'=' * 50}")
-        click.secho(f"  ❌ 端口 {port} 已被占用", fg="red", bold=True)
+        click.secho(f"  ❌ 端口 {port} 已被占用 / Port {port} is in use", fg="red", bold=True)
         click.echo(f"{'=' * 50}\n")
-        click.echo(f"请检查是否有其他服务正在使用端口 {port}")
-        click.echo(f"或使用 --port 指定其他端口")
+        click.echo(f"请检查是否有其他服务正在使用端口 {port} / Check if another service is using port {port}")
+        click.echo(f"或使用 --port 指定其他端口 / Or use --port to specify another port")
         if is_locked and lock_info:
-            click.echo(f"\n如果这是 arXiv Pulse 的旧实例，请先停止: pulse stop")
+            click.echo(
+                f"\n如果这是 arXiv Pulse 的旧实例，请先停止 / If this is an old instance, stop it first: pulse stop"
+            )
         sys.exit(1)
 
     acquired = lock.acquire(host, port, allow_non_localhost=allow_non_localhost)
     if not acquired:
-        click.secho("❌ 无法获取服务锁", fg="red")
+        click.secho("❌ 无法获取服务锁 / Failed to acquire service lock", fg="red")
         sys.exit(1)
 
     _lock_instance = lock
@@ -302,17 +306,17 @@ def _do_serve(directory, host, port, foreground, force, allow_non_localhost=Fals
     signal.signal(signal.SIGTERM, _signal_handler)
 
     click.echo(f"\n{'=' * 50}")
-    click.echo("  arXiv Pulse - 智能文献追踪系统")
+    click.echo("  arXiv Pulse - 智能文献追踪系统 / Smart arXiv Tracker")
     click.echo(f"{'=' * 50}")
-    click.echo(f"\n📂 数据目录: {directory}")
-    click.echo(f"🌐 Web 界面: http://{host}:{port}")
-    click.echo(f"📚 API 文档: http://{host}:{port}/docs")
-    click.echo(f"🔄 运行模式: {'前台运行' if foreground else '后台运行'}")
+    click.echo(f"\n📂 数据目录 / Data directory: {directory}")
+    click.echo(f"🌐 Web 界面 / Web interface: http://{host}:{port}")
+    click.echo(f"📚 API 文档 / API docs: http://{host}:{port}/docs")
+    click.echo(f"🔄 运行模式 / Mode: {'前台运行 / Foreground' if foreground else '后台运行 / Background'}")
 
     if foreground:
         import uvicorn
 
-        click.echo("\n按 Ctrl+C 停止服务\n")
+        click.echo("\n按 Ctrl+C 停止服务 / Press Ctrl+C to stop\n")
         try:
             uvicorn.run(
                 "arxiv_pulse.web.app:app",
@@ -351,10 +355,10 @@ def _do_serve(directory, host, port, foreground, force, allow_non_localhost=Fals
         lock.acquire(host, port, pid=process.pid, allow_non_localhost=allow_non_localhost)
         _lock_instance = None
 
-        click.echo(f"\n✅ 服务已在后台启动 (PID: {process.pid})")
-        click.echo(f"📝 日志文件: {log_file}")
-        click.echo(f"\n💡 停止服务: pulse stop")
-        click.echo(f"   查看状态: pulse status")
+        click.echo(f"\n✅ 服务已在后台启动 / Service started in background (PID: {process.pid})")
+        click.echo(f"📝 日志文件 / Log file: {log_file}")
+        click.echo(f"\n💡 停止服务 / Stop: pulse stop")
+        click.echo(f"   查看状态 / Status: pulse status")
 
 
 @cli.command()
@@ -377,16 +381,16 @@ def status(directory):
     is_locked, info = lock.is_locked()
 
     click.echo(f"\n{'=' * 50}")
-    click.echo("  arXiv Pulse - 服务状态")
+    click.echo("  arXiv Pulse - 服务状态 / Service Status")
     click.echo(f"{'=' * 50}\n")
-    click.echo(f"📂 数据目录: {directory}")
-    click.echo(f"🗄️  数据库: {directory}/data/arxiv_papers.db\n")
+    click.echo(f"📂 数据目录 / Data directory: {directory}")
+    click.echo(f"🗄️  数据库 / Database: {directory}/data/arxiv_papers.db\n")
 
     if is_locked:
-        click.secho("✅ 服务运行中", fg="green", bold=True)
+        click.secho("✅ 服务运行中 / Service running", fg="green", bold=True)
         click.echo(lock.get_status_message(info))
     else:
-        click.secho("⏹️  服务未运行", fg="yellow")
+        click.secho("⏹️  服务未运行 / Service not running", fg="yellow")
 
 
 @cli.command()
@@ -413,12 +417,12 @@ def stop(directory, force):
     is_locked, info = lock.is_locked()
 
     click.echo(f"\n{'=' * 50}")
-    click.echo("  arXiv Pulse - 停止服务")
+    click.echo("  arXiv Pulse - 停止服务 / Stop Service")
     click.echo(f"{'=' * 50}\n")
-    click.echo(f"📂 数据目录: {directory}")
+    click.echo(f"📂 数据目录 / Data directory: {directory}")
 
     if not is_locked:
-        click.secho("\n⏹️  没有运行中的服务", fg="yellow")
+        click.secho("\n⏹️  没有运行中的服务 / No service running", fg="yellow")
         return
 
     if info:
@@ -426,13 +430,13 @@ def stop(directory, force):
         host = info.get("host", "unknown")
         port = info.get("port", "unknown")
 
-        click.echo(f"🔍 发现运行中的服务: http://{host}:{port} (PID: {pid})")
+        click.echo(f"🔍 发现运行中的服务 / Found running service: http://{host}:{port} (PID: {pid})")
 
         try:
             sig = signal.SIGKILL if force else signal.SIGTERM
             sig_name = "SIGKILL" if force else "SIGTERM"
             os.kill(pid, sig)
-            click.echo(f"📤 已发送 {sig_name} 信号...")
+            click.echo(f"📤 已发送 {sig_name} 信号 / Sent {sig_name} signal...")
 
             for _ in range(10):
                 try:
@@ -444,24 +448,24 @@ def stop(directory, force):
             try:
                 os.kill(pid, 0)
                 if not force:
-                    click.secho("\n⚠️  进程未响应，尝试强制停止...", fg="yellow")
+                    click.secho("\n⚠️  进程未响应，尝试强制停止 / Process not responding, forcing stop...", fg="yellow")
                     os.kill(pid, signal.SIGKILL)
                     time.sleep(1)
             except ProcessLookupError:
                 pass
 
             lock.release()
-            click.secho("\n✅ 服务已停止", fg="green", bold=True)
+            click.secho("\n✅ 服务已停止 / Service stopped", fg="green", bold=True)
         except ProcessLookupError:
             lock.release()
-            click.secho("\n✅ 进程已不存在，已清理锁文件", fg="green")
+            click.secho("\n✅ 进程已不存在，已清理锁文件 / Process gone, lock file cleaned", fg="green")
         except PermissionError:
-            click.secho("\n❌ 没有权限停止该进程，请尝试使用 sudo", fg="red")
+            click.secho("\n❌ 没有权限停止该进程，请尝试使用 sudo / No permission, try sudo", fg="red")
         except Exception as e:
-            click.secho(f"\n❌ 停止失败: {e}", fg="red")
+            click.secho(f"\n❌ 停止失败 / Stop failed: {e}", fg="red")
     else:
         lock.release()
-        click.secho("\n✅ 已清理锁文件", fg="green")
+        click.secho("\n✅ 已清理锁文件 / Lock file cleaned", fg="green")
 
 
 @cli.command()
@@ -494,9 +498,9 @@ def restart(directory, foreground, force):
     is_locked, info = lock.is_locked()
 
     click.echo(f"\n{'=' * 50}")
-    click.echo("  arXiv Pulse - 重启服务")
+    click.echo("  arXiv Pulse - 重启服务 / Restart Service")
     click.echo(f"{'=' * 50}\n")
-    click.echo(f"📂 数据目录: {directory}")
+    click.echo(f"📂 数据目录 / Data directory: {directory}")
 
     prev_host = info.get("host", "127.0.0.1") if info else "127.0.0.1"
     prev_port = info.get("port", 8000) if info else 8000
@@ -504,11 +508,11 @@ def restart(directory, foreground, force):
 
     if is_locked and info:
         pid = info.get("pid")
-        click.echo(f"🔍 发现运行中的服务: http://{prev_host}:{prev_port} (PID: {pid})")
+        click.echo(f"🔍 发现运行中的服务 / Found running service: http://{prev_host}:{prev_port} (PID: {pid})")
 
         try:
             sig = signal.SIGKILL if force else signal.SIGTERM
-            click.echo("📤 正在停止服务...")
+            click.echo("📤 正在停止服务 / Stopping service...")
             os.kill(pid, sig)
 
             for _ in range(10):
@@ -527,20 +531,20 @@ def restart(directory, foreground, force):
                 pass
 
             lock.release()
-            click.echo("✅ 旧服务已停止")
+            click.echo("✅ 旧服务已停止 / Old service stopped")
         except ProcessLookupError:
             lock.release()
-            click.echo("✅ 旧进程已不存在")
+            click.echo("✅ 旧进程已不存在 / Old process gone")
         except PermissionError:
-            click.secho("❌ 没有权限停止该进程，请尝试使用 sudo", fg="red")
+            click.secho("❌ 没有权限停止该进程，请尝试使用 sudo / No permission, try sudo", fg="red")
             sys.exit(1)
         except Exception as e:
-            click.secho(f"❌ 停止失败: {e}", fg="red")
+            click.secho(f"❌ 停止失败 / Stop failed: {e}", fg="red")
             sys.exit(1)
     else:
-        click.echo("⏹️  服务未运行")
+        click.echo("⏹️  服务未运行 / Service not running")
 
-    click.echo("\n🚀 正在启动新服务...")
+    click.echo("\n🚀 正在启动新服务 / Starting new service...")
     _do_serve(
         str(directory),
         prev_host,
