@@ -1200,7 +1200,40 @@
     </div>
 
     <script src="libs/vue/vue.global.prod.js"></script>
-    <script src="libs/vue-demi/vue-demi.js"></script>
+    <script>
+        // VueDemi shim for Vue 3
+        var VueDemi = (function() {
+            var Vue = window.Vue;
+            if (!Vue) {
+                console.error('Vue is not loaded. Available globals:', Object.keys(window).filter(k => k.toLowerCase().includes('vue')));
+                throw new Error('Vue is not loaded');
+            }
+            return {
+                ref: Vue.ref,
+                computed: Vue.computed,
+                watch: Vue.watch,
+                watchEffect: Vue.watchEffect,
+                onMounted: Vue.onMounted,
+                onUnmounted: Vue.onUnmounted,
+                onBeforeUnmount: Vue.onBeforeUnmount,
+                provide: Vue.provide,
+                inject: Vue.inject,
+                reactive: Vue.reactive,
+                readonly: Vue.readonly,
+                toRaw: Vue.toRaw,
+                toRefs: Vue.toRefs,
+                isRef: Vue.isRef,
+                unref: Vue.unref,
+                isReactive: Vue.isReactive,
+                isReadonly: Vue.isReadonly,
+                nextTick: Vue.nextTick,
+                defineComponent: Vue.defineComponent,
+                version: Vue.version || '3',
+                set: function(target, key, value) { target[key] = value; },
+                del: function(target, key) { delete target[key]; }
+            };
+        })();
+    </script>
     <script src="libs/pinia/pinia.iife.js"></script>
     <script src="libs/element-plus/index.full.js"></script>
     <script src="libs/element-plus/icons.iife.min.js"></script>
