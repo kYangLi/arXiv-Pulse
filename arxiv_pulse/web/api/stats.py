@@ -10,8 +10,8 @@ from fastapi import APIRouter
 from sqlalchemy import func
 
 from arxiv_pulse.config import Config
+from arxiv_pulse.constants import ARXIV_CATEGORIES, get_all_categories
 from arxiv_pulse.models import Collection, CollectionPaper, Paper
-from arxiv_pulse.research_fields import ARXIV_CATEGORIES, get_all_categories
 from arxiv_pulse.web.dependencies import get_db
 
 router = APIRouter()

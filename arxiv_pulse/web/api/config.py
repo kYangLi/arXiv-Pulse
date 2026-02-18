@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from arxiv_pulse.config import Config
-from arxiv_pulse.research_fields import (
+from arxiv_pulse.constants import (
     ARXIV_CATEGORIES,
     DEFAULT_FIELDS,
     get_all_categories,
