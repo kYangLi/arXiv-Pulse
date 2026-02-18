@@ -54,7 +54,7 @@ const API = {
         merge: (id, targetId) => fetch(`${API_BASE}/collections/${id}/merge`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ target_id: targetId })
+            body: JSON.stringify({ target_collection_id: targetId })
         }),
         aiSearch: (id, query) => fetch(`${API_BASE}/collections/${id}/ai-search`, {
             method: 'POST',

@@ -6,7 +6,7 @@ import json
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from arxiv_pulse.models import Collection, CollectionPaper, Paper
 from arxiv_pulse.services.paper_service import enhance_paper_data
@@ -27,6 +27,13 @@ class CollectionCreate(BaseModel):
     description: str | None = None
     color: str = "#409EFF"
     icon: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def name_not_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError("名称不能为空")
+        return v
 
 
 class CollectionUpdate(BaseModel):
