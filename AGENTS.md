@@ -186,28 +186,83 @@ while (true) {
 
 ```
 arxiv_pulse/
-├── arxiv_crawler.py      # arXiv API interactions
-├── cli.py                # CLI entry (pulse command)
-├── config.py             # Configuration management
-├── models.py             # SQLAlchemy models
-├── output_manager.py     # Console output formatting
-├── search_engine.py      # Enhanced search functionality
-├── summarizer.py         # AI summarization
-├── i18n/                 # Internationalization
-│   ├── __init__.py       # t() function, get_translation_prompt()
-│   ├── zh.py             # Chinese translations
-│   └── en.py             # English translations
-└── web/
-    ├── app.py            # FastAPI application
-    ├── static/index.html # Vue 3 frontend (single file)
-    └── api/
-        ├── papers.py     # Paper endpoints + SSE search/recent
-        ├── collections.py # Collection CRUD
-        ├── tasks.py      # Sync task management + SSE
-        ├── stats.py      # Database statistics
-        ├── cache.py      # Cache management
-        ├── export.py     # Export functionality
-        └── chat.py       # AI chat assistant
+├── core/                   # Core infrastructure
+│   ├── __init__.py         # Config, Database, ServiceLock exports
+│   ├── config.py           # Configuration management
+│   ├── database.py         # Database singleton
+│   └── lock.py             # Service lock for CLI
+│
+├── models/                 # SQLAlchemy ORM models
+│   ├── __init__.py         # All model exports
+│   ├── base.py             # Base, DEFAULT_CONFIG, utcnow
+│   ├── paper.py            # Paper, TranslationCache, FigureCache
+│   ├── chat.py             # ChatSession, ChatMessage
+│   ├── collection.py       # Collection, CollectionPaper
+│   └── system.py           # SyncTask, RecentResult, SystemConfig
+│
+├── constants/              # Constants and data
+│   ├── __init__.py         # ARXIV_CATEGORIES exports
+│   └── categories.py       # Research field definitions
+│
+├── services/               # Service layer
+│   ├── ai_client.py        # AI API client
+│   ├── paper_service.py    # Paper data enhancement
+│   ├── translation_service.py  # Translation service
+│   ├── category_service.py # Category interpretation
+│   └── figure_service.py   # Figure extraction
+│
+├── crawler/                # Crawler modules
+│   ├── __init__.py         # ArXivCrawler export
+│   └── arxiv.py            # ArXiv API interactions
+│
+├── ai/                     # AI functionality
+│   ├── __init__.py         # PaperSummarizer, ReportGenerator exports
+│   ├── summarizer.py       # Paper summarization
+│   └── report.py           # Report generation
+│
+├── search/                 # Search functionality
+│   ├── __init__.py         # SearchEngine, SearchFilter exports
+│   └── engine.py           # Enhanced search engine
+│
+├── cli/                    # Command-line interface
+│   └── __init__.py         # CLI commands (serve, stop, restart, status)
+│
+├── utils/                  # Utility functions
+│   ├── __init__.py         # output, sse_event, sse_response exports
+│   ├── output.py           # Console output formatting
+│   ├── sse.py              # SSE utilities
+│   └── time.py             # Time utilities
+│
+├── web/                    # Web application
+│   ├── app.py              # FastAPI application
+│   ├── dependencies.py     # Dependency injection
+│   ├── static/             # Frontend assets
+│   │   ├── index.html      # Main Vue 3 app
+│   │   ├── css/main.css    # Styles
+│   │   ├── js/
+│   │   │   ├── components/ # Vue components
+│   │   │   ├── stores/     # Pinia stores
+│   │   │   ├── services/   # API services
+│   │   │   ├── i18n/       # Frontend translations
+│   │   │   └── utils/      # Frontend utilities
+│   │   └── libs/           # Third-party libraries
+│   └── api/                # API endpoints
+│       ├── papers.py       # Paper CRUD + SSE search/recent
+│       ├── collections.py  # Collection management
+│       ├── tasks.py        # Sync tasks + SSE
+│       ├── config.py       # Configuration API
+│       ├── chat.py         # AI chat assistant
+│       ├── stats.py        # Database statistics
+│       ├── cache.py        # Cache management
+│       └── export.py       # Export functionality
+│
+├── i18n/                   # Backend internationalization
+│   ├── __init__.py         # t() function, get_translation_prompt()
+│   ├── zh.py               # Chinese translations
+│   └── en.py               # English translations
+│
+├── __init__.py             # Public API exports
+└── __version__.py          # Version info
 ```
 
 ## Configuration
