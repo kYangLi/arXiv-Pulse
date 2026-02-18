@@ -1237,6 +1237,7 @@
                 onBeforeUnmount: Vue.onBeforeUnmount,
                 provide: Vue.provide,
                 inject: Vue.inject,
+                hasInjectionContext: Vue.hasInjectionContext,
                 reactive: Vue.reactive,
                 readonly: Vue.readonly,
                 shallowReactive: Vue.shallowReactive,
@@ -1532,6 +1533,7 @@
                 const selectedPaper = ref(null);
                 const addingToCollection = ref(false);
                 const showCollectionDetail = ref(false);
+                const showAddToCollection = ref(false);
                 const collectionSortBy = ref('published');
                 const collectionSortOrder = ref('desc');
 
@@ -3380,7 +3382,7 @@
                     useAiSearch, aiSearching, performSearch, toggleSortOrder, collectionViewMode, openPaperUrl,
                     recentSelectedIds, recentSelectAll, searchSelectedIds, searchSelectAll,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds,
-                    checkInitStatus, fetchCategories, testSetupAI, toggleSetupField, toggleCategoryGroup, startInitialSync,
+                    checkInitStatus, testSetupAI, toggleSetupField, toggleCategoryGroup, startInitialSync,
                     testAIConnection, saveSettings, saveApiKey, toggleSettingsField, onLanguageChange,
                     fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers, startSearch, fetchCollections,
                     getSelectedFieldsTooltip, hasSelectedFields,
