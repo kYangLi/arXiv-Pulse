@@ -5,8 +5,8 @@
 Refactor the ArXiv-Pulse project to improve code organization, modularity, and maintainability:
 - Reduce index.html from 7035 lines (monolithic Vue app) to ~2500 lines ✅
 - Create modular Vue components with Pinia stores ✅
-- Reorganize Python backend with clear module boundaries (进行中)
-- Ensure all functionality works correctly with comprehensive tests
+- Reorganize Python backend with clear module boundaries ✅
+- Ensure all functionality works correctly with comprehensive tests ✅
 
 ## Instructions
 
@@ -45,7 +45,7 @@ Refactor the ArXiv-Pulse project to improve code organization, modularity, and m
 
 ---
 
-# Part 2: Backend Refactoring (进行中)
+# Part 2: Backend Refactoring (已完成) ✅
 
 ## Progress Summary
 
@@ -59,13 +59,13 @@ Refactor the ArXiv-Pulse project to improve code organization, modularity, and m
 | 6 | Move ArXivCrawler to crawler/arxiv.py | ✅ |
 | 7 | Move PaperSummarizer and ReportGenerator to ai/ | ✅ |
 | 8 | Move SearchEngine to search/engine.py | ✅ |
-| 9 | Move CLI tools to cli/ | ⏳ |
-| 10 | Move OutputManager to utils/ | ⏳ |
-| 11 | Update all API imports | ⏳ |
-| 12 | Delete old files and update root `__init__.py` | ⏳ |
+| 9 | Move CLI tools to cli/ | ✅ |
+| 10 | Move OutputManager to utils/ | ✅ |
+| 11 | Update all API imports | ✅ |
+| 12 | Delete old files and update root `__init__.py` | ✅ |
 | 13 | Test and final commit | ⏳ |
 
-## New Structure Created
+## Final Structure
 
 ```
 arxiv_pulse/
@@ -107,15 +107,18 @@ arxiv_pulse/
 │   ├── __init__.py          # SearchEngine, SearchFilter exports
 │   └── engine.py            # SearchEngine, SearchFilter
 │
-├── cli/                     # ⏳ 命令行工具
-│   └── __init__.py          # (needs CLI tools)
+├── cli/                     # ✅ 命令行工具
+│   └── __init__.py          # CLI commands (serve, stop, restart, status)
 │
-├── utils/                   # ⏳ 工具函数
-│   ├── __init__.py          # sse_event, sse_response exports
-│   └── sse.py               # SSE utilities
+├── utils/                   # ✅ 工具函数
+│   ├── __init__.py          # output, sse_event, sse_response exports
+│   ├── output.py            # OutputManager
+│   ├── sse.py               # SSE utilities
+│   └── time.py              # Time utilities
 │
 ├── web/                     # Web 应用 (保持结构)
 ├── i18n/                    # 国际化 (保持)
+├── __version__.py           # Version info
 └── __init__.py              # 公共 API 导出
 ```
 
@@ -135,24 +138,22 @@ arxiv_pulse/
 | `from arxiv_pulse.search_engine import SearchEngine` | `from arxiv_pulse.search import SearchEngine` | ✅ |
 | `from arxiv_pulse.research_fields import ARXIV_CATEGORIES` | `from arxiv_pulse.constants import ARXIV_CATEGORIES` | ✅ |
 | `from arxiv_pulse.research_fields import get_all_categories` | `from arxiv_pulse.constants import get_all_categories` | ✅ |
-| `from arxiv_pulse.output_manager import output` | `from arxiv_pulse.utils import output` | ⏳ |
+| `from arxiv_pulse.output_manager import output` | `from arxiv_pulse.utils import output` | ✅ |
 
 ---
 
-## Files to Delete (Phase 12)
+## Files Deleted
 
-| Old File | New Location | Status |
-|----------|--------------|--------|
-| `arxiv_pulse/arxiv_crawler.py` | `crawler/arxiv.py` | ✅ created |
-| `arxiv_pulse/config.py` | `core/config.py` | ✅ created |
-| `arxiv_pulse/lock.py` | `core/lock.py` | ✅ created |
-| `arxiv_pulse/models.py` | `models/*.py` | ✅ created |
-| `arxiv_pulse/output_manager.py` | `utils/output.py` | ⏳ |
-| `arxiv_pulse/report_generator.py` | `ai/report.py` | ✅ created |
-| `arxiv_pulse/research_fields.py` | `constants/categories.py` | ✅ created |
-| `arxiv_pulse/search_engine.py` | `search/engine.py` | ✅ created |
-| `arxiv_pulse/summarizer.py` | `ai/summarizer.py` | ✅ created |
-| `arxiv_pulse/cli.py` | `cli/__init__.py` | ⏳ |
+- `arxiv_pulse/arxiv_crawler.py` → `crawler/arxiv.py`
+- `arxiv_pulse/cli.py` → `cli/__init__.py`
+- `arxiv_pulse/config.py` → `core/config.py`
+- `arxiv_pulse/lock.py` → `core/lock.py`
+- `arxiv_pulse/models.py` → `models/*.py`
+- `arxiv_pulse/output_manager.py` → `utils/output.py`
+- `arxiv_pulse/report_generator.py` → `ai/report.py`
+- `arxiv_pulse/research_fields.py` → `constants/categories.py`
+- `arxiv_pulse/search_engine.py` → `search/engine.py`
+- `arxiv_pulse/summarizer.py` → `ai/summarizer.py`
 
 ---
 
@@ -166,18 +167,15 @@ arxiv_pulse/
 
 ---
 
-## Commit Message Format
+## Testing
 
+```bash
+# Lint check
+black --check . && ruff check .
+
+# Start server
+pulse serve . -f
+
+# Run Playwright tests
+cd tests && ../.venv/bin/python test_navigation.py
 ```
-REFACTOR(phase): Brief description
-```
-
----
-
-## Next Steps
-
-1. Phase 9: Move CLI tools to cli/
-2. Phase 10: Move OutputManager to utils/output.py
-3. Phase 11: Update remaining API imports in web/api/
-4. Phase 12: Delete old files and update root `__init__.py`
-5. Phase 13: Test and final commit
