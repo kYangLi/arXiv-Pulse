@@ -762,6 +762,21 @@
             gap: 12px;
             margin-bottom: 8px;
         }
+        .paper-index {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 400;
+            min-width: 24px;
+            padding-top: 4px;
+            opacity: 0.6;
+        }
+        .paper-index-list {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 400;
+            min-width: 20px;
+            opacity: 0.6;
+        }
         .paper-header .el-checkbox {
             margin-top: 4px;
         }
@@ -1705,6 +1720,15 @@
         }
         .chat-trigger .el-button:hover {
             transform: scale(1.05);
+        }
+        .back-to-top-btn {
+            background: linear-gradient(135deg, #5a6c7d 0%, #3d4f5f 100%) !important;
+            border: none !important;
+            color: white !important;
+        }
+        .back-to-top-btn .el-icon {
+            font-size: 20px !important;
+        }
             box-shadow: 0 6px 20px rgba(30, 58, 95, 0.5);
         }
         .chat-trigger .el-button svg {

@@ -167,13 +167,14 @@
                     
                     <div v-if="homeResults.length > 0" style="margin-top: 24px; max-width: 680px; width: 100%;">
                         <paper-card 
-                            v-for="paper in homeResults" 
+                            v-for="(paper, idx) in homeResults" 
                             :key="paper.id" 
                             :paper="paper"
                             :collections="collections"
                             :in-cart="isInCart(paper.arxiv_id)"
                             :t="t"
                             :current-lang="currentLang"
+                            :index="idx"
                             @add-to-collection="addToCollection"
                             @add-to-cart="addToCart"
                             @remove-from-cart="removeFromCartByArxivId"
@@ -257,13 +258,14 @@
                     </div>
                     <div v-else-if="recentPapers.length > 0">
                         <paper-card 
-                            v-for="paper in recentPapers" 
+                            v-for="(paper, idx) in recentPapers" 
                             :key="paper.id" 
                             :paper="paper"
                             :collections="collections"
                             :in-cart="isInCart(paper.arxiv_id)"
                             :t="t"
                             :current-lang="currentLang"
+                            :index="idx"
                             @add-to-collection="addToCollection"
                             @add-to-cart="addToCart"
                             @remove-from-cart="removeFromCartByArxivId"
@@ -300,14 +302,20 @@
                     <div class="sync-options">
                         <h3>{{ t('sync.syncSettings') }}</h3>
                         <el-form label-position="top">
-                            <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;">
+                            <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-end;">
                                 <el-form-item :label="t('sync.yearsBack')">
                                     <el-select v-model="syncYearsBack" style="width: 120px;">
                                         <el-option v-for="item in syncYearsBackOptions" :key="item.value" :label="item.label" :value="item.value" />
                                     </el-select>
                                 </el-form-item>
-                                <el-form-item :label="t('sync.forceSync')">
-                                    <el-switch v-model="syncForce" />
+                                <el-form-item>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span style="font-size: 14px; color: var(--text-secondary);">{{ t('sync.forceSync') }}</span>
+                                        <el-tooltip :content="t('sync.forceSyncHint')" placement="top" max-width="300">
+                                            <el-icon style="cursor: help; color: var(--text-muted);"><QuestionFilled /></el-icon>
+                                        </el-tooltip>
+                                    </div>
+                                    <el-switch v-model="syncForce" style="margin-top: 4px;" />
                                 </el-form-item>
                                 <el-form-item label=" ">
                                     <el-button type="primary" @click="startSync" :loading="syncing">
@@ -562,30 +570,43 @@
 
         <!-- Floating Buttons Left (Language + Settings) -->
         <div v-if="!showSetup" class="floating-buttons-left">
-            <el-button circle class="lang-btn" @click="toggleLanguage">
-                {{ currentLang === 'zh' ? 'EN' : '中' }}
-            </el-button>
-            <el-button circle class="settings-btn" @click="showSettings = true">
-                <el-icon><Setting /></el-icon>
-            </el-button>
+            <el-tooltip :content="currentLang === 'zh' ? '回到顶层' : 'Back to top'" placement="right" :show-after="500">
+                <el-button v-show="showBackToTop" circle class="back-to-top-btn" @click="scrollToTop">
+                    <el-icon><Top /></el-icon>
+                </el-button>
+            </el-tooltip>
+            <el-tooltip :content="currentLang === 'zh' ? '暂存篮' : 'Basket'" placement="right" :show-after="500">
+                <el-badge :value="paperCart.length" :hidden="paperCart.length === 0" :max="9">
+                    <el-button circle class="cart-fab-btn" @click="showCart = !showCart">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                            <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+                        </svg>
+                    </el-button>
+                </el-badge>
+            </el-tooltip>
+            <el-tooltip :content="currentLang === 'zh' ? 'AI助手' : 'AI Assistant'" placement="right" :show-after="500">
+                <el-badge :value="chatUnreadCount" :hidden="chatUnreadCount === 0" :max="9">
+                    <el-button circle class="chat-fab-btn" @click="toggleChat">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                        </svg>
+                    </el-button>
+                </el-badge>
+            </el-tooltip>
         </div>
 
-        <!-- Floating Buttons Right (Cart + Chat) -->
+        <!-- Floating Buttons Right (Language + Settings) -->
         <div v-if="!showSetup" class="floating-buttons-right">
-            <el-badge :value="paperCart.length" :hidden="paperCart.length === 0" :max="9">
-                <el-button circle class="cart-fab-btn" @click="showCart = !showCart">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-                        <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
-                    </svg>
+            <el-tooltip :content="currentLang === 'zh' ? '系统语言' : 'System Language'" placement="left" :show-after="500">
+                <el-button circle class="lang-btn" @click="toggleLanguage">
+                    {{ currentLang === 'zh' ? 'EN' : '中' }}
                 </el-button>
-            </el-badge>
-            <el-badge :value="chatUnreadCount" :hidden="chatUnreadCount === 0" :max="9">
-                <el-button circle class="chat-fab-btn" @click="toggleChat">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-                        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-                    </svg>
+            </el-tooltip>
+            <el-tooltip :content="currentLang === 'zh' ? '设置' : 'Settings'" placement="left" :show-after="500">
+                <el-button circle class="settings-btn" @click="showSettings = true">
+                    <el-icon><Setting /></el-icon>
                 </el-button>
-            </el-badge>
+            </el-tooltip>
         </div>
 
         <!-- AI Chat Widget Component -->
@@ -2378,6 +2399,17 @@
                     
                     // Handle ESC key to close panels
                     window.addEventListener('keydown', handleEscKey);
+                    
+                    // Back to top functionality
+                    const showBackToTop = ref(false);
+                    const handleScroll = () => {
+                        showBackToTop.value = window.scrollY > 300;
+                    };
+                    window.addEventListener('scroll', handleScroll, { passive: true });
+                    
+                    const scrollToTop = () => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    };
                 });
 
                 return {
@@ -2416,6 +2448,7 @@
                     exportRecent, exportSearch, exportCollection, exportCollectionWithId,
                     navigateTo, navigateToHome, onTabChange, handleHomeSearch, stopHomeSearch, homeLogsContainerRef, handleHomeLogsScroll, toggleHomeSelect, exportHome,
                     stopUpdateRecent, recentLogsContainerRef, handleRecentLogsScroll,
+                    showBackToTop, scrollToTop,
                     chatExpanded, chatPosition, chatPanelRef, chatZIndex,
                     chatFullscreen, chatSize, chatAnimating,
                     selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
@@ -2445,7 +2478,7 @@
 
         // Register paper-card component AFTER Pinia is installed
         app.component('paper-card', {
-            props: ['paper', 'collections', 'inCollection', 'inCart', 't', 'currentLang'],
+            props: ['paper', 'collections', 'inCollection', 'inCart', 't', 'currentLang', 'index'],
             emits: ['add-to-collection', 'remove-from-collection', 'download-card', 'analyze-paper', 'add-to-cart', 'remove-from-cart'],
             template: PaperCardTemplate,
             setup: PaperCardSetup

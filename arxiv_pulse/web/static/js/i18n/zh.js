@@ -65,6 +65,7 @@ const i18nZh = {
         totalPapers: '总论文数',
         syncSettings: '同步设置',
         forceSync: '强制同步',
+        forceSyncHint: '禁用数据库缓存加速，重新搜索所有论文。适用于数据不完整或需要强制更新的情况。',
         startSync: '开始同步',
         yearsBack: '回溯年数',
         yearDistribution: '文献年份分布',

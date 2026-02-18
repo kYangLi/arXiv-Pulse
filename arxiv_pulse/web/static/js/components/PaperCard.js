@@ -1,6 +1,7 @@
 const PaperCardTemplate = `
 <div class="paper-card" :data-arxiv-id="paper.arxiv_id" ref="cardRef">
     <div class="paper-header">
+        <span v-if="index !== undefined" class="paper-index">{{ index + 1 }}</span>
         <div class="paper-title" @click="openArxiv(paper.arxiv_id)">{{ paper.title }}</div>
     </div>
     <div v-if="paper.title_translation" class="paper-title-cn">{{ paper.title_translation }}</div>

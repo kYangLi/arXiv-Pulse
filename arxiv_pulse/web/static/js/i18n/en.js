@@ -65,6 +65,7 @@ const i18nEn = {
         totalPapers: 'Total Papers',
         syncSettings: 'Sync Settings',
         forceSync: 'Force Sync',
+        forceSyncHint: 'Disable database cache acceleration and re-search all papers. Use when data is incomplete or needs forced update.',
         startSync: 'Start Sync',
         yearsBack: 'Years Back',
         yearDistribution: 'Year Distribution',

@@ -97,7 +97,7 @@ const CollectionDialogsTemplate = `
                 <div v-if="collectionPapers.length > 0">
                     <template v-if="collectionViewMode === 'card'">
                         <paper-card 
-                            v-for="paper in collectionPapers" 
+                            v-for="(paper, idx) in collectionPapers" 
                             :key="paper.id" 
                             :paper="paper"
                             :collections="collections"
@@ -105,6 +105,7 @@ const CollectionDialogsTemplate = `
                             :in-cart="isInCart(paper.arxiv_id)"
                             :t="t"
                             :current-lang="currentLang"
+                            :index="idx"
                             @add-to-collection="addToCollection"
                             @remove-from-collection="removePaperFromCollection"
                             @add-to-cart="addToCart"
@@ -112,8 +113,9 @@ const CollectionDialogsTemplate = `
                         />
                     </template>
                     <template v-else>
-                        <div v-for="paper in collectionPapers" :key="paper.id" class="collection-list-item">
+                        <div v-for="(paper, idx) in collectionPapers" :key="paper.id" class="collection-list-item">
                             <div class="list-item-header">
+                                <span class="paper-index-list">{{ idx + 1 }}</span>
                                 <div class="list-item-title" @click="openPaperUrl(paper.arxiv_url)">{{ paper.title }}</div>
                                 <div class="list-item-actions">
                                     <a :href="'https://arxiv.org/abs/' + paper.arxiv_id" target="_blank" class="arxiv-link" @click.stop>{{ paper.arxiv_id }}</a>
