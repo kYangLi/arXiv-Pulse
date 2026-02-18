@@ -1251,6 +1251,20 @@
             gap: 8px;
             flex-shrink: 0;
         }
+        .list-item-actions .el-button {
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .list-item-actions .el-button--warning.is-text:hover {
+            background: rgba(230, 162, 60, 0.15);
+            color: #e6a23c;
+        }
+        .list-item-actions .el-button--warning.is-plain:hover {
+            background: #e6a23c;
+            color: white;
+            border-color: #e6a23c;
+        }
         .arxiv-link {
             font-size: 12px;
             color: var(--primary);
