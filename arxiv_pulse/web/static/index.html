@@ -257,6 +257,27 @@
                         </el-button>
                     </div>
                     <div v-else-if="recentPapers.length > 0">
+                        <div class="recent-search-bar">
+                            <el-input 
+                                v-model="recentSearchQuery" 
+                                :placeholder="recentUseAiSearch ? t('papers.aiSearchPlaceholder') : t('papers.searchPapers')" 
+                                clearable 
+                                style="width: 320px;" 
+                                @keyup.enter="searchRecentPapers(configStore)"
+                                @clear="resetRecentSearch"
+                                :disabled="recentSearching"
+                            >
+                                <template #prefix><el-icon><Search /></el-icon></template>
+                            </el-input>
+                            <el-checkbox v-model="recentUseAiSearch" :disabled="recentSearching">{{ t('papers.aiSearch') }}</el-checkbox>
+                            <el-button size="small" type="primary" @click="searchRecentPapers(configStore)" :loading="recentSearching">
+                                {{ t('papers.searchInPage') }}
+                            </el-button>
+                            <el-button v-if="recentOriginalPapers.length > 0" size="small" @click="resetRecentSearch">
+                                {{ currentLang === 'zh' ? '重置' : 'Reset' }}
+                            </el-button>
+                            <span class="search-hint-text">{{ t('papers.searchHint') }}</span>
+                        </div>
                         <paper-card 
                             v-for="(paper, idx) in recentPapers" 
                             :key="paper.id" 
@@ -775,12 +796,13 @@
                 const { 
                     stats, fieldStats, recentPapers, loadingRecent, loadingProgress, loadingTotal, loadingController,
                     updatingRecent, recentLogs, recentDays, recentNeedSync,
+                    recentSearchQuery, recentSearching, recentUseAiSearch, recentOriginalPapers,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds, homeController, homeUserScrolledUp,
                     paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex
                 } = storeToRefs(paperStore);
                 
                 const { 
-                    startHomeSearch, stopHomeSearch
+                    startHomeSearch, stopHomeSearch, searchRecentPapers, resetRecentSearch
                 } = paperStore;
                 
                 // chatStore properties
@@ -2450,6 +2472,8 @@
                     exportRecent, exportSearch, exportCollection, exportCollectionWithId,
                     navigateTo, navigateToHome, onTabChange, handleHomeSearch, stopHomeSearch, homeLogsContainerRef, handleHomeLogsScroll, toggleHomeSelect, exportHome,
                     stopUpdateRecent, recentLogsContainerRef, handleRecentLogsScroll,
+                    recentSearchQuery, recentSearching, recentUseAiSearch, recentOriginalPapers,
+                    searchRecentPapers, resetRecentSearch,
                     showBackToTop, scrollToTop,
                     chatExpanded, chatPosition, chatPanelRef, chatZIndex,
                     chatFullscreen, chatSize, chatAnimating,

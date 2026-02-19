@@ -7,7 +7,7 @@ const useCollectionStore = defineStore('collection', () => {
     const collectionTotalPages = ref(0);
     const collectionPaperSearch = ref('');
     const loadingCollectionPapers = ref(false);
-    const useAiSearch = ref(false);
+    const useAiSearch = ref(true);
     const aiSearching = ref(false);
     const collectionViewMode = ref('card');
     const collectionSearchQuery = ref('');

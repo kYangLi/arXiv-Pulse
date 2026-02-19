@@ -9,6 +9,11 @@ const usePaperStore = defineStore('paper', () => {
     const recentDays = ref('7');
     const recentNeedSync = ref(true);
     const recentSelectedIds = ref([]);
+    const recentSearchQuery = ref('');
+    const recentSearching = ref(false);
+    const recentUseAiSearch = ref(true);
+    const recentSearchResults = ref([]);
+    const recentOriginalPapers = ref([]);
     
     const homeQuery = ref('');
     const homeSearching = ref(false);
@@ -321,6 +326,8 @@ const usePaperStore = defineStore('paper', () => {
     async function updateRecentPapers(configStore) {
         updatingRecent.value = true;
         recentLogs.value = [];
+        recentOriginalPapers.value = [];
+        recentSearchQuery.value = '';
         
         try {
             const params = new URLSearchParams({
@@ -363,6 +370,72 @@ const usePaperStore = defineStore('paper', () => {
             recentLogs.value.push({ type: 'error', message: `更新失败: ${e.message}` });
         } finally {
             updatingRecent.value = false;
+        }
+    }
+    
+    function resetRecentSearch() {
+        if (recentOriginalPapers.value.length > 0) {
+            recentPapers.value = [...recentOriginalPapers.value];
+            recentOriginalPapers.value = [];
+        }
+        recentSearchQuery.value = '';
+        recentSearchResults.value = [];
+    }
+    
+    async function searchRecentPapers(configStore) {
+        if (!recentSearchQuery.value.trim()) {
+            resetRecentSearch();
+            return;
+        }
+        
+        if (recentOriginalPapers.value.length === 0) {
+            recentOriginalPapers.value = [...recentPapers.value];
+        }
+        
+        if (recentUseAiSearch.value) {
+            recentSearching.value = true;
+            recentSearchResults.value = [];
+            
+            try {
+                const response = await API.papers.searchStream(`q=${encodeURIComponent(recentSearchQuery.value)}&limit=50`);
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                if (data.type === 'result') {
+                                    recentSearchResults.value.push(data.paper);
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                }
+                
+                const resultIds = new Set(recentSearchResults.value.map(p => p.arxiv_id));
+                recentPapers.value = recentOriginalPapers.value.filter(p => resultIds.has(p.arxiv_id));
+            } catch (e) {
+                console.error('AI search failed:', e);
+            } finally {
+                recentSearching.value = false;
+            }
+        } else {
+            const query = recentSearchQuery.value.toLowerCase();
+            recentPapers.value = recentOriginalPapers.value.filter(p => 
+                (p.title && p.title.toLowerCase().includes(query)) ||
+                (p.abstract && p.abstract.toLowerCase().includes(query)) ||
+                (p.authors && p.authors.some(a => a.name && a.name.toLowerCase().includes(query)))
+            );
         }
     }
     
@@ -541,6 +614,7 @@ const usePaperStore = defineStore('paper', () => {
     return {
         recentPapers, loadingRecent, loadingProgress, loadingTotal, loadingController,
         updatingRecent, recentLogs, recentDays, recentNeedSync, recentSelectedIds,
+        recentSearchQuery, recentSearching, recentUseAiSearch, recentSearchResults, recentOriginalPapers,
         homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds, homeController, homeLogsContainer, homeUserScrolledUp,
         searchQuery, searching, searchLogs, searchResults, searchSelectedIds,
         paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex,
@@ -548,6 +622,7 @@ const usePaperStore = defineStore('paper', () => {
         toggleRecentSelection, toggleAllRecent, toggleSearchSelection, toggleAllSearch,
         toggleHomeSelection, addToCart, removeFromCart, clearCart, isInCart, exportCart, copyCartLinks,
         fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers,
+        searchRecentPapers, resetRecentSearch,
         searchPapers, startHomeSearch, stopHomeSearch, exportPapers, updatePaperCollectionIds
     };
 });

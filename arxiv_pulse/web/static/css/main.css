@@ -1111,6 +1111,20 @@
             font-size: 12px;
             margin-top: 12px;
         }
+        .recent-search-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-light);
+            flex-wrap: wrap;
+        }
+        .search-hint-text {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-left: 8px;
+        }
         
         /* Logs */
         .logs-container { 

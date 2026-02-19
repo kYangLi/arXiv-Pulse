@@ -56,7 +56,14 @@ const i18nZh = {
         yearsBack: '回溯年数',
         filterFields: '筛选领域',
         loading: '正在加载论文数据...',
-        aiReading: 'AI 正在阅读并理解文献，请耐心等待...'
+        aiReading: 'AI 正在阅读并理解文献，请耐心等待...',
+        searchInPage: '搜索',
+        searchHint: '在当前论文中搜索',
+        aiSearch: 'AI 搜索',
+        aiSearchPlaceholder: '描述你想找的论文，如：关于电池材料 DFT 计算的',
+        searchPapers: '搜索论文...',
+        aiSearching: 'AI 搜索中...',
+        noSearchResult: '未找到匹配的论文'
     },
     sync: {
         status: '同步状态',

@@ -56,7 +56,14 @@ const i18nEn = {
         yearsBack: 'Years Back',
         filterFields: 'Filter Fields',
         loading: 'Loading papers...',
-        aiReading: 'AI is reading and understanding papers, please wait...'
+        aiReading: 'AI is reading and understanding papers, please wait...',
+        searchInPage: 'Search',
+        searchHint: 'Search in current papers',
+        aiSearch: 'AI Search',
+        aiSearchPlaceholder: 'Describe what you\'re looking for, e.g., DFT calculations for battery materials',
+        searchPapers: 'Search papers...',
+        aiSearching: 'AI searching...',
+        noSearchResult: 'No matching papers found'
     },
     sync: {
         status: 'Sync Status',
