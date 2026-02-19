@@ -147,7 +147,8 @@ const useCollectionStore = defineStore('collection', () => {
                     newCollection.value = { name: '', description: '', color: '#1e3a5f' };
                     fetchCollections();
                 } else {
-                    ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '更新失败' : 'Failed to update');
+                    const errData = await res.json();
+                    ElementPlus.ElMessage.error(errData.detail || (configStore.currentLang === 'zh' ? '更新失败' : 'Failed to update'));
                 }
             } else {
                 const res = await API.collections.create(newCollection.value);
@@ -157,7 +158,8 @@ const useCollectionStore = defineStore('collection', () => {
                     newCollection.value = { name: '', description: '', color: '#1e3a5f' };
                     fetchCollections();
                 } else {
-                    ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '创建失败' : 'Failed to create');
+                    const errData = await res.json();
+                    ElementPlus.ElMessage.error(errData.detail || (configStore.currentLang === 'zh' ? '创建失败' : 'Failed to create'));
                 }
             }
         } catch (e) {
