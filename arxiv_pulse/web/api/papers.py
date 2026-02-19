@@ -750,6 +750,83 @@ async def search_papers_stream(
     return sse_response(event_generator)
 
 
+class AIFilterPapersRequest(BaseModel):
+    query: str
+    paper_ids: list[int]
+
+
+@router.post("/ai-filter")
+async def ai_filter_papers(data: AIFilterPapersRequest):
+    """AI-powered filter papers from a given list by query"""
+    if not data.paper_ids:
+        return {"papers": [], "total_found": 0}
+
+    with get_db().get_session() as session:
+        papers = session.query(Paper).filter(Paper.id.in_(data.paper_ids)).all()
+
+        if not papers:
+            return {"papers": [], "total_found": 0}
+
+        papers_info = []
+        for idx, paper in enumerate(papers):
+            papers_info.append(
+                {
+                    "index": idx,
+                    "id": paper.id,
+                    "title": paper.title or "",
+                    "arxiv_id": paper.arxiv_id,
+                }
+            )
+
+        titles_text = "\n".join([f"{p['index']}. {p['title']}" for p in papers_info])
+
+        prompt = f"""用户描述：{data.query}
+
+以下是论文列表的标题（每行一个）：
+{titles_text}
+
+请找出与用户描述最相关的论文，返回编号列表（JSON数组格式），如：[1, 3, 5]
+
+如果没有相关论文，返回空列表 []
+只返回JSON数组，不要其他文字。"""
+
+        try:
+            import openai
+
+            client = openai.OpenAI(api_key=Config.AI_API_KEY, base_url=Config.AI_BASE_URL)
+
+            response = client.chat.completions.create(
+                model=Config.AI_MODEL or "DeepSeek-V3.2",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=100,
+                temperature=0.3,
+            )
+
+            result_text = response.choices[0].message.content.strip()
+
+            import re
+
+            match = re.search(r"\[.*?\]", result_text)
+            if match:
+                indices = json.loads(match.group())
+            else:
+                indices = []
+
+            matched_papers = []
+            for p in papers_info:
+                if p["index"] in indices:
+                    paper = session.query(Paper).filter_by(id=p["id"]).first()
+                    if paper:
+                        paper_data = enhance_paper_data(paper)
+                        paper_data["_originalIndex"] = p["index"]
+                        matched_papers.append(paper_data)
+
+            return {"papers": matched_papers, "total_found": len(matched_papers)}
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"AI filter failed: {str(e)[:100]}")
+
+
 @router.get("/{paper_id}")
 async def get_paper(paper_id: int):
     """Get paper by ID with enhanced data"""

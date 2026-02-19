@@ -32,7 +32,12 @@ const API = {
     papers: {
         recentCacheStream: (params) => fetch(`${API_BASE}/papers/recent/cache/stream?${params}`),
         recentUpdate: (params, signal) => fetch(`${API_BASE}/papers/recent/update?${params}`, { method: 'POST', signal }),
-        searchStream: (params) => fetch(`${API_BASE}/papers/search/stream?${params}`),
+        searchStream: (params, signal) => fetch(`${API_BASE}/papers/search/stream?${params}`, { signal }),
+        aiFilter: (data) => fetch(`${API_BASE}/papers/ai-filter`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }),
         quick: (params, signal) => fetch(`${API_BASE}/papers/quick?${params}`, { signal }),
         pdf: (arxivId) => fetch(`${API_BASE}/papers/pdf/${arxivId}`)
     },

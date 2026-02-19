@@ -12,9 +12,7 @@ const usePaperStore = defineStore('paper', () => {
     const recentSearchQuery = ref('');
     const recentSearching = ref(false);
     const recentUseAiSearch = ref(true);
-    const recentSearchResults = ref([]);
     const recentOriginalPapers = ref([]);
-    const recentSearchController = ref(null);
     
     const homeQuery = ref('');
     const homeSearching = ref(false);
@@ -375,15 +373,11 @@ const usePaperStore = defineStore('paper', () => {
     }
     
     function resetRecentSearch() {
-        if (recentSearchController.value) {
-            recentSearchController.value.abort();
-            recentSearchController.value = null;
-        }
         if (recentOriginalPapers.value.length > 0) {
             recentPapers.value = [...recentOriginalPapers.value];
             recentOriginalPapers.value = [];
         }
-        recentSearchResults.value = [];
+        recentSearchQuery.value = '';
         recentSearching.value = false;
     }
     
@@ -398,48 +392,30 @@ const usePaperStore = defineStore('paper', () => {
         }
         
         if (recentUseAiSearch.value) {
-            if (recentSearchController.value) {
-                recentSearchController.value.abort();
-            }
-            recentSearchController.value = new AbortController();
             recentSearching.value = true;
-            recentSearchResults.value = [];
             
             try {
-                const response = await API.papers.searchStream(`q=${encodeURIComponent(recentSearchQuery.value)}&limit=50`, recentSearchController.value.signal);
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
+                const paperIds = recentOriginalPapers.value.map(p => p.id);
+                const res = await API.papers.aiFilter({
+                    query: recentSearchQuery.value,
+                    paper_ids: paperIds
+                });
                 
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-                    
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            try {
-                                const data = JSON.parse(line.slice(6));
-                                if (data.type === 'result') {
-                                    recentSearchResults.value.push(data.paper);
-                                }
-                            } catch (e) {}
-                        }
+                if (res.ok) {
+                    const data = await res.json();
+                    recentPapers.value = data.papers || [];
+                    if (data.papers && data.papers.length === 0) {
+                        ElementPlus.ElMessage.info(configStore?.currentLang === 'zh' ? '未找到匹配的论文' : 'No matching papers found');
                     }
+                } else {
+                    const errData = await res.json();
+                    ElementPlus.ElMessage.error(errData.detail || (configStore?.currentLang === 'zh' ? 'AI 搜索失败' : 'AI search failed'));
                 }
-                
-                const resultIds = new Set(recentSearchResults.value.map(p => p.arxiv_id));
-                recentPapers.value = recentOriginalPapers.value.filter(p => resultIds.has(p.arxiv_id));
             } catch (e) {
-                if (e.name !== 'AbortError') {
-                    console.error('AI search failed:', e);
-                }
+                console.error('AI search failed:', e);
+                ElementPlus.ElMessage.error(configStore?.currentLang === 'zh' ? 'AI 搜索失败' : 'AI search failed');
             } finally {
                 recentSearching.value = false;
-                recentSearchController.value = null;
             }
         } else {
             const query = recentSearchQuery.value.toLowerCase();
@@ -626,7 +602,7 @@ const usePaperStore = defineStore('paper', () => {
     return {
         recentPapers, loadingRecent, loadingProgress, loadingTotal, loadingController,
         updatingRecent, recentLogs, recentDays, recentNeedSync, recentSelectedIds,
-        recentSearchQuery, recentSearching, recentUseAiSearch, recentSearchResults, recentOriginalPapers,
+        recentSearchQuery, recentSearching, recentUseAiSearch, recentOriginalPapers,
         homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds, homeController, homeLogsContainer, homeUserScrolledUp,
         searchQuery, searching, searchLogs, searchResults, searchSelectedIds,
         paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex,
