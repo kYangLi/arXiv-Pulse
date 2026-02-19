@@ -260,6 +260,153 @@ const useChatStore = defineStore('chat', () => {
         }
     }
     
+    function copyMessage(content) {
+        const configStore = useConfigStore();
+        if (!content) return;
+        
+        // Use fallback method for non-HTTPS contexts
+        const fallbackCopy = (text) => {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                ElementPlus.ElMessage.success(configStore.currentLang === 'zh' ? '已复制到剪贴板' : 'Copied to clipboard');
+            } catch (e) {
+                ElementPlus.ElMessage.error(configStore.currentLang === 'zh' ? '复制失败' : 'Copy failed');
+            }
+            document.body.removeChild(textarea);
+        };
+        
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(content).then(() => {
+                ElementPlus.ElMessage.success(configStore.currentLang === 'zh' ? '已复制到剪贴板' : 'Copied to clipboard');
+            }).catch(() => {
+                fallbackCopy(content);
+            });
+        } else {
+            fallbackCopy(content);
+        }
+    }
+    
+    async function regenerateMessage(messageIdx) {
+        const configStore = useConfigStore();
+        if (chatTyping.value || messageIdx < 1) return;
+        
+        // Find the user message before this assistant message
+        const assistantMsg = chatMessages.value[messageIdx];
+        if (!assistantMsg || assistantMsg.role !== 'assistant') return;
+        
+        // Find the preceding user message
+        let userMsg = null;
+        for (let i = messageIdx - 1; i >= 0; i--) {
+            if (chatMessages.value[i].role === 'user') {
+                userMsg = chatMessages.value[i];
+                break;
+            }
+        }
+        
+        if (!userMsg) return;
+        
+        // Remove the assistant message
+        chatMessages.value.splice(messageIdx, 1);
+        
+        // Mark as regenerating
+        userMsg.isRegenerating = true;
+        
+        // Re-send the user message
+        const messageContent = userMsg.content;
+        const paperIds = userMsg.paper_ids || [];
+        
+        chatTyping.value = true;
+        chatProgress.value = null;
+        userScrolledUp.value = false;
+        
+        await nextTick();
+        scrollToBottom();
+        
+        const newAssistantMessage = {
+            id: Date.now(),
+            role: 'assistant',
+            content: '',
+            isStreaming: true,
+            created_at: new Date().toISOString()
+        };
+        chatMessages.value.push(newAssistantMessage);
+        const assistantIdx = chatMessages.value.length - 1;
+        
+        try {
+            const response = await API.chat.sessions.send(currentChatSession.value.id, {
+                content: messageContent,
+                paper_ids: paperIds,
+                language: configStore.currentLang
+            });
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+                
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.type === 'progress') {
+                                chatProgress.value = {
+                                    stage: data.stage,
+                                    message: data.message,
+                                    arxivId: data.arxiv_id,
+                                    paperIndex: data.paper_index,
+                                    totalPapers: data.total_papers,
+                                    progress: data.progress,
+                                    textLength: data.text_length,
+                                    pageCount: data.page_count,
+                                };
+                                await nextTick();
+                                scrollToBottom();
+                            } else if (data.type === 'chunk') {
+                                chatProgress.value = null;
+                                chatMessages.value[assistantIdx].content += data.content;
+                                await nextTick();
+                                if (!userScrolledUp.value) {
+                                    scrollToBottom();
+                                }
+                            } else if (data.type === 'error') {
+                                chatProgress.value = null;
+                                chatMessages.value[assistantIdx].content = `**错误**: ${data.message}`;
+                            } else if (data.type === 'done') {
+                                chatProgress.value = null;
+                                chatMessages.value[assistantIdx].isStreaming = false;
+                            }
+                        } catch (e) {}
+                    }
+                }
+            }
+        } catch (e) {
+            ElementPlus.ElMessage.error('重新生成失败');
+            if (chatMessages.value[assistantIdx]) {
+                chatMessages.value[assistantIdx].content = '重新生成失败，请重试。';
+            }
+        } finally {
+            chatTyping.value = false;
+            chatProgress.value = null;
+            userScrolledUp.value = false;
+            if (chatMessages.value[assistantIdx]) {
+                chatMessages.value[assistantIdx].isStreaming = false;
+            }
+        }
+    }
+    
     function formatChatMessage(content, isStreaming = false) {
         if (!content) return '';
         
@@ -272,20 +419,59 @@ const useChatStore = defineStore('chat', () => {
             }
         }
         
+        // Protect LaTeX formulas from markdown processing
+        const latexPlaceholders = [];
+        const protectLatex = (text) => {
+            // First protect display math ($$...$$) - must be done first
+            text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+                const idx = latexPlaceholders.length;
+                latexPlaceholders.push(`$$${formula}$$`);
+                return `%%LATEX_PLACEHOLDER_${idx}%%`;
+            });
+            // Then protect inline math ($...$)
+            text = text.replace(/\$([^\$\n]+?)\$/g, (match, formula) => {
+                const idx = latexPlaceholders.length;
+                latexPlaceholders.push(`$${formula}$`);
+                return `%%LATEX_PLACEHOLDER_${idx}%%`;
+            });
+            // Protect \[...\] and \(...\)
+            text = text.replace(/\\\[([\s\S]*?)\\\]/g, (match, formula) => {
+                const idx = latexPlaceholders.length;
+                latexPlaceholders.push(`\\[${formula}\\]`);
+                return `%%LATEX_PLACEHOLDER_${idx}%%`;
+            });
+            text = text.replace(/\\\(([^)]+?)\\\)/g, (match, formula) => {
+                const idx = latexPlaceholders.length;
+                latexPlaceholders.push(`\\(${formula}\\)`);
+                return `%%LATEX_PLACEHOLDER_${idx}%%`;
+            });
+            return text;
+        };
+        
+        const restoreLatex = (text) => {
+            for (let i = 0; i < latexPlaceholders.length; i++) {
+                text = text.replace(`%%LATEX_PLACEHOLDER_${i}%%`, latexPlaceholders[i]);
+            }
+            return text;
+        };
+        
+        processedContent = protectLatex(processedContent);
+        
         if (typeof marked !== 'undefined') {
             try {
-                return marked.parse(processedContent, {
+                let html = marked.parse(processedContent, {
                     breaks: true,
                     gfm: true,
                 });
+                return restoreLatex(html);
             } catch (e) {
-                return content
+                return restoreLatex(processedContent)
                     .replace(/</g, '&lt;')
                     .replace(/>/g, '&gt;')
                     .replace(/\n/g, '<br>');
             }
         }
-        return content
+        return restoreLatex(processedContent)
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/\n/g, '<br>')
@@ -316,6 +502,6 @@ const useChatStore = defineStore('chat', () => {
         scrollToBottom, handleChatScroll, fetchChatSessions, createNewChat,
         selectChatSession, deleteChatSession, clearAllChatSessions,
         sendQuickPrompt, sendChatMessage, removeSelectedChatPaper,
-        formatChatMessage, formatChatTime
+        formatChatMessage, formatChatTime, copyMessage, regenerateMessage
     };
 });

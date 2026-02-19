@@ -132,6 +132,17 @@ const ChatWidgetTemplate = `
                                         <span class="streaming-cursor"></span>
                                     </div>
                                 </template>
+                                <template v-else-if="msg.role === 'assistant'">
+                                    <div class="message-text" :id="'msg-' + msg.id" v-html="formatChatMessage(msg.content)"></div>
+                                    <div v-if="!msg.isStreaming && msg.content" class="message-actions">
+                                        <el-button text size="small" @click="copyMessage(msg.content)" :title="t('chat.copy')">
+                                            <el-icon><CopyDocument /></el-icon>
+                                        </el-button>
+                                        <el-button text size="small" @click="regenerateMessage(idx)" :title="t('chat.regenerate')" :loading="msg.isRegenerating">
+                                            <el-icon><Refresh /></el-icon>
+                                        </el-button>
+                                    </div>
+                                </template>
                                 <div v-else class="message-text" v-html="formatChatMessage(msg.content)"></div>
                             </div>
                             <div v-if="msg.role === 'user'" class="message-avatar user">
@@ -203,12 +214,38 @@ const ChatWidgetSetup = (props, { emit }) => {
     const {
         createNewChat, selectChatSession, deleteChatSession, clearAllChatSessions,
         sendChatMessage, sendQuickPrompt, removeSelectedChatPaper,
-        formatChatMessage, formatChatTime, handleChatScroll
+        formatChatMessage, formatChatTime, handleChatScroll,
+        copyMessage, regenerateMessage
     } = chatStore;
     
     function t(key, params) {
         return configStore.t(key, params);
     }
+    
+    function renderLatexInMessages() {
+        if (typeof renderMathInElement === 'undefined') return;
+        nextTick(() => {
+            const msgElements = document.querySelectorAll('.message-text:not(.streaming)');
+            msgElements.forEach(el => {
+                try {
+                    renderMathInElement(el, {
+                        delimiters: [
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false },
+                            { left: '\\[', right: '\\]', display: true },
+                            { left: '\\(', right: '\\)', display: false }
+                        ],
+                        throwOnError: false,
+                        output: 'html'
+                    });
+                } catch (e) {}
+            });
+        });
+    }
+    
+    watch(chatMessages, () => {
+        renderLatexInMessages();
+    }, { deep: true });
     
     function onMouseDown(e) {
         if (e.target.closest('.collapse-btn') || e.target.closest('.el-button') || e.target.closest('.chat-resize-handle')) return;
@@ -223,12 +260,17 @@ const ChatWidgetSetup = (props, { emit }) => {
         emit('start-resize', direction, e);
     }
     
+    onMounted(() => {
+        renderLatexInMessages();
+    });
+    
     return {
         showChatSidebar, chatSessions, currentChatSession, chatMessages, chatInput,
         selectedChatPapers, chatTyping, chatProgress, chatMessagesContainer, quickPrompts,
         t, createNewChat, selectChatSession, deleteChatSession, clearAllChatSessions,
         sendChatMessage, sendQuickPrompt, removeSelectedChatPaper,
         formatChatMessage, formatChatTime, handleChatScroll,
+        copyMessage, regenerateMessage,
         onMouseDown, toggleFullscreen, onResizeStart
     };
 };

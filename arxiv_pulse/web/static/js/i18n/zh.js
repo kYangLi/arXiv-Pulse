@@ -217,7 +217,9 @@ const i18nZh = {
         selectedPapers: '已选 {count} 篇论文:',
         welcome: '你好！我是 AI 助手，可以帮你分析论文、回答问题。有什么可以帮你的吗？',
         analyzePaper: '分析',
-        clearAll: '清空所有'
+        clearAll: '清空所有',
+        copy: '复制',
+        regenerate: '重新生成'
     },
     paper: {
         keyFindings: '关键发现',

@@ -217,7 +217,9 @@ const i18nEn = {
         selectedPapers: 'Selected {count} paper(s):',
         welcome: 'Hello! I\'m an AI assistant that can help you analyze papers and answer questions. How can I help you?',
         analyzePaper: 'Analyze',
-        clearAll: 'Clear All'
+        clearAll: 'Clear All',
+        copy: 'Copy',
+        regenerate: 'Regenerate'
     },
     paper: {
         keyFindings: 'Key Findings',
