@@ -11,7 +11,11 @@
 <body>
     <div id="app" v-cloak>
         <div v-if="showSetup" class="setup-container">
-            <div class="setup-card">
+            <div class="setup-wrapper">
+                <el-button circle class="setup-lang-btn" @click="toggleLanguage">
+                    {{ currentLang === 'zh' ? 'EN' : '中' }}
+                </el-button>
+                <div class="setup-card">
                 <h1>arXiv Pulse</h1>
                 <p class="subtitle">{{ t('home.subtitle') }}</p>
                 
@@ -119,12 +123,8 @@
                     </div>
                     <el-progress v-if="initProgress > 0" :percentage="initProgress" :status="initComplete ? 'success' : ''" style="margin-bottom: 24px;" />
                 </div>
+                </div>
             </div>
-            
-            <!-- Setup Language Switcher -->
-            <el-button circle class="setup-lang-btn" @click="toggleLanguage">
-                {{ currentLang === 'zh' ? 'EN' : '中' }}
-            </el-button>
         </div>
 
         <div v-else class="app-container">
@@ -1075,14 +1075,6 @@
                         { value: '30', label: isZh ? '30 天' : '30 days' }
                     ];
                 });
-
-                const limitOptions = [
-                    { value: '20', label: '20' },
-                    { value: '50', label: '50' },
-                    { value: '64', label: '64' },
-                    { value: '100', label: '100' },
-                    { value: '200', label: '200' }
-                ];
 
                 const syncYearOptions = computed(() => {
                     const isZh = currentLang.value === 'zh';
@@ -2459,7 +2451,7 @@
                     currentPage, stats, fieldStats, expandedGroups, recentPapers, searchResults, collections,
                     loadingRecent, updatingRecent, recentLogs, loadingProgress, loadingTotal, stopLoading,
                     recentDays, recentNeedSync, recentCategories,
-                    categoryOptions, daysOptions, limitOptions, syncYearOptions, initYearOptions, syncYearsBackOptions, searchDaysOptions, aiLanguageOptions,
+                    categoryOptions, daysOptions, syncYearOptions, initYearOptions, syncYearsBackOptions, searchDaysOptions, aiLanguageOptions,
                     searching, searchQuery, searchDays, searchLogs,
                     syncStatus, syncing, syncLogs, syncYearsBack, syncForce,
                     syncStatusText, syncStatusClass, syncTimeClass, formatSyncTime,

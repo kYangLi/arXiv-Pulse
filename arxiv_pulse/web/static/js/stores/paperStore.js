@@ -331,7 +331,7 @@ const usePaperStore = defineStore('paper', () => {
         try {
             const params = new URLSearchParams({
                 days: recentDays.value,
-                limit: configStore.settingsConfig.recent_papers_limit || 64
+                limit: configStore.settingsConfig.recent_papers_limit || 50
             });
             
             const response = await API.papers.recentUpdate(params.toString());

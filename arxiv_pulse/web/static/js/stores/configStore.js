@@ -18,7 +18,7 @@ const useConfigStore = defineStore('config', () => {
         years_back: 5,
         arxiv_max_results_per_field: 10000,
         arxiv_max_results: 100000,
-        recent_papers_limit: 64,
+        recent_papers_limit: 50,
         search_limit: 20
     });
     
@@ -33,7 +33,7 @@ const useConfigStore = defineStore('config', () => {
         years_back: 5,
         arxiv_max_results: 100000,
         arxiv_max_results_per_field: 10000,
-        recent_papers_limit: 64,
+        recent_papers_limit: 50,
         search_limit: 20,
         ui_language: 'zh',
         translate_language: 'zh'
@@ -187,7 +187,7 @@ const useConfigStore = defineStore('config', () => {
                 years_back: data.years_back || 5,
                 arxiv_max_results: data.arxiv_max_results || 100000,
                 arxiv_max_results_per_field: data.arxiv_max_results_per_field || 10000,
-                recent_papers_limit: data.recent_papers_limit || 64,
+                recent_papers_limit: data.recent_papers_limit || 50,
                 search_limit: data.search_limit || 20,
                 ui_language: data.ui_language || 'zh',
                 translate_language: data.translate_language || 'zh'

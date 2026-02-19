@@ -30,6 +30,7 @@ stop:
 	@pulse stop || echo "服务已停止或未运行"
 
 restart: dn up
+restart_init: dn_init up_init
 
 status:
 	@pulse status || echo "服务未运行"

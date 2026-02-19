@@ -74,7 +74,7 @@ class Config:
 
     @classproperty
     def RECENT_PAPERS_LIMIT(cls) -> int:
-        return cls._get_int("recent_papers_limit", 64)
+        return cls._get_int("recent_papers_limit", 50)
 
     @classproperty
     def SEARCH_LIMIT(cls) -> int:
@@ -85,16 +85,8 @@ class Config:
         return cls._get_int("years_back", 5)
 
     @classproperty
-    def REPORT_MAX_PAPERS(cls) -> int:
-        return cls._get_int("report_max_papers", 64)
-
-    @classproperty
     def SUMMARY_MAX_TOKENS(cls) -> int:
         return int(os.getenv("SUMMARY_MAX_TOKENS", "10000"))
-
-    @classproperty
-    def REPORT_DIR(cls) -> str:
-        return os.getenv("REPORT_DIR", "reports")
 
     @classproperty
     def DATA_DIR(cls) -> str:
@@ -143,6 +135,5 @@ class Config:
             print("警告: 未设置 AI_API_KEY。AI 总结和翻译功能将受限。")
         else:
             print(f"信息: 找到 AI API 密钥。模型: {cls.AI_MODEL}")
-        os.makedirs(cls.REPORT_DIR, exist_ok=True)
         os.makedirs(cls.DATA_DIR, exist_ok=True)
         return True

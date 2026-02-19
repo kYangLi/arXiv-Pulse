@@ -88,7 +88,7 @@ def enhance_paper_data(paper: Paper, session=None) -> dict[str, Any]:
 
 async def update_recent_papers(
     days: int = Query(7, ge=1, le=30),
-    limit: int = Query(64, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=200),
 ) -> StreamingResponse:
     """SSE endpoint for updating recent papers."""
 ```

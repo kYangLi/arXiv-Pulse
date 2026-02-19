@@ -163,13 +163,14 @@ async def start_sync_stream(
 
             try:
                 db = get_db()
+                recent_limit = Config.get("recent_papers_limit", 50)
                 with db.get_session() as session:
                     cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=7)
                     recent_papers = (
                         session.query(Paper)
                         .filter(Paper.published >= cutoff)
                         .order_by(Paper.published.desc())
-                        .limit(64)
+                        .limit(recent_limit)
                         .all()
                     )
                     paper_ids = [p.id for p in recent_papers]

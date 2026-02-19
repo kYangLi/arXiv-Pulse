@@ -65,7 +65,7 @@ async def list_papers(
 @router.get("/recent")
 async def get_recent_papers(
     days: int = Query(7, ge=1),
-    limit: int = Query(64, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=200),
 ):
     """Get recent papers with enhanced data"""
     with get_db().get_session() as session:

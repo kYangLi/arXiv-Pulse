@@ -312,12 +312,12 @@ CREATE TABLE collection_papers (
 | `ai_base_url` | string | - | API endpoint URL |
 | `ui_language` | string | zh | UI language (zh/en) |
 | `translate_language` | string | Chinese | Translation target language |
-| `years_back` | int | 3 | Years to sync |
+| `years_back` | int | 5 | Years to sync |
 | `arxiv_max_results` | int | 50000 | Max total results |
 | `arxiv_max_results_per_field` | int | 5000 | Max results per field |
 | `selected_fields` | json | [] | Selected research field IDs |
 | `search_queries` | json | [] | Custom search queries |
-| `recent_papers_limit` | int | 64 | Recent papers display limit |
+| `recent_papers_limit` | int | 50 | Recent papers display limit |
 | `search_limit` | int | 20 | Search results limit |
 
 ---

@@ -34,7 +34,6 @@ class ConfigUpdate(BaseModel):
     recent_papers_limit: int | None = None
     search_limit: int | None = None
     years_back: int | None = None
-    report_max_papers: int | None = None
     selected_fields: list[str] | None = None
     ui_language: str | None = None
     translate_language: str | None = None
@@ -55,7 +54,7 @@ class InitConfig(BaseModel):
     years_back: int = 5
     arxiv_max_results_per_field: int = 10000
     arxiv_max_results: int = 100000
-    recent_papers_limit: int = 64
+    recent_papers_limit: int = 50
     search_limit: int = 20
 
 
@@ -72,10 +71,9 @@ async def get_config():
         "search_queries": db.get_search_queries(),
         "arxiv_max_results": int(config.get("arxiv_max_results", 100000)),
         "arxiv_max_results_per_field": int(config.get("arxiv_max_results_per_field", 10000)),
-        "recent_papers_limit": int(config.get("recent_papers_limit", 64)),
+        "recent_papers_limit": int(config.get("recent_papers_limit", 50)),
         "search_limit": int(config.get("search_limit", 20)),
         "years_back": int(config.get("years_back", 5)),
-        "report_max_papers": int(config.get("report_max_papers", 64)),
         "selected_fields": db.get_selected_fields(),
         "is_initialized": db.is_initialized(),
         "ui_language": config.get("ui_language", "zh"),
@@ -106,8 +104,6 @@ async def update_config(config_update: ConfigUpdate):
         db.set_config("search_limit", str(config_update.search_limit))
     if config_update.years_back is not None:
         db.set_config("years_back", str(config_update.years_back))
-    if config_update.report_max_papers is not None:
-        db.set_config("report_max_papers", str(config_update.report_max_papers))
     if config_update.selected_fields is not None:
         db.set_selected_fields(config_update.selected_fields)
         search_queries = get_queries_for_fields(config_update.selected_fields)

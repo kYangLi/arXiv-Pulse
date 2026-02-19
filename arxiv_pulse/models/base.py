@@ -24,7 +24,6 @@ DEFAULT_CONFIG = {
     "search_queries": 'condensed matter physics AND cat:cond-mat.*; (ti:"density functional" OR abs:"density functional") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci OR cat:physics.chem-ph); (ti:"machine learning" OR abs:"machine learning") AND (cat:physics.comp-ph OR cat:cond-mat.mtrl-sci OR cat:physics.chem-ph)',
     "arxiv_max_results": "10000",
     "years_back": "5",
-    "report_max_papers": "64",
     "is_initialized": "false",
     "selected_fields": "[]",
 }
