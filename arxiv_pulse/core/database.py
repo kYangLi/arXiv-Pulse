@@ -21,8 +21,25 @@ class Database:
     def __new__(cls, db_url: str | None = None):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._engine = create_engine(db_url or "sqlite:///data/arxiv_papers.db")
+            cls._engine = create_engine(
+                db_url or "sqlite:///data/arxiv_papers.db",
+                pool_size=10,
+                max_overflow=20,
+                pool_pre_ping=True,
+                connect_args={"check_same_thread": False} if "sqlite" in (db_url or "") else {},
+            )
             Base.metadata.create_all(cls._engine)
+            from sqlalchemy import event
+
+            @event.listens_for(cls._engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                if "sqlite" in str(cls._engine.url):
+                    cursor = dbapi_connection.cursor()
+                    cursor.execute("PRAGMA journal_mode=WAL")
+                    cursor.execute("PRAGMA synchronous=NORMAL")
+                    cursor.execute("PRAGMA busy_timeout=30000")
+                    cursor.close()
+
         return cls._instance
 
     def __init__(self, db_url: str | None = None):

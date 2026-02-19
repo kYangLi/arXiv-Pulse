@@ -3,7 +3,7 @@ const CollectionDialogsTemplate = `
         <el-dialog v-model="showCreateCollection" :title="editingCollection ? t('collections.edit') : t('collections.create')" width="480px" @closed="cancelCollectionDialog">
             <el-form label-position="top" @submit.prevent="saveCollection">
                 <el-form-item :label="t('collections.name')">
-                    <el-input v-model="newCollection.name" :placeholder="t('collections.name')" @keyup.enter="saveCollection" />
+                    <el-input v-model="newCollection.name" :placeholder="t('collections.name')" />
                 </el-form-item>
                 <el-form-item :label="t('collections.description')">
                     <el-input v-model="newCollection.description" type="textarea" rows="3" :placeholder="t('collections.description')" />
