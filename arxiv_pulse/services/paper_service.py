@@ -79,7 +79,7 @@ def enhance_paper_data(paper: Paper, session=None, translation_service=None) -> 
 
     data = paper.to_dict()
     data["relevance_score"] = calculate_relevance_score(paper)
-    data["category_explanation"] = get_category_explanation(paper.categories or "")
+    data["category_explanation"] = get_category_explanation(paper.categories or "", Config.UI_LANGUAGE)
     data["ai_available"] = bool(Config.AI_API_KEY)
 
     if paper.summary:
