@@ -217,7 +217,7 @@ arxiv_pulse/
 │   └── arxiv.py            # ArXiv API interactions
 │
 ├── ai/                     # AI functionality
-│   ├── __init__.py         # PaperSummarizer, ReportGenerator exports
+│   ├── __init__.py         # PaperSummarizer export
 │   ├── summarizer.py       # Paper summarization
 │   └── report.py           # Report generation
 │

@@ -133,7 +133,7 @@ ArXiv-Pulse follows a layered architecture with clear separation of concerns:
 - **Features**: Abstract-based summarization, batch processing, streaming
 
 #### `ai/report.py` - Report Generator
-- **ReportGenerator class**: Generates PDF reports from paper collections
+- **ReportGenerator class**: Deprecated - figure extraction moved to services/figure_service.py
 - **Features**: WeasyPrint integration, markdown rendering, figure embedding
 
 #### `search/engine.py` - Search Engine
