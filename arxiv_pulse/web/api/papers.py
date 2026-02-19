@@ -7,6 +7,7 @@ import re
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from arxiv_pulse.core import Config
 from arxiv_pulse.models import Paper

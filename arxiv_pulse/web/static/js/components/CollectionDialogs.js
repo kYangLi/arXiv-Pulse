@@ -152,11 +152,11 @@ const CollectionDialogsTemplate = `
                     </template>
                 </div>
                 <div v-else class="empty-state">
-                    <p v-if="useAiSearch">{{ t('collections.aiNoResult') }}</p>
+                    <p v-if="useAiSearch && collectionPaperSearch">{{ t('collections.aiNoResult') }}</p>
                     <p v-else-if="collectionPaperSearch">{{ t('collections.noSearchResult') }}</p>
                     <p v-else>{{ t('collections.noPapersInCollection') }}</p>
                 </div>
-                <div v-if="collectionTotalPages > 1 && !useAiSearch" style="display: flex; justify-content: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light);">
+                <div v-if="collectionTotalPages > 1 && !(useAiSearch && collectionPaperSearch)" style="display: flex; justify-content: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light);">
                     <el-pagination
                         v-model:current-page="collectionCurrentPage"
                         :page-size="20"
