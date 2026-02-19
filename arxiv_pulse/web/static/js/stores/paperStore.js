@@ -14,6 +14,8 @@ const usePaperStore = defineStore('paper', () => {
     const recentUseAiSearch = ref(true);
     const recentSearchResults = ref([]);
     const recentOriginalPapers = ref([]);
+    const recentSearchController = ref(null);
+    const recentSearchController = ref(null);
     
     const homeQuery = ref('');
     const homeSearching = ref(false);
@@ -374,12 +376,16 @@ const usePaperStore = defineStore('paper', () => {
     }
     
     function resetRecentSearch() {
+        if (recentSearchController.value) {
+            recentSearchController.value.abort();
+            recentSearchController.value = null;
+        }
         if (recentOriginalPapers.value.length > 0) {
             recentPapers.value = [...recentOriginalPapers.value];
             recentOriginalPapers.value = [];
         }
-        recentSearchQuery.value = '';
         recentSearchResults.value = [];
+        recentSearching.value = false;
     }
     
     async function searchRecentPapers(configStore) {
@@ -393,11 +399,15 @@ const usePaperStore = defineStore('paper', () => {
         }
         
         if (recentUseAiSearch.value) {
+            if (recentSearchController.value) {
+                recentSearchController.value.abort();
+            }
+            recentSearchController.value = new AbortController();
             recentSearching.value = true;
             recentSearchResults.value = [];
             
             try {
-                const response = await API.papers.searchStream(`q=${encodeURIComponent(recentSearchQuery.value)}&limit=50`);
+                const response = await API.papers.searchStream(`q=${encodeURIComponent(recentSearchQuery.value)}&limit=50`, recentSearchController.value.signal);
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
@@ -425,9 +435,12 @@ const usePaperStore = defineStore('paper', () => {
                 const resultIds = new Set(recentSearchResults.value.map(p => p.arxiv_id));
                 recentPapers.value = recentOriginalPapers.value.filter(p => resultIds.has(p.arxiv_id));
             } catch (e) {
-                console.error('AI search failed:', e);
+                if (e.name !== 'AbortError') {
+                    console.error('AI search failed:', e);
+                }
             } finally {
                 recentSearching.value = false;
+                recentSearchController.value = null;
             }
         } else {
             const query = recentSearchQuery.value.toLowerCase();
