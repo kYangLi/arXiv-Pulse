@@ -60,7 +60,7 @@ const i18nZh = {
         searchInPage: '搜索',
         searchHint: '在当前论文中搜索',
         aiSearch: 'AI 搜索',
-        aiSearchPlaceholder: '描述你想找的论文，如：关于电池材料 DFT 计算的',
+        aiSearchPlaceholder: '描述论文，如：电池材料 DFT 计算',
         searchPapers: '搜索论文...',
         aiSearching: 'AI 搜索中...',
         noSearchResult: '未找到匹配的论文'
@@ -131,7 +131,7 @@ const i18nZh = {
         sortAsc: '升序',
         sortDesc: '降序',
         aiSearch: 'AI 检索',
-        aiSearchPlaceholder: '描述你想找的论文，如：关于电池材料 DFT 计算的',
+        aiSearchPlaceholder: '描述论文，如：电池材料 DFT 计算',
         aiSearching: 'AI 正在检索...',
         aiNoResult: '未找到匹配的论文',
         aiResult: '找到 {count} 篇匹配论文',

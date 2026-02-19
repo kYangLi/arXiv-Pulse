@@ -1,4 +1,6 @@
-# arXiv Pulse - Intelligent arXiv Literature Tracking System
+# arXiv Pulse
+
+> Intelligent arXiv Literature Tracking System
 
 [![Version](https://img.shields.io/pypi/v/arxiv-pulse.svg)](https://pypi.org/project/arxiv-pulse/)
 ![Python](https://img.shields.io/badge/python-3.12%2B-green)
@@ -24,6 +26,17 @@
 - **🛒 Paper Basket**: Select multiple papers for batch operations
 - **🔒 Secure by Default**: Localhost-only binding, explicit confirmation for remote access
 - **🌍 Multilingual Support**: UI in Chinese/English, translation to multiple languages
+
+## 🆕 What's New in 1.2.0
+
+- **Enhanced UI Components**: Redesigned buttons, switches, selects, dialogs with refined shadows and transitions
+- **Paper Index Numbers**: Visual index numbers on paper cards for easy reference
+- **Back-to-Top Button**: Quick navigation with scroll-aware floating button
+- **Tooltips for Floating Buttons**: Helpful labels on hover for all floating action buttons
+- **Recent Papers AI Search**: Search within recent papers using natural language
+- **Sync Page Improvements**: Better spacing, help icons with tooltips
+- **SQLite WAL Mode**: Concurrent read/write operations for better performance
+- **Bug Fixes**: Form submission, pagination visibility, index preservation during search
 
 ## 🚀 Quick Start
 

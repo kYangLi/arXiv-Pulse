@@ -53,7 +53,7 @@ ZH_DICT: dict = {
             "sort_asc": "升序",
             "sort_desc": "降序",
             "ai_search": "AI 检索",
-            "ai_search_placeholder": "描述你想找的论文，如：关于电池材料 DFT 计算的",
+            "ai_search_placeholder": "描述论文，如：电池材料 DFT 计算",
             "ai_searching": "AI 正在检索...",
             "ai_no_result": "未找到匹配的论文",
             "ai_result": "找到 {count} 篇匹配论文",
