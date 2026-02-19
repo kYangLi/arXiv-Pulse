@@ -215,12 +215,11 @@ GPL-3.0 - see [LICENSE](LICENSE) for details.
 
 ## 🙏 Acknowledgments
 
-This project was developed by [OpenCode](https://github.com/opencode-ai/opencode), an AI coding agent.
+This project was developed by [OpenCode](https://github.com/anomalyco/opencode), an AI coding agent.
 
 - **Yang Li** - For 500+ iterations of requirements discussions, design decisions, and testing feedback. This project would not exist without your patience and vision.
-- [GLM-5](https://www.zhipuai.cn/) - For providing the core intelligence that powers OpenCode. ~200 million tokens consumed in bringing this project to life.
+- [GLM-5](https://bigmodel.cn/glm-coding) - For providing the core intelligence that powers OpenCode. ~200 million tokens consumed in bringing this project to life.
 - [arXiv.org](https://arxiv.org) - For the open API
-- [DeepSeek](https://www.deepseek.com) - For AI models used in paper summarization
 - Computational materials science community - For inspiration and use cases
 
 ---

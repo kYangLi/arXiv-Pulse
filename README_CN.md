@@ -215,12 +215,11 @@ GPL-3.0 - 详见 [LICENSE](LICENSE)。
 
 ## 🙏 致谢
 
-本项目由 [OpenCode](https://github.com/opencode-ai/opencode) AI 编程智能体开发。
+本项目由 [OpenCode](https://github.com/anomalyco/opencode) AI 编程智能体开发。
 
 - **Yang Li** - 感谢您与我进行了 500+ 次需求迭代、设计讨论和测试反馈。没有您的耐心和愿景，就没有这个项目。
-- [GLM-5](https://www.zhipuai.cn/) - 感谢提供驱动 OpenCode 的核心智能。本项目截至目前已消耗约 2 亿 token。
+- [GLM-5](https://bigmodel.cn/glm-coding) - 感谢提供驱动 OpenCode 的核心智能。本项目截至目前已消耗约 2 亿 token。
 - [arXiv.org](https://arxiv.org) - 感谢开放 API
-- [DeepSeek](https://www.deepseek.com) - 感谢提供论文总结的 AI 模型
 - 计算材料科学社区 - 感谢灵感和使用场景
 
 ---
