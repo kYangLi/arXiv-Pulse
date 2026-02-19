@@ -346,7 +346,7 @@
                         </p>
                     </div>
 
-                    <div v-if="syncLogs.length > 0" class="logs-container">
+                    <div v-if="syncLogs.length > 0" class="logs-container sync-logs" ref="syncLogsContainerRef" @scroll="handleSyncLogsScroll">
                         <div v-for="(log, index) in syncLogs" :key="index" class="log-line" :class="log.type">
                             > {{ log.message }}
                         </div>
@@ -856,6 +856,24 @@
                     nextTick(() => {
                         const el = recentLogsContainerRef.value;
                         if (el && !recentUserScrolledUp.value) {
+                            el.scrollTop = el.scrollHeight;
+                        }
+                    });
+                });
+
+                const syncLogsContainerRef = ref(null);
+                const syncUserScrolledUp = ref(false);
+
+                function handleSyncLogsScroll(e) {
+                    const el = e.target;
+                    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 10;
+                    syncUserScrolledUp.value = !isAtBottom;
+                }
+
+                watch(() => syncLogs.value.length, () => {
+                    nextTick(() => {
+                        const el = syncLogsContainerRef.value;
+                        if (el && !syncUserScrolledUp.value) {
                             el.scrollTop = el.scrollHeight;
                         }
                     });
@@ -2469,6 +2487,7 @@
                     exportRecent, exportSearch, exportCollection, exportCollectionWithId,
                     navigateTo, navigateToHome, onTabChange, handleHomeSearch, stopHomeSearch, homeLogsContainerRef, handleHomeLogsScroll, toggleHomeSelect, exportHome,
                     stopUpdateRecent, recentLogsContainerRef, handleRecentLogsScroll,
+                    syncLogsContainerRef, handleSyncLogsScroll,
                     recentSearchQuery, recentSearching, recentUseAiSearch, recentOriginalPapers,
                     searchRecentPapers, resetRecentSearch,
                     showBackToTop, scrollToTop,

@@ -1151,6 +1151,11 @@
             max-height: 100px;
             padding: 12px 16px;
         }
+        .sync-logs {
+            max-height: 110px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+        }
         .stop-btn-recent {
             cursor: pointer;
             color: #909399;
