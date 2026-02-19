@@ -2716,6 +2716,18 @@
             transform: translateY(-1px);
         }
         
+        .el-button--warning.is-plain {
+            background: rgba(201, 162, 39, 0.1);
+            border-color: rgba(201, 162, 39, 0.3);
+            color: #b8922a;
+        }
+        
+        .el-button--warning.is-plain:hover {
+            background: rgba(201, 162, 39, 0.2);
+            border-color: #c9a227;
+            color: #b8922a;
+        }
+        
         /* Danger button */
         .el-button--danger {
             background: linear-gradient(135deg, #c45656 0%, #a84646 100%);
@@ -2752,6 +2764,18 @@
             background: linear-gradient(135deg, #7b8c9a 0%, #6b7c8a 100%);
             box-shadow: 0 2px 8px rgba(107, 124, 138, 0.18);
             transform: translateY(-1px);
+        }
+        
+        .el-button--info.is-plain {
+            background: rgba(107, 124, 138, 0.08);
+            border-color: rgba(107, 124, 138, 0.3);
+            color: #6b7c8a;
+        }
+        
+        .el-button--info.is-plain:hover {
+            background: rgba(107, 124, 138, 0.15);
+            border-color: #6b7c8a;
+            color: #5a6b79;
         }
         
         /* Default button */
