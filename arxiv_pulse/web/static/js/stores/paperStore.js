@@ -15,7 +15,6 @@ const usePaperStore = defineStore('paper', () => {
     const recentSearchResults = ref([]);
     const recentOriginalPapers = ref([]);
     const recentSearchController = ref(null);
-    const recentSearchController = ref(null);
     
     const homeQuery = ref('');
     const homeSearching = ref(false);
@@ -395,7 +394,7 @@ const usePaperStore = defineStore('paper', () => {
         }
         
         if (recentOriginalPapers.value.length === 0) {
-            recentOriginalPapers.value = [...recentPapers.value];
+            recentOriginalPapers.value = recentPapers.value.map((p, idx) => ({ ...p, _originalIndex: idx }));
         }
         
         if (recentUseAiSearch.value) {

@@ -105,7 +105,7 @@ const CollectionDialogsTemplate = `
                             :in-cart="isInCart(paper.arxiv_id)"
                             :t="t"
                             :current-lang="currentLang"
-                            :index="(collectionCurrentPage - 1) * 20 + idx"
+                            :index="paper._originalIndex !== undefined ? paper._originalIndex : (collectionCurrentPage - 1) * 20 + idx"
                             @add-to-collection="addToCollection"
                             @remove-from-collection="removePaperFromCollection"
                             @add-to-cart="addToCart"
@@ -114,7 +114,7 @@ const CollectionDialogsTemplate = `
                     </template>
                     <template v-else>
                         <div v-for="(paper, idx) in collectionPapers" :key="paper.id" class="collection-list-item">
-                            <span class="paper-index-list">{{ (collectionCurrentPage - 1) * 20 + idx + 1 }}</span>
+                            <span class="paper-index-list">{{ (paper._originalIndex !== undefined ? paper._originalIndex : (collectionCurrentPage - 1) * 20 + idx) + 1 }}</span>
                             <div class="list-item-content">
                                 <div class="list-item-header">
                                     <div class="list-item-title" @click="openPaperUrl(paper.arxiv_url)">{{ paper.title }}</div>

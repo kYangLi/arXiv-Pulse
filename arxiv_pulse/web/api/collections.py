@@ -470,6 +470,7 @@ async def ai_search_papers(collection_id: int, data: AISearchRequest):
                     paper = session.query(Paper).filter_by(id=p["id"]).first()
                     if paper:
                         paper_data = enhance_paper_data(paper)
+                        paper_data["_originalIndex"] = p["index"] - 1  # 0-based index
                         cp = (
                             session.query(CollectionPaper)
                             .filter_by(collection_id=collection_id, paper_id=p["id"])

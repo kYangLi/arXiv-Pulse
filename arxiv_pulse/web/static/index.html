@@ -283,7 +283,7 @@
                             :in-cart="isInCart(paper.arxiv_id)"
                             :t="t"
                             :current-lang="currentLang"
-                            :index="idx"
+                            :index="paper._originalIndex !== undefined ? paper._originalIndex : idx"
                             @add-to-collection="addToCollection"
                             @add-to-cart="addToCart"
                             @remove-from-cart="removeFromCartByArxivId"
