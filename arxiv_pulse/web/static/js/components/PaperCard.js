@@ -21,7 +21,7 @@ const PaperCardTemplate = `
             <span v-for="i in 5" :key="i" class="star">{{ i <= paper.relevance_score ? '★' : '☆' }}</span>
         </span>
     </div>
-    <div class="paper-category" v-if="paper.category_explanation">{{ paper.category_explanation }}</div>
+    <div class="paper-category" v-if="categoryExplanation">{{ categoryExplanation }}</div>
     
     <div class="abstract-section">
         <p class="abstract-text" :class="{ 'abstract-collapsed': !expanded }">{{ paper.abstract }}</p>
@@ -102,8 +102,7 @@ const PaperCardSetup = (props) => {
     const cardRef = ref(null);
     
     const t = props.t || ((key) => key);
-    const currentLang = ref(props.currentLang || 'zh');
-    const isZh = computed(() => currentLang.value === 'zh');
+    const isZh = computed(() => props.currentLang === 'zh');
     
     const toggleExpand = () => {
         const wasExpanded = expanded.value;
@@ -322,5 +321,12 @@ const PaperCardSetup = (props) => {
         window.dispatchEvent(new CustomEvent('analyze-paper', { detail: props.paper }));
     };
     
-    return { expanded, cardRef, toggleExpand, formatDate, formatSummary, openArxiv, downloadPDF, openImage, downloadCard, analyzePaper, t, currentLang, isZh };
+    const categoryExplanation = computed(() => {
+        if (isZh.value) {
+            return props.paper.category_explanation_zh || props.paper.category_explanation || '';
+        }
+        return props.paper.category_explanation_en || props.paper.category_explanation || '';
+    });
+    
+    return { expanded, cardRef, toggleExpand, formatDate, formatSummary, openArxiv, downloadPDF, openImage, downloadCard, analyzePaper, t, isZh, categoryExplanation };
 };

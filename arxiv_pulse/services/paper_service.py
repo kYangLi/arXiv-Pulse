@@ -7,7 +7,7 @@ from typing import Any
 
 from arxiv_pulse.core import Config
 from arxiv_pulse.models import CollectionPaper, FigureCache, Paper
-from arxiv_pulse.services.category_service import get_category_explanation
+from arxiv_pulse.services.category_service import get_category_explanations
 from arxiv_pulse.services.figure_service import get_figure_url_cached
 
 
@@ -72,14 +72,19 @@ def summarize_and_cache_paper(paper: Paper) -> bool:
         return False
 
 
-def enhance_paper_data(paper: Paper, session=None, translation_service=None) -> dict[str, Any]:
+def enhance_paper_data(paper: Paper, session=None, translation_service=None, lang: str | None = None) -> dict[str, Any]:
     """增强论文数据，添加翻译、关键发现、图片等"""
     from arxiv_pulse.services.translation_service import translate_text
     from arxiv_pulse.web.dependencies import get_db
 
     data = paper.to_dict()
     data["relevance_score"] = calculate_relevance_score(paper)
-    data["category_explanation"] = get_category_explanation(paper.categories or "", Config.UI_LANGUAGE)
+
+    # Get category explanations for both languages
+    cat_explanations = get_category_explanations(paper.categories or "")
+    data["category_explanation_zh"] = cat_explanations["zh"]
+    data["category_explanation_en"] = cat_explanations["en"]
+
     data["ai_available"] = bool(Config.AI_API_KEY)
 
     if paper.summary:

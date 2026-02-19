@@ -49,46 +49,44 @@ _CATEGORY_NAMES = {
 }
 
 
-def get_category_explanation(category_code: str, lang: str = "zh") -> str:
+def get_category_explanations(category_code: str) -> dict[str, str]:
     """
-    获取分类代码的解释
+    获取分类代码的中文和英文解释
 
-    Args:
-        category_code: 分类代码，如 "cs.LG, cond-mat.mtrl-sci"
-        lang: 语言，"zh" 返回 "中文 (英文)"，"en" 返回 "英文"
+    Returns:
+        dict: {"zh": "中文 (英文)", "en": "英文"}
     """
     if not category_code:
-        return ""
+        return {"zh": "", "en": ""}
 
     categories = [c.strip() for c in category_code.split(",")]
-    explanations = []
+    zh_parts = []
+    en_parts = []
 
     for cat in categories:
-        name = _get_single_category_name(cat, lang)
-        explanations.append(name)
+        zh_name, en_name = _get_single_category_names(cat)
+        zh_parts.append(zh_name)
+        en_parts.append(en_name)
 
-    return "; ".join(explanations)
+    return {"zh": "; ".join(zh_parts), "en": "; ".join(en_parts)}
 
 
-def _get_single_category_name(cat: str, lang: str) -> str:
-    """获取单个分类的名称"""
+def _get_single_category_names(cat: str) -> tuple[str, str]:
+    """获取单个分类的中英文名称，返回 (中文名称, 英文名称)"""
     if cat in _CATEGORY_NAMES:
         zh_name, en_name = _CATEGORY_NAMES[cat]
-        return f"{zh_name} ({en_name})" if lang == "zh" else en_name
+        return f"{zh_name} ({en_name})", en_name
 
     main_cat = cat.split(".")[0] if "." in cat else cat
     if main_cat in _CATEGORY_NAMES:
-        zh_name, en_name = _CATEGORY_NAMES[main_cat]
-        if lang == "zh":
-            return f"{cat} ({zh_name})"
-        else:
-            return f"{cat} ({en_name})"
+        zh_main, en_main = _CATEGORY_NAMES[main_cat]
+        return f"{cat} ({zh_main})", f"{cat} ({en_main})"
 
     all_cats = get_all_categories()
     if cat in all_cats:
         info = all_cats[cat]
         zh_name = info.get("name", cat)
         en_name = info.get("name_en", cat)
-        return f"{zh_name} ({en_name})" if lang == "zh" else en_name
+        return f"{zh_name} ({en_name})", en_name
 
-    return cat
+    return cat, cat
