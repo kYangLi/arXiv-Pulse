@@ -273,7 +273,7 @@
                             <el-button size="small" type="primary" @click="searchRecentPapers(configStore)" :loading="recentSearching">
                                 {{ t('papers.searchInPage') }}
                             </el-button>
-                            <el-button v-if="recentOriginalPapers.length > 0" size="small" @click="resetRecentSearch">
+                            <el-button v-if="recentOriginalPapers && recentOriginalPapers.length > 0" size="small" @click="resetRecentSearch">
                                 {{ currentLang === 'zh' ? '重置' : 'Reset' }}
                             </el-button>
                             <span class="search-hint-text">{{ t('papers.searchHint') }}</span>
