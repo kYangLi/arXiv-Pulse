@@ -4,16 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arxiv-pulse"
-version = "1.2.5"
+version = "1.2.6"
 authors = [
     {name = "Yang Li, OpenCode, GLM-5", email = "lyang.1915@gmail.com"},
 ]
-description = "An intelligent arXiv literature crawler and analyzer for physics research"
+description = "An intelligent arXiv literature crawler and analyzer with AI-powered features"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 keywords = [
-    "arXiv", "literature", "crawler", "physics", "materials science", "machine learning",
-    "density functional theory", "force fields", "condensed matter physics"
+    "arXiv", "literature", "crawler", "research", "paper", "AI", "summarization",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",

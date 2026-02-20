@@ -8,7 +8,7 @@
 
 > 🌐 **Language**: [中文文档](https://github.com/kYangLi/arXiv-Pulse/blob/main/README_CN.md)
 
-**arXiv Pulse** is a Python package for automated crawling, summarizing, and tracking of the latest research papers from arXiv in condensed matter physics, density functional theory (DFT), machine learning, force fields, and computational materials science. It provides a modern web interface for a professional literature management experience.
+**arXiv Pulse** is a Python package for automated crawling, summarizing, and tracking of the latest research papers from arXiv. It supports all arXiv categories and provides a modern web interface for a professional literature management experience.
 
 ## 📸 Screenshots
 
@@ -171,18 +171,20 @@ For detailed architecture, see [DEV.md](DEV.md).
 | `/api/stats` | GET | Database statistics |
 | `/api/chat/sessions/{id}/send` | POST (SSE) | Send message to AI |
 
-## 🧪 Supported Research Fields
+## 🧪 Research Fields
 
-20+ research fields available:
+arXiv Pulse supports **all arXiv categories**. Simply select your fields of interest in the Settings page. Pre-configured options include:
 
-| Category | Fields |
-|----------|--------|
+| Category | Example Fields |
+|----------|----------------|
 | Physics | Condensed Matter, Quantum Physics, High Energy, Nuclear, Astrophysics |
 | Computation | DFT, First-Principles, MD, Force Fields, Computational Physics |
-| AI/ML | Machine Learning, Artificial Intelligence |
+| AI/ML | Machine Learning, Artificial Intelligence, Computer Vision, NLP |
 | Chemistry | Quantum Chemistry, Chemical Physics |
 | Math | Mathematical Physics, Numerical Analysis, Statistics |
-| Others | Quantitative Biology, Electrical Engineering |
+| Others | Quantitative Biology, Electrical Engineering, Economics |
+
+You can also add custom search queries for any topic on arXiv.
 
 ## 🐛 Troubleshooting
 
