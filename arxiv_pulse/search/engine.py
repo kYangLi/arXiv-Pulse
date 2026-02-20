@@ -482,5 +482,64 @@ class SearchEngine:
             output.error("获取搜索历史失败", details={"exception": str(e)})
             return []
 
-    def save_search_query(self, query: str, description: str | None = None):
-        """保存搜索查询到历史（简单实现）"""
+    def calculate_search_relevance(self, paper: Paper, keywords: list[str], original_query: str) -> float:
+        """计算论文与搜索意图的相关性评分
+
+        Args:
+            paper: 论文对象
+            keywords: 从 AI 解析提取的关键词列表
+            original_query: 用户原始搜索词
+
+        Returns:
+            float: 相关性评分（越高越相关）
+        """
+        score = 0.0
+        title = (paper.title or "").lower()
+        abstract = (paper.abstract or "").lower()
+
+        for keyword in keywords:
+            kw = keyword.lower().strip('"').strip("'")
+
+            if not kw:
+                continue
+
+            # 标题完全匹配关键词
+            if kw == title:
+                score += 15
+            # 标题包含完整短语
+            elif kw in title:
+                score += 8
+            # 摘要包含完整短语
+            if kw in abstract:
+                score += 3
+
+            # 标题包含每个单词（对短语拆分）
+            for word in kw.split():
+                if len(word) > 2 and word in title:
+                    score += 1
+
+        # 原始查询在标题中出现
+        query_lower = original_query.lower()
+        if query_lower in title:
+            score += 10
+        elif query_lower in abstract:
+            score += 5
+
+        return score
+
+    def sort_papers_by_relevance(
+        self, papers: list[Paper], keywords: list[str], original_query: str
+    ) -> list[tuple[Paper, float]]:
+        """按相关性排序论文
+
+        Args:
+            papers: 论文列表
+            keywords: 关键词列表
+            original_query: 原始搜索词
+
+        Returns:
+            list[tuple[Paper, float]]: 按（论文，评分）排序的列表
+        """
+        scored = [(paper, self.calculate_search_relevance(paper, keywords, original_query)) for paper in papers]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored

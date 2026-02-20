@@ -17,8 +17,8 @@ const PaperCardTemplate = `
             <el-icon><User /></el-icon>
             {{ paper.authors?.slice(0, 2).map(a => a.name).join(', ') }}{{ paper.authors?.length > 2 ? (isZh ? ' 等' : ' et al.') : '' }}
         </span>
-        <span class="paper-relevance">
-            <span v-for="i in 5" :key="i" class="star">{{ i <= paper.relevance_score ? '★' : '☆' }}</span>
+        <span v-if="paper.search_relevance_score" class="paper-meta-item relevance-badge" :title="isZh ? '搜索相关性评分' : 'Search relevance score'">
+            🎯 {{ paper.search_relevance_score }}
         </span>
     </div>
     <div class="paper-category" v-if="categoryExplanation">{{ categoryExplanation }}</div>

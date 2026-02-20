@@ -410,7 +410,9 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
         yield sse_event("log", {"message": f"正在进行模糊搜索: {q}"})
         await asyncio.sleep(0.1)
 
-        search_terms = [q]
+        main_query = q
+        alternative_queries = []
+        keywords = []
 
         if Config.AI_API_KEY:
             try:
@@ -421,49 +423,74 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
 
                 client = openai.OpenAI(api_key=Config.AI_API_KEY, base_url=Config.AI_BASE_URL)
 
-                ai_prompt = f"""
-用户正在搜索arXiv物理/计算材料科学论文，查询是: "{q}"
+                ai_prompt = f"""用户搜索 arXiv 论文，查询是: "{q}"
 
-请将自然语言查询转换为适合arXiv搜索的关键词或短语。
+请分析查询意图并生成最优搜索策略：
 
-重要规则：
-1. 如果查询已经是明确的搜索词（如"DeepH"、"deep learning Hamiltonian"、"DFT计算"），直接使用它，不要添加同义词
-2. 如果查询包含专业术语、缩写或专有名词，保持原样作为主要搜索词
-3. 仅当查询非常模糊或一般性时，才生成1-2个相关关键词
-4. 优先保持查询的原始意图，不要添加不相关的关键词
-5. 对于英文查询，保持原样；对于中文查询，翻译为英文关键词
+1. 识别专有名词/缩写/特定术语（如 DeepH, NequIP, MACE, DFT 等），保持原样
+2. 对于中文查询，翻译为英文
+3. 使用 arXiv 高级搜索语法：
+   - AND 表示必须包含
+   - OR 表示任一包含  
+   - 引号 "" 表示精确短语匹配
+4. 生成主查询和备选查询
+5. 提取用于相关性计算的关键词
 
-返回格式：JSON数组，包含1-2个搜索关键词/短语。
-只返回JSON数组，不要其他文本。
-"""
+返回 JSON 格式：
+{{
+  "main_query": "精确的组合搜索词（使用 AND/OR/引号）",
+  "alternative_queries": ["备选查询1", "备选查询2"],
+  "keywords": ["关键词1", "关键词2"]
+}}
+
+示例：
+输入: "使用深度学习哈密顿量方法预测力场"
+输出: {{"main_query": "deep learning AND Hamiltonian AND force field", "alternative_queries": ["DeepH", "machine learning interatomic potentials"], "keywords": ["deep learning", "Hamiltonian", "force field"]}}
+
+输入: "DeepH"
+输出: {{"main_query": "DeepH", "alternative_queries": ["deep learning Hamiltonian"], "keywords": ["DeepH", "deep learning", "Hamiltonian"]}}
+
+只返回 JSON，不要其他文本。"""
 
                 response = client.chat.completions.create(
                     model=Config.AI_MODEL or "DeepSeek-V3.2",
                     messages=[
                         {
                             "role": "system",
-                            "content": "你是arXiv论文搜索助手，擅长识别专业术语并将自然语言查询转换为学术搜索关键词。",
+                            "content": "你是 arXiv 论文搜索助手，擅长识别专业术语并将自然语言查询转换为最优的学术搜索关键词。返回纯 JSON，不要 markdown 代码块。",
                         },
                         {"role": "user", "content": ai_prompt},
                     ],
-                    max_tokens=200,
-                    temperature=0.3,
+                    max_tokens=300,
+                    temperature=0.2,
                 )
 
                 ai_response = response.choices[0].message.content
                 if ai_response:
+                    ai_response = ai_response.strip()
+                    if ai_response.startswith("```"):
+                        ai_response = re.sub(r"^```(?:json)?\s*", "", ai_response)
+                        ai_response = re.sub(r"\s*```$", "", ai_response)
                     try:
                         parsed = json.loads(ai_response)
-                        if isinstance(parsed, list) and len(parsed) > 0:
-                            search_terms = parsed
-                            yield sse_event("log", {"message": f"AI 解析结果: {', '.join(search_terms)}"})
+                        if isinstance(parsed, dict):
+                            main_query = parsed.get("main_query", q)
+                            alternative_queries = parsed.get("alternative_queries", [])
+                            keywords = parsed.get("keywords", [])
+                            log_msg = f"AI 解析: 主查询={main_query}"
+                            if alternative_queries:
+                                log_msg += f", 备选={len(alternative_queries)}个"
+                            yield sse_event("log", {"message": log_msg})
                             await asyncio.sleep(0.1)
-                    except:
+                    except json.JSONDecodeError:
                         pass
 
-            except Exception:
-                yield sse_event("log", {"message": "AI 解析失败，使用原始搜索词"})
+            except Exception as e:
+                yield sse_event("log", {"message": f"AI 解析失败，使用原始搜索词: {str(e)[:50]}"})
                 await asyncio.sleep(0.1)
+
+        if not keywords:
+            keywords = [kw.strip() for kw in re.split(r"[^\w]+", q.lower()) if len(kw.strip()) > 2]
 
         import arxiv as arxiv_lib
 
@@ -476,13 +503,20 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
         yield sse_event("log", {"message": "正在从 arXiv 远程搜索..."})
         await asyncio.sleep(0.1)
 
+        queries_to_search = [main_query] + alternative_queries[:2]
+        searched_queries = set()
+
         try:
             crawler = ArXivCrawler()
-            for term in search_terms:
-                yield sse_event("log", {"message": f"远程搜索: {term}"})
+            for query in queries_to_search:
+                if query.lower() in searched_queries:
+                    continue
+                searched_queries.add(query.lower())
+
+                yield sse_event("log", {"message": f"远程搜索: {query}"})
                 await asyncio.sleep(0.05)
 
-                papers, total, new_count = crawler.search_and_save(term, max_results=15)
+                papers, total, new_count = crawler.search_and_save(query, max_results=15)
                 remote_total += total
                 remote_new += new_count
 
@@ -496,6 +530,9 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                     yield sse_event("log", {"message": "未找到相关论文"})
                 await asyncio.sleep(0.1)
 
+                if len(all_papers) >= 30:
+                    break
+
         except arxiv_lib.HTTPError:
             yield sse_event("log", {"message": "arXiv API 暂时不可用，仅使用本地搜索"})
             await asyncio.sleep(0.1)
@@ -508,9 +545,9 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
 
         with db.get_session() as session:
             search_engine = SearchEngine(session)
-            for term in search_terms:
+            for query in queries_to_search[:2]:
                 filter_config = SearchFilter(
-                    query=term,
+                    query=query,
                     search_fields=["title", "abstract"],
                     days_back=0,
                     limit=Config.SEARCH_LIMIT,
@@ -528,29 +565,33 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
                 seen_ids.add(p.arxiv_id)
                 unique_papers.append(p)
 
-        unique_papers.sort(key=lambda p: p.published if p.published else datetime.min, reverse=True)
-        papers = unique_papers[:25]
+        with db.get_session() as session:
+            search_engine = SearchEngine(session)
+            scored_papers = search_engine.sort_papers_by_relevance(unique_papers, keywords, q)
+            papers_with_scores = [(p, score) for p, score in scored_papers[:30] if score > 0]
+            if not papers_with_scores:
+                papers_with_scores = scored_papers[:25]
 
-        if not papers:
+        if not papers_with_scores:
             yield sse_event("log", {"message": "未找到匹配论文"})
             await asyncio.sleep(0.1)
             yield sse_event("done", {"total": 0})
             return
 
-        summary_msg = f"合并结果：共 {len(papers)} 篇论文"
+        summary_msg = f"合并结果：共 {len(papers_with_scores)} 篇论文（已按相关性排序）"
         if remote_new > 0:
-            summary_msg += f"（远程新增 {remote_new} 篇）"
+            summary_msg += f"，远程新增 {remote_new} 篇"
         yield sse_event("log", {"message": summary_msg})
         await asyncio.sleep(0.1)
 
-        for i, paper in enumerate(papers):
+        for i, (paper, relevance_score) in enumerate(papers_with_scores):
             with db.get_session() as s:
                 fresh_paper = s.query(Paper).filter_by(arxiv_id=paper.arxiv_id).first()
                 if fresh_paper:
                     paper = fresh_paper
 
             if not paper.summarized:
-                yield sse_event("log", {"message": f"[{i + 1}/{len(papers)}] 正在总结..."})
+                yield sse_event("log", {"message": f"[{i + 1}/{len(papers_with_scores)}] 正在总结..."})
                 await asyncio.sleep(0.05)
                 if summarize_and_cache_paper(paper):
                     with db.get_session() as s:
@@ -559,15 +600,18 @@ async def quick_fetch(q: str = Query(..., min_length=1)):
             with db.get_session() as s:
                 figure_url = get_figure_url_cached(paper.arxiv_id, s)
             if not figure_url:
-                yield sse_event("log", {"message": f"[{i + 1}/{len(papers)}] 获取图片..."})
+                yield sse_event("log", {"message": f"[{i + 1}/{len(papers_with_scores)}] 获取图片..."})
                 await asyncio.sleep(0.05)
                 fetch_and_cache_figure(paper.arxiv_id)
 
             enhanced = enhance_paper_data(paper)
-            yield sse_event("result", {"paper": enhanced, "index": i + 1, "total": len(papers), "match_type": "fuzzy"})
+            enhanced["search_relevance_score"] = round(relevance_score, 1)
+            yield sse_event(
+                "result", {"paper": enhanced, "index": i + 1, "total": len(papers_with_scores), "match_type": "fuzzy"}
+            )
             await asyncio.sleep(0.03)
 
-        yield sse_event("done", {"total": len(papers)})
+        yield sse_event("done", {"total": len(papers_with_scores)})
 
     return sse_response(event_generator)
 

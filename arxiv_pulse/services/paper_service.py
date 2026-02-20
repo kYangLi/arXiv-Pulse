@@ -11,45 +11,6 @@ from arxiv_pulse.services.category_service import get_category_explanations
 from arxiv_pulse.services.figure_service import get_figure_url_cached
 
 
-def calculate_relevance_score(paper) -> int:
-    """计算论文相关度评级 (1-5星)"""
-    query = (paper.search_query or "").lower()
-    categories = (paper.categories or "").lower()
-
-    core_domains = [
-        "condensed matter physics",
-        "density functional theory",
-        "first principles calculation",
-        "force fields",
-        "molecular dynamics",
-        "computational materials science",
-        "quantum chemistry",
-    ]
-    related_domains = ["machine learning"]
-    target_categories = ["cond-mat", "physics.comp-ph", "physics.chem-ph", "quant-ph"]
-    related_categories = ["cs.LG", "cs.AI", "cs.NE", "stat.ML"]
-    unrelated_categories = ["cs.CR", "cs.SE", "cs.PL", "cs.DC", "q-fin"]
-
-    score = 3
-    for domain in core_domains:
-        if domain in query:
-            score += 2
-            break
-    for domain in related_domains:
-        if domain in query:
-            score += 1
-            break
-    if any(cat in categories for cat in target_categories):
-        score += 2
-    elif any(cat in categories for cat in related_categories):
-        score += 1
-    if any(cat in categories for cat in unrelated_categories):
-        score -= 1
-    if "computational materials science" in query and any(cat in categories for cat in unrelated_categories):
-        score = max(2, score - 1)
-    return max(1, min(5, score))
-
-
 def extract_key_findings(summary: str | None) -> list[str]:
     """从summary JSON中提取关键发现"""
     if not summary:
@@ -78,7 +39,6 @@ def enhance_paper_data(paper: Paper, session=None, translation_service=None, lan
     from arxiv_pulse.web.dependencies import get_db
 
     data = paper.to_dict()
-    data["relevance_score"] = calculate_relevance_score(paper)
 
     # Get category explanations for both languages
     cat_explanations = get_category_explanations(paper.categories or "")
