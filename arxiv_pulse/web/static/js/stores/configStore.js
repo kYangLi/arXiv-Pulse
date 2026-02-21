@@ -42,6 +42,7 @@ const useConfigStore = defineStore('config', () => {
     const arxivCategories = ref({});
     const allCategories = ref({});
     const currentLang = ref('zh');
+    const currentTheme = ref('light');
     
     const showFieldSelector = ref(false);
     const fieldSelectorSource = ref('settings');
@@ -114,6 +115,16 @@ const useConfigStore = defineStore('config', () => {
     function setLanguage(lang) {
         currentLang.value = lang;
         document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    }
+    
+    function setTheme(theme) {
+        currentTheme.value = theme;
+        document.documentElement.setAttribute('data-theme', theme);
+    }
+    
+    function toggleTheme() {
+        const newTheme = currentTheme.value === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
     }
     
     function t(key, params = {}) {
@@ -340,12 +351,12 @@ const useConfigStore = defineStore('config', () => {
     return {
         showSetup, setupStep, testingAI, setupConfig,
         showSettings, savingSettings, settingsConfig,
-        arxivCategories, allCategories, currentLang,
+        arxivCategories, allCategories, currentLang, currentTheme,
         showFieldSelector, fieldSelectorSource, tempSelectedFields,
         fieldSearchQuery, fieldSelectorExpanded, recentCategories,
         fieldAdvancedMode, advancedQueriesText,
         filteredCategories, advancedQueriesLines, parsedCodeResult,
-        setLanguage, t, getFieldTranslation,
+        setLanguage, setTheme, toggleTheme, t, getFieldTranslation,
         checkInitStatus, fetchCategories, testSetupAI, fetchConfig,
         saveApiKey, testAIConnection, saveSettings,
         openFieldSelector, toggleFieldSelectorGroup, toggleTempField,

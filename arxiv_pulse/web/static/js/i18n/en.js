@@ -151,6 +151,9 @@ const i18nEn = {
     settings: {
         title: 'Settings',
         uiLanguage: 'UI Language',
+        theme: 'Theme',
+        lightTheme: 'Light',
+        darkTheme: 'Dark',
         aiConfig: 'AI Settings',
         apiBaseUrl: 'API Base URL',
         apiKey: 'API Key',

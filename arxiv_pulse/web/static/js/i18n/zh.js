@@ -151,6 +151,9 @@ const i18nZh = {
     settings: {
         title: '系统设置',
         uiLanguage: '界面语言',
+        theme: '主题',
+        lightTheme: '亮色',
+        darkTheme: '暗色',
         aiConfig: 'AI 设置',
         apiBaseUrl: 'API Base URL',
         apiKey: 'API Key',
