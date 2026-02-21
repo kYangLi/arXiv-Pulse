@@ -2,7 +2,7 @@ const SettingsDrawerTemplate = `
 <el-drawer :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" :title="t('settings.title')" size="480px" class="settings-drawer">
     <div style="padding: 24px;">
         <!-- UI Language -->
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 12px 16px; background: var(--bg-subtle); border-radius: 10px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 12px 16px; background: var(--bg-subtle); border-radius: 10px;">
             <span>
                 <span :style="{ fontWeight: currentLang === 'zh' ? 600 : 400, opacity: currentLang === 'zh' ? 1 : 0.5 }">界面语言</span>
                 <span style="margin: 0 6px; opacity: 0.3;">/</span>
@@ -11,6 +11,19 @@ const SettingsDrawerTemplate = `
             <el-radio-group :model-value="currentLang" size="small" @change="onLanguageChange">
                 <el-radio-button label="zh">中文</el-radio-button>
                 <el-radio-button label="en">EN</el-radio-button>
+            </el-radio-group>
+        </div>
+        
+        <!-- Theme Mode -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 12px 16px; background: var(--bg-subtle); border-radius: 10px;">
+            <span>
+                <span :style="{ fontWeight: currentLang === 'zh' ? 600 : 400, opacity: currentLang === 'zh' ? 1 : 0.5 }">颜色模式</span>
+                <span style="margin: 0 6px; opacity: 0.3;">/</span>
+                <span :style="{ fontWeight: currentLang === 'en' ? 600 : 400, opacity: currentLang === 'en' ? 1 : 0.5 }">Theme</span>
+            </span>
+            <el-radio-group :model-value="currentTheme" size="small" @change="onThemeChange">
+                <el-radio-button label="light">{{ currentLang === 'zh' ? '亮色' : 'Light' }}</el-radio-button>
+                <el-radio-button label="dark">{{ currentLang === 'zh' ? '暗色' : 'Dark' }}</el-radio-button>
             </el-radio-group>
         </div>
         
@@ -84,8 +97,8 @@ const SettingsDrawerTemplate = `
 const SettingsDrawerSetup = (props) => {
     const configStore = useConfigStore();
     
-    const { settingsConfig, savingSettings, testingAI, currentLang } = storeToRefs(configStore);
-    const { t, saveApiKey, testAIConnection, openFieldSelector, setLanguage } = configStore;
+    const { settingsConfig, savingSettings, testingAI, currentLang, currentTheme } = storeToRefs(configStore);
+    const { t, saveApiKey, testAIConnection, openFieldSelector, setLanguage, setTheme } = configStore;
     
     const aiLanguageOptions = [
         { value: 'zh', label: '中文' },
@@ -115,17 +128,23 @@ const SettingsDrawerSetup = (props) => {
         }
     };
     
+    const onThemeChange = (theme) => {
+        setTheme(theme);
+    };
+    
     return {
         settingsConfig,
         savingSettings,
         testingAI,
         currentLang,
+        currentTheme,
         t,
         saveApiKey,
         testAIConnection,
         openFieldSelector,
         aiLanguageOptions,
         initYearOptions,
-        onLanguageChange
+        onLanguageChange,
+        onThemeChange
     };
 };

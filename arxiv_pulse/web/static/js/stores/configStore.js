@@ -4,8 +4,7 @@ const useConfigStore = defineStore('config', () => {
     const testingAI = ref(false);
     
     const defaultFields = [
-        'cond-mat.mtrl-sci', 'cond-mat.str-el', 'cond-mat.supr-con',
-        'physics.comp-ph', 'physics.chem-ph', 'quant-ph'
+        'cond-mat.mtrl-sci', 'physics.comp-ph', 'cond-mat.dis-nn'
     ];
     
     const setupConfig = ref({
@@ -42,7 +41,7 @@ const useConfigStore = defineStore('config', () => {
     const arxivCategories = ref({});
     const allCategories = ref({});
     const currentLang = ref('zh');
-    const currentTheme = ref('light');
+    const currentTheme = ref(localStorage.getItem('theme') || 'light');
     
     const showFieldSelector = ref(false);
     const fieldSelectorSource = ref('settings');
@@ -120,12 +119,20 @@ const useConfigStore = defineStore('config', () => {
     function setTheme(theme) {
         currentTheme.value = theme;
         document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
     }
     
     function toggleTheme() {
         const newTheme = currentTheme.value === 'light' ? 'dark' : 'light';
         setTheme(newTheme);
     }
+    
+    function initTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+    }
+    
+    initTheme();
     
     function t(key, params = {}) {
         const keys = key.split('.');

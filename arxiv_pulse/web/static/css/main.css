@@ -36,6 +36,7 @@
             --key-findings-bg: #fffbf0;
             --methodology-bg: #f5f8fc;
             --theme-btn-bg: linear-gradient(135deg, #2d5a87 0%, #1e3a5f 100%);
+            --header-bg: #1e3a5f;
         }
         
         /* ===== Dark Theme ===== */
@@ -70,6 +71,7 @@
             --key-findings-bg: #2a2520;
             --methodology-bg: #1e2a3a;
             --theme-btn-bg: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            --header-bg: linear-gradient(135deg, #1a2332 0%, #242d3a 100%);
         }
         
         body { 
@@ -94,20 +96,25 @@
         }
         .setup-wrapper {
             display: flex;
-            flex-direction: column;
             align-items: flex-end;
-            gap: 12px;
+            gap: 16px;
             position: relative;
         }
-        .setup-wrapper .setup-lang-btn {
-            margin-bottom: 0;
+        .setup-side-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-self: stretch;
+            justify-content: flex-end;
         }
-        .setup-theme-btn {
+        .setup-side-buttons .el-button {
+            margin: 0 !important;
+        }
+        .setup-theme-btn, .setup-lang-btn {
             width: 44px !important;
             height: 44px !important;
             min-width: 44px !important;
             padding: 0 !important;
-            font-size: 18px;
             background: var(--theme-btn-bg) !important;
             border: none !important;
             color: white !important;
@@ -116,30 +123,21 @@
             border-radius: 50% !important;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             flex-shrink: 0;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
-        .setup-theme-btn:hover {
+        .setup-theme-btn:hover, .setup-lang-btn:hover {
             transform: scale(1.08);
             opacity: 1;
+        }
+        .setup-theme-btn svg {
+            width: 20px;
+            height: 20px;
         }
         .setup-lang-btn {
-            width: 44px !important;
-            height: 44px !important;
-            min-width: 44px !important;
-            padding: 0 !important;
             font-size: 14px;
             font-weight: 600;
-            background: var(--theme-btn-bg) !important;
-            border: none !important;
-            color: white !important;
-            opacity: 0.7;
-            transition: all 0.3s;
-            border-radius: 50% !important;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            flex-shrink: 0;
-        }
-        .setup-lang-btn:hover {
-            transform: scale(1.08);
-            opacity: 1;
         }
         .setup-card { 
             background: var(--bg-card); 
@@ -701,7 +699,7 @@
         }
         
         .header { 
-            background: var(--primary); 
+            background: var(--header-bg); 
             color: white; 
             padding: 0;
             position: sticky;
@@ -1577,6 +1575,7 @@
         }
         .settings-drawer .el-drawer__body {
             padding: 0;
+            background: var(--bg-card);
         }
         
         /* Export Bar */
@@ -2024,7 +2023,7 @@
             top: 0;
             bottom: 0;
             width: 240px;
-            background: white;
+            background: var(--bg-card);
             border-right: 1px solid var(--border-light);
             display: flex;
             flex-direction: column;
@@ -2504,7 +2503,7 @@
             gap: 8px;
             padding: 12px 16px;
             border-top: 1px solid var(--border-light);
-            background: white;
+            background: var(--bg-card);
         }
         .chat-input-area .el-input {
             flex: 1;
@@ -2666,7 +2665,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 8px 12px;
-            background: white;
+            background: var(--bg-card);
             border-radius: 6px;
             margin-bottom: 6px;
             font-size: 12px;
@@ -2705,7 +2704,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: white;
+            background: var(--bg-card);
         }
         .field-selector-footer .count {
             font-size: 12px;
@@ -3137,8 +3136,9 @@
         .el-dialog {
             border-radius: 16px;
             border: none;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--border-light);
             overflow: hidden;
+            background: var(--bg-card);
         }
         
         .el-dialog__header {
@@ -3182,6 +3182,7 @@
             padding: 24px;
             color: var(--text-secondary);
             line-height: 1.6;
+            background: var(--bg-card);
         }
         
         .el-dialog__footer {
@@ -3407,6 +3408,7 @@
             border: 1px solid var(--border-light);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
             padding: 6px;
+            background: var(--bg-card);
         }
         
         .el-dropdown-menu__item {
@@ -3521,6 +3523,9 @@
             border-radius: 8px;
             background: var(--bg-subtle);
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .el-drawer__close-btn:hover {
@@ -3529,6 +3534,7 @@
         
         .el-drawer__close-btn .el-icon {
             color: var(--text-muted);
+            font-size: 16px;
         }
         
         .el-drawer__close-btn:hover .el-icon {
@@ -3641,6 +3647,7 @@
             border: 1px solid var(--border-light);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
             padding: 12px 16px;
+            background: var(--bg-card);
         }
         
         /* ---------- MESSAGE BOX ENHANCEMENTS ---------- */
@@ -3650,6 +3657,7 @@
             border: none;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
             padding: 24px;
+            background: var(--bg-card);
         }
         
         .el-message-box__header {
@@ -3762,11 +3770,19 @@
             width: 100%;
         }
         
+        .el-input-group__prepend,
+        .el-input-group__append {
+            border-color: var(--border-light) !important;
+            background: var(--bg-subtle) !important;
+            box-shadow: none !important;
+        }
+        
         .el-input-group__append {
             border-left: none !important;
+            border-right: 1px solid var(--border-light) !important;
+            border-top: 1px solid var(--border-light) !important;
+            border-bottom: 1px solid var(--border-light) !important;
             border-radius: 0 8px 8px 0 !important;
-            background: var(--bg-subtle);
-            border-color: var(--border-light);
             padding: 0 4px;
         }
         
@@ -3785,12 +3801,20 @@
             border-right: none !important;
         }
         
+        .el-input-group:hover .el-input-group__prepend,
         .el-input-group:hover .el-input-group__append {
-            border-color: var(--border-medium);
+            border-color: var(--border-medium) !important;
+            box-shadow: none !important;
         }
         
         .el-input-group:hover .el-input__wrapper {
             border-color: var(--border-medium);
+        }
+        
+        .el-input-group:focus-within .el-input-group__prepend,
+        .el-input-group:focus-within .el-input-group__append {
+            border-color: var(--primary) !important;
+            box-shadow: none !important;
         }
         
         /* ---------- NOTIFICATION ENHANCEMENTS ---------- */
