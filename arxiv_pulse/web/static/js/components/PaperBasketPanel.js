@@ -34,7 +34,7 @@ const PaperBasketPanelTemplate = `
                     <div class="cart-item-meta">{{ paper.arxiv_id }} · {{ formatDate(paper.published) }}</div>
                 </div>
                 <div class="cart-item-actions">
-                    <el-button text size="small" @click.stop="removeFromCart(index)" :title="t('common.delete')">
+                    <el-button text size="small" @click.stop="removeFromCart(paper.arxiv_id)" :title="t('common.delete')">
                         <el-icon><Delete /></el-icon>
                     </el-button>
                 </div>
