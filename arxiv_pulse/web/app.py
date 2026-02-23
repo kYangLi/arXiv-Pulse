@@ -6,10 +6,11 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine
 
+from arxiv_pulse.__version__ import __version__
 from arxiv_pulse.core import Database
 from arxiv_pulse.models import Base
 from arxiv_pulse.web.api import cache, chat, collections, config, export, papers, stats, tasks
@@ -31,11 +32,11 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="arXiv Pulse",
         description="Intelligent arXiv literature crawler and analyzer",
-        version="0.9.0",
+        version=__version__,
         lifespan=lifespan,
     )
 
-    api_router = FastAPI(prefix="/api")
+    api_router = APIRouter()
     api_router.include_router(papers.router, prefix="/papers", tags=["papers"])
     api_router.include_router(collections.router, prefix="/collections", tags=["collections"])
     api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
@@ -45,15 +46,15 @@ def create_app() -> FastAPI:
     api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
     api_router.include_router(cache.router, tags=["cache"])
 
-    app.mount("/api", api_router)
+    app.include_router(api_router, prefix="/api")
+
+    @app.get("/api/health")
+    async def health_check():
+        return {"status": "ok", "version": __version__}
 
     static_path = Path(__file__).parent / "static"
     if static_path.exists() and any(static_path.iterdir()):
         app.mount("/", StaticFiles(directory=str(static_path), html=True), name="static")
-
-    @app.get("/api/health")
-    async def health_check():
-        return {"status": "ok", "version": "0.9.0"}
 
     return app
 
