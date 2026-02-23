@@ -98,7 +98,7 @@ const PaperCardTemplate = `
 `;
 
 const PaperCardSetup = (props) => {
-    const expanded = ref(false);
+    const expanded = ref(props.startExpanded || false);
     const cardRef = ref(null);
     
     const t = props.t || ((key) => key);
