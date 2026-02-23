@@ -594,7 +594,39 @@
             @start-drag="startDragCart"
             @bring-to-front="bringToFront('cart')"
             @add-to-collection="addCartToCollection"
+            @view-paper="viewPaperFromCart"
         ></paper-basket-panel>
+
+        <!-- Paper Detail Dialog -->
+        <el-dialog 
+            v-model="showPaperDetail" 
+            :title="null"
+            width="700px"
+            :z-index="detailZIndex"
+            @click="bringToFront('detail')"
+            class="paper-detail-dialog"
+        >
+            <template #header>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600;">{{ currentLang === 'zh' ? '论文详情' : 'Paper Detail' }}</span>
+                    <el-button text @click="showPaperDetail = false">
+                        <el-icon><Close /></el-icon>
+                    </el-button>
+                </div>
+            </template>
+            <paper-card 
+                v-if="selectedPaperForDetail"
+                :paper="selectedPaperForDetail"
+                :collections="collections"
+                :in-collection="false"
+                :in-cart="isInCart(selectedPaperForDetail.arxiv_id)"
+                :t="t"
+                :current-lang="currentLang"
+                @add-to-collection="addToCollection"
+                @add-to-cart="addToCart"
+                @remove-from-cart="removeFromCartByArxivId"
+            />
+        </el-dialog>
 
         <!-- Floating Buttons Left (Theme + Language + Settings) -->
         <div v-if="!showSetup" class="floating-buttons-left">
@@ -914,33 +946,45 @@
                 }
 
                 const showBackToTop = ref(false);
+                const showPaperDetail = ref(false);
+                const selectedPaperForDetail = ref(null);
+                const detailZIndex = ref(3000);
 
                 function scrollToTop() {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
 
+                function viewPaperFromCart(paper) {
+                    selectedPaperForDetail.value = paper;
+                    showPaperDetail.value = true;
+                    bringToFront('detail');
+                }
+
                 function bringToFront(panel) {
+                    const maxZ = Math.max(cartZIndex.value, chatZIndex.value, detailZIndex.value);
                     if (panel === 'cart') {
-                        cartZIndex.value = Math.max(cartZIndex.value, chatZIndex.value) + 1;
+                        cartZIndex.value = maxZ + 1;
                     } else if (panel === 'chat') {
-                        chatZIndex.value = Math.max(cartZIndex.value, chatZIndex.value) + 1;
+                        chatZIndex.value = maxZ + 1;
+                    } else if (panel === 'detail') {
+                        detailZIndex.value = maxZ + 1;
                     }
                 }
 
                 function handleEscKey(e) {
                     if (e.key === 'Escape') {
-                        // Close the panel with higher z-index first
-                        if (showCart.value && chatExpanded.value) {
-                            if (cartZIndex.value > chatZIndex.value) {
-                                showCart.value = false;
-                            } else {
-                                chatExpanded.value = false;
-                            }
-                        } else if (showCart.value) {
-                            showCart.value = false;
-                        } else if (chatExpanded.value) {
-                            chatExpanded.value = false;
-                        }
+                        const panels = [
+                            { show: showPaperDetail.value, close: () => showPaperDetail.value = false, zIndex: detailZIndex.value },
+                            { show: showCart.value, close: () => showCart.value = false, zIndex: cartZIndex.value },
+                            { show: chatExpanded.value, close: () => chatExpanded.value = false, zIndex: chatZIndex.value },
+                            { show: showCollectionDetail.value, close: () => showCollectionDetail.value = false, zIndex: 2000 },
+                        ];
+                        
+                        const visiblePanels = panels.filter(p => p.show);
+                        if (visiblePanels.length === 0) return;
+                        
+                        visiblePanels.sort((a, b) => b.zIndex - a.zIndex);
+                        visiblePanels[0].close();
                     }
                 }
 
@@ -2510,6 +2554,7 @@
                     recentSearchQuery, recentSearching, recentUseAiSearch, recentOriginalPapers,
                     searchRecentPapers, resetRecentSearch,
                     showBackToTop, scrollToTop,
+                    showPaperDetail, selectedPaperForDetail, detailZIndex, viewPaperFromCart,
                     chatExpanded, chatPosition, chatPanelRef, chatZIndex,
                     chatFullscreen, chatSize, chatAnimating,
                     selectedChatPapers, chatTyping, chatProgress, showChatSidebar,
@@ -2554,7 +2599,7 @@
         // Register paper-basket-panel component
         app.component('paper-basket-panel', {
             props: ['show', 'position', 'zIndex'],
-            emits: ['update:show', 'start-drag', 'bring-to-front', 'add-to-collection'],
+            emits: ['update:show', 'start-drag', 'bring-to-front', 'add-to-collection', 'view-paper'],
             template: PaperBasketPanelTemplate,
             setup: PaperBasketPanelSetup
         });

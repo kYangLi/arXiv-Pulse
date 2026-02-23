@@ -28,13 +28,13 @@ const PaperBasketPanelTemplate = `
                 <p style="margin-top: 12px; color: var(--text-muted);">{{ t('basket.empty') }}</p>
                 <p style="font-size: 12px; color: var(--text-muted);">{{ t('basket.emptyHint') }}</p>
             </div>
-            <div v-for="(paper, index) in paperCart" :key="paper.arxiv_id" class="cart-item">
+            <div v-for="(paper, index) in paperCart" :key="paper.arxiv_id" class="cart-item" @click="$emit('view-paper', paper)">
                 <div class="cart-item-info">
-                    <div class="cart-item-title">{{ paper.title }}</div>
+                    <div class="cart-item-title" v-html="renderLatex(paper.title)"></div>
                     <div class="cart-item-meta">{{ paper.arxiv_id }} · {{ formatDate(paper.published) }}</div>
                 </div>
                 <div class="cart-item-actions">
-                    <el-button text size="small" @click="removeFromCart(index)" :title="t('common.delete')">
+                    <el-button text size="small" @click.stop="removeFromCart(index)" :title="t('common.delete')">
                         <el-icon><Delete /></el-icon>
                     </el-button>
                 </div>
@@ -71,7 +71,7 @@ const PaperBasketPanelTemplate = `
 </transition>
 `;
 
-const PaperBasketPanelSetup = (props) => {
+const PaperBasketPanelSetup = (props, { emit }) => {
     const paperStore = usePaperStore();
     const configStore = useConfigStore();
     
@@ -86,6 +86,82 @@ const PaperBasketPanelSetup = (props) => {
         return new Date(dateStr).toLocaleDateString('zh-CN');
     };
     
+    const escapeHtml = (text) => {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+    
+    const renderLatex = (text) => {
+        if (!text) return '';
+        
+        if (typeof katex === 'undefined') {
+            return escapeHtml(text);
+        }
+        
+        const parts = [];
+        let lastIndex = 0;
+        
+        const patterns = [
+            { regex: /\$\$([^$]+)\$\$/g, displayMode: true },
+            { regex: /\\\[([^\\\]]+)\\\]/g, displayMode: true },
+            { regex: /\\\(([^)]+)\\\)/g, displayMode: false },
+            { regex: /\$([^$]+)\$/g, displayMode: false },
+        ];
+        
+        const allMatches = [];
+        
+        for (const { regex, displayMode } of patterns) {
+            let match;
+            const re = new RegExp(regex.source, regex.flags);
+            while ((match = re.exec(text)) !== null) {
+                allMatches.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    latex: match[1],
+                    displayMode,
+                    fullMatch: match[0],
+                });
+            }
+        }
+        
+        allMatches.sort((a, b) => a.start - b.start);
+        
+        const filteredMatches = [];
+        for (const m of allMatches) {
+            if (filteredMatches.length === 0 || m.start >= filteredMatches[filteredMatches.length - 1].end) {
+                filteredMatches.push(m);
+            }
+        }
+        
+        for (const m of filteredMatches) {
+            if (m.start > lastIndex) {
+                parts.push(escapeHtml(text.slice(lastIndex, m.start)));
+            }
+            try {
+                const html = katex.renderToString(m.latex, {
+                    displayMode: m.displayMode,
+                    throwOnError: false,
+                    trust: true,
+                });
+                parts.push(html);
+            } catch (e) {
+                parts.push(escapeHtml(m.fullMatch));
+            }
+            lastIndex = m.end;
+        }
+        
+        if (lastIndex < text.length) {
+            parts.push(escapeHtml(text.slice(lastIndex)));
+        }
+        
+        return parts.join('');
+    };
+    
     const handleExportCart = (format) => {
         paperStore.exportCart(format, configStore);
     };
@@ -94,6 +170,7 @@ const PaperBasketPanelSetup = (props) => {
         paperCart,
         panelRef,
         formatDate,
+        renderLatex,
         removeFromCart,
         clearCart,
         exportCart: handleExportCart,
