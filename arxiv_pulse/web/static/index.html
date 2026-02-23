@@ -601,12 +601,13 @@
         <!-- Paper Detail Dialog -->
         <el-dialog 
             v-model="showPaperDetail" 
-            :title="null"
             width="700px"
             :z-index="detailZIndex"
-            :show-close="false"
             class="paper-detail-dialog"
         >
+            <template #header>
+                <span style="font-weight: 600;">{{ currentLang === 'zh' ? '论文详情' : 'Paper Detail' }}</span>
+            </template>
             <paper-card 
                 v-if="selectedPaperForDetail"
                 :paper="selectedPaperForDetail"
