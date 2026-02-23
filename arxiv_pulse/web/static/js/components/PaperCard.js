@@ -1,10 +1,10 @@
 const PaperCardTemplate = `
 <div class="paper-card" :data-arxiv-id="paper.arxiv_id" ref="cardRef">
     <div class="paper-header">
-        <div class="paper-title" @click="openArxiv(paper.arxiv_id)">{{ paper.title }}</div>
+        <div class="paper-title" @click="openArxiv(paper.arxiv_id)" v-html="renderLatex(paper.title)"></div>
         <span v-if="index !== undefined" class="paper-index">{{ index + 1 }}</span>
     </div>
-    <div v-if="paper.title_translation" class="paper-title-cn">{{ paper.title_translation }}</div>
+    <div v-if="paper.title_translation" class="paper-title-cn" v-html="renderLatex(paper.title_translation)"></div>
     <div v-else-if="!paper.ai_available" class="paper-title-cn" style="color: var(--text-muted); font-style: italic;">
         {{ isZh ? '未配置 AI API Key，无法翻译' : 'AI API Key not configured' }}
     </div>
@@ -24,13 +24,13 @@ const PaperCardTemplate = `
     <div class="paper-category" v-if="categoryExplanation">{{ categoryExplanation }}</div>
     
     <div class="abstract-section">
-        <p class="abstract-text" :class="{ 'abstract-collapsed': !expanded }">{{ paper.abstract }}</p>
+        <p class="abstract-text" :class="{ 'abstract-collapsed': !expanded }" v-html="renderLatex(paper.abstract)"></p>
     </div>
     
     <template v-if="expanded">
         <div v-if="paper.abstract_translation" class="translation-section">
             <h4>{{ t('paper.chineseTranslation') }}</h4>
-            <p>{{ paper.abstract_translation }}</p>
+            <p v-html="renderLatex(paper.abstract_translation)"></p>
         </div>
         <div v-else-if="!paper.ai_available" class="translation-section" style="color: var(--text-muted); font-style: italic;">
             <h4>{{ t('paper.chineseTranslation') }}</h4>
@@ -50,13 +50,13 @@ const PaperCardTemplate = `
         
         <div v-if="paper.methodology" class="methodology-section">
             <h4>{{ t('paper.methodology') }}</h4>
-            <p>{{ paper.methodology }}</p>
+            <p v-html="renderLatex(paper.methodology)"></p>
         </div>
         
         <div v-if="paper.key_findings && paper.key_findings.length" class="key-findings">
             <h4>{{ t('paper.keyFindings') }}</h4>
             <ul>
-                <li v-for="(finding, i) in paper.key_findings" :key="i">{{ finding }}</li>
+                <li v-for="(finding, i) in paper.key_findings" :key="i" v-html="renderLatex(finding)"></li>
             </ul>
         </div>
         
@@ -123,6 +123,82 @@ const PaperCardSetup = (props) => {
     const formatSummary = (text) => {
         if (!text) return '';
         return text.replace(/\n/g, '<br>');
+    };
+    
+    const escapeHtml = (text) => {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+    
+    const renderLatex = (text) => {
+        if (!text) return '';
+        
+        if (typeof katex === 'undefined') {
+            return escapeHtml(text);
+        }
+        
+        const parts = [];
+        let lastIndex = 0;
+        
+        const patterns = [
+            { regex: /\$\$([^$]+)\$\$/g, displayMode: true },
+            { regex: /\\\[([^\\\]]+)\\\]/g, displayMode: true },
+            { regex: /\\\(([^)]+)\\\)/g, displayMode: false },
+            { regex: /\$([^$]+)\$/g, displayMode: false },
+        ];
+        
+        const allMatches = [];
+        
+        for (const { regex, displayMode } of patterns) {
+            let match;
+            const re = new RegExp(regex.source, regex.flags);
+            while ((match = re.exec(text)) !== null) {
+                allMatches.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    latex: match[1],
+                    displayMode,
+                    fullMatch: match[0],
+                });
+            }
+        }
+        
+        allMatches.sort((a, b) => a.start - b.start);
+        
+        const filteredMatches = [];
+        for (const m of allMatches) {
+            if (filteredMatches.length === 0 || m.start >= filteredMatches[filteredMatches.length - 1].end) {
+                filteredMatches.push(m);
+            }
+        }
+        
+        for (const m of filteredMatches) {
+            if (m.start > lastIndex) {
+                parts.push(escapeHtml(text.slice(lastIndex, m.start)));
+            }
+            try {
+                const html = katex.renderToString(m.latex, {
+                    displayMode: m.displayMode,
+                    throwOnError: false,
+                    trust: true,
+                });
+                parts.push(html);
+            } catch (e) {
+                parts.push(escapeHtml(m.fullMatch));
+            }
+            lastIndex = m.end;
+        }
+        
+        if (lastIndex < text.length) {
+            parts.push(escapeHtml(text.slice(lastIndex)));
+        }
+        
+        return parts.join('');
     };
     
     const openArxiv = (arxivId) => {
@@ -328,5 +404,5 @@ const PaperCardSetup = (props) => {
         return props.paper.category_explanation_en || props.paper.category_explanation || '';
     });
     
-    return { expanded, cardRef, toggleExpand, formatDate, formatSummary, openArxiv, downloadPDF, openImage, downloadCard, analyzePaper, t, isZh, categoryExplanation };
+    return { expanded, cardRef, toggleExpand, formatDate, formatSummary, renderLatex, openArxiv, downloadPDF, openImage, downloadCard, analyzePaper, t, isZh, categoryExplanation };
 };
