@@ -14,6 +14,10 @@ const usePaperStore = defineStore('paper', () => {
     const recentUseAiSearch = ref(true);
     const recentOriginalPapers = ref([]);
     
+    const recentTotalCount = ref(0);
+    const recentLoadingMore = ref(false);
+    const recentSelectedCategories = ref([]);
+    
     const homeQuery = ref('');
     const homeSearching = ref(false);
     const homeLogs = ref([]);
@@ -301,6 +305,7 @@ const usePaperStore = defineStore('paper', () => {
                             } else if (data.type === 'total') {
                                 loadingTotal.value = data.total;
                             } else if (data.type === 'done') {
+                                recentTotalCount.value = data.db_total || recentPapers.value.length;
                                 recentNeedSync.value = data.need_sync || false;
                                 if (recentPapers.value.length === 0) {
                                     recentLogs.value.push({ type: 'info', message: '暂无数据，请先同步论文' });
@@ -327,12 +332,19 @@ const usePaperStore = defineStore('paper', () => {
         recentLogs.value = [];
         recentOriginalPapers.value = [];
         recentSearchQuery.value = '';
+        recentPapers.value = [];
+        recentTotalCount.value = 0;
         
         try {
             const params = new URLSearchParams({
                 days: recentDays.value,
-                limit: configStore.settingsConfig.recent_papers_limit || 50
+                limit: configStore.settingsConfig.recent_papers_limit || 50,
+                need_sync: recentNeedSync.value
             });
+            
+            if (recentSelectedCategories.value.length > 0) {
+                params.set('categories', recentSelectedCategories.value.join(','));
+            }
             
             const response = await API.papers.recentUpdate(params.toString());
             const reader = response.body.getReader();
@@ -353,9 +365,10 @@ const usePaperStore = defineStore('paper', () => {
                             const data = JSON.parse(line.slice(6));
                             if (data.type === 'log') {
                                 recentLogs.value.push({ type: 'info', message: data.message });
-                            } else if (data.type === 'paper') {
-                                recentPapers.value.unshift(data.paper);
+                            } else if (data.type === 'result') {
+                                recentPapers.value.push(data.paper);
                             } else if (data.type === 'done') {
+                                recentTotalCount.value = data.total || recentPapers.value.length;
                                 recentNeedSync.value = false;
                                 recentLogs.value.push({ type: 'success', message: configStore?.currentLang === 'zh' ? '更新完成' : 'Update completed' });
                             } else if (data.type === 'error') {
@@ -369,6 +382,38 @@ const usePaperStore = defineStore('paper', () => {
             recentLogs.value.push({ type: 'error', message: `更新失败: ${e.message}` });
         } finally {
             updatingRecent.value = false;
+        }
+    }
+    
+    async function loadMoreRecentPapers(configStore) {
+        if (recentLoadingMore.value) return;
+        if (recentPapers.value.length >= recentTotalCount.value) return;
+        
+        recentLoadingMore.value = true;
+        
+        try {
+            const params = new URLSearchParams({
+                days: recentDays.value,
+                limit: configStore.settingsConfig.recent_papers_limit || 50,
+                offset: recentPapers.value.length
+            });
+            
+            if (recentSelectedCategories.value.length > 0) {
+                params.set('categories', recentSelectedCategories.value.join(','));
+            }
+            
+            const res = await API.papers.recent(params.toString());
+            const data = await res.json();
+            
+            if (data.papers && data.papers.length > 0) {
+                recentPapers.value.push(...data.papers);
+            }
+            recentTotalCount.value = data.total || recentTotalCount.value;
+        } catch (e) {
+            console.error('Failed to load more papers:', e);
+            ElementPlus.ElMessage.error(configStore?.currentLang === 'zh' ? '加载更多失败' : 'Failed to load more papers');
+        } finally {
+            recentLoadingMore.value = false;
         }
     }
     
@@ -603,13 +648,14 @@ const usePaperStore = defineStore('paper', () => {
         recentPapers, loadingRecent, loadingProgress, loadingTotal, loadingController,
         updatingRecent, recentLogs, recentDays, recentNeedSync, recentSelectedIds,
         recentSearchQuery, recentSearching, recentUseAiSearch, recentOriginalPapers,
+        recentTotalCount, recentLoadingMore,
         homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds, homeController, homeLogsContainer, homeUserScrolledUp,
         searchQuery, searching, searchLogs, searchResults, searchSelectedIds,
         paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex,
         stats, fieldStats,
         toggleRecentSelection, toggleAllRecent, toggleSearchSelection, toggleAllSearch,
         toggleHomeSelection, addToCart, removeFromCart, clearCart, isInCart, exportCart, copyCartLinks,
-        fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers,
+        fetchStats, fetchFieldStats, fetchRecentCache, updateRecentPapers, loadMoreRecentPapers,
         searchRecentPapers, resetRecentSearch,
         searchPapers, startHomeSearch, stopHomeSearch, exportPapers, updatePaperCollectionIds
     };

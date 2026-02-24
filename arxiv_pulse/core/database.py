@@ -226,21 +226,22 @@ class Database:
                 return cache.to_dict()
             return None
 
-    def set_recent_cache(self, days_back: int, paper_ids: list[int]) -> None:
+    def set_recent_cache(self, days_back: int, paper_ids: list[int], total_count: int | None = None) -> None:
         from arxiv_pulse.models import RecentResult
 
         with self.get_session() as session:
             existing = session.query(RecentResult).first()
+            actual_total = total_count if total_count is not None else len(paper_ids)
             if existing:
                 existing.days_back = days_back
                 existing.paper_ids = json.dumps(paper_ids)
-                existing.total_count = len(paper_ids)
+                existing.total_count = actual_total
                 existing.updated_at = datetime.now(UTC).replace(tzinfo=None)
             else:
                 cache = RecentResult(
                     days_back=days_back,
                     paper_ids=json.dumps(paper_ids),
-                    total_count=len(paper_ids),
+                    total_count=actual_total,
                 )
                 session.add(cache)
             session.commit()

@@ -30,6 +30,7 @@ const API = {
     },
 
     papers: {
+        recent: (params) => fetch(`${API_BASE}/papers/recent?${params}`),
         recentCacheStream: (params) => fetch(`${API_BASE}/papers/recent/cache/stream?${params}`),
         recentUpdate: (params, signal) => fetch(`${API_BASE}/papers/recent/update?${params}`, { method: 'POST', signal }),
         searchStream: (params, signal) => fetch(`${API_BASE}/papers/search/stream?${params}`, { signal }),

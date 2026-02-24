@@ -65,18 +65,34 @@ async def list_papers(
 async def get_recent_papers(
     days: int = Query(7, ge=1),
     limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    categories: str | None = Query(None, description="Comma-separated category codes"),
 ):
-    """Get recent papers with enhanced data"""
+    """Get recent papers with pagination and optional category filter"""
     with get_db().get_session() as session:
         cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=days)
-        papers = (
-            session.query(Paper).filter(Paper.published >= cutoff).order_by(Paper.published.desc()).limit(limit).all()
-        )
+        query = session.query(Paper).filter(Paper.published >= cutoff)
+
+        if categories:
+            from sqlalchemy import or_
+
+            cat_list = [c.strip() for c in categories.split(",")]
+            conditions = []
+            for cat in cat_list:
+                conditions.append(Paper.categories.contains(cat))
+                conditions.append(Paper.primary_category.contains(cat))
+            query = query.filter(or_(*conditions))
+
+        total = query.count()
+        papers = query.order_by(Paper.published.desc()).offset(offset).limit(limit).all()
 
         return {
             "days": days,
-            "total": len(papers),
-            "papers": [enhance_paper_data(p) for p in papers],
+            "total": total,
+            "offset": offset,
+            "limit": limit,
+            "has_more": offset + len(papers) < total,
+            "papers": [enhance_paper_data(p, session) for p in papers],
         }
 
 
@@ -130,13 +146,20 @@ async def get_recent_cache_stream():
 
         paper_ids = cache.get("paper_ids", [])
         total = len(paper_ids)
+        db_total = cache.get("total_count", total)
 
         if not paper_ids:
-            yield sse_event("done", {"total": 0, "cached": True})
+            yield sse_event("done", {"total": 0, "db_total": 0, "cached": True})
             return
 
         yield sse_event(
-            "start", {"total": total, "days_back": cache.get("days_back", 7), "updated_at": cache.get("updated_at")}
+            "start",
+            {
+                "total": total,
+                "db_total": db_total,
+                "days_back": cache.get("days_back", 7),
+                "updated_at": cache.get("updated_at"),
+            },
         )
         await asyncio.sleep(0.01)
 
@@ -153,7 +176,7 @@ async def get_recent_cache_stream():
                     yield sse_event("progress", {"index": i, "total": total})
                 await asyncio.sleep(0.01)
 
-        yield sse_event("done", {"total": total, "cached": True})
+        yield sse_event("done", {"total": total, "db_total": db_total, "cached": True})
 
     return sse_response(event_generator)
 
@@ -267,13 +290,14 @@ async def update_recent_papers(
                     conditions.append(Paper.primary_category.contains(cat))
                 query = query.filter(or_(*conditions))
 
+            total_count = query.count()
             papers = query.order_by(Paper.published.desc()).limit(query_limit).all()
             paper_ids = [p.id for p in papers]
 
-        yield sse_event("log", {"message": f"找到 {len(papers)} 篇最近论文"})
+        yield sse_event("log", {"message": f"找到 {total_count} 篇论文，加载前 {len(papers)} 篇"})
         await asyncio.sleep(0.1)
 
-        db.set_recent_cache(days_back=days, paper_ids=paper_ids)
+        db.set_recent_cache(days_back=days, paper_ids=paper_ids, total_count=total_count)
         yield sse_event("log", {"message": "缓存已更新"})
         await asyncio.sleep(0.1)
 
@@ -315,7 +339,13 @@ async def update_recent_papers(
 
         yield sse_event(
             "done",
-            {"total": len(papers), "synced": total_added, "summarized": summarized_count, "figures": figure_count},
+            {
+                "total": total_count,
+                "loaded": len(papers),
+                "synced": total_added,
+                "summarized": summarized_count,
+                "figures": figure_count,
+            },
         )
 
     return sse_response(event_generator)

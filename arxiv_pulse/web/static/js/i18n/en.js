@@ -63,7 +63,10 @@ const i18nEn = {
         aiSearchPlaceholder: 'Describe what you\'re looking for, e.g., DFT calculations for battery materials',
         searchPapers: 'Search papers...',
         aiSearching: 'AI searching...',
-        noSearchResult: 'No matching papers found'
+        noSearchResult: 'No matching papers found',
+        showing: 'Showing {count} of {total} papers',
+        loadMore: 'Load More',
+        allLoaded: 'All papers loaded'
     },
     sync: {
         status: 'Sync Status',

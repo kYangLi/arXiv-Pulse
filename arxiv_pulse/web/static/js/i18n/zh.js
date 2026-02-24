@@ -63,7 +63,10 @@ const i18nZh = {
         aiSearchPlaceholder: '描述论文，如：电池材料 DFT 计算',
         searchPapers: '搜索论文...',
         aiSearching: 'AI 搜索中...',
-        noSearchResult: '未找到匹配的论文'
+        noSearchResult: '未找到匹配的论文',
+        showing: '显示 {count} / {total} 篇论文',
+        loadMore: '加载更多',
+        allLoaded: '已加载全部论文'
     },
     sync: {
         status: '同步状态',

@@ -226,36 +226,38 @@
                 <main class="main-content" style="padding-bottom: 100px;">
                     <!-- Recent Papers Page -->
                     <div v-if="currentPage === 'recent'" class="page-content">
-                    <div class="search-options" style="margin-bottom: 20px;">
-                        <div class="search-options-row">
-                            <el-select v-model="recentDays" :placeholder="t('papers.timeRange')" style="width: 120px;">
-                                <el-option v-for="item in daysOptions" :key="item.value" :label="item.label" :value="item.value" />
-                            </el-select>
-                            <el-tooltip 
-                                :content="getSelectedFieldsTooltip()" 
-                                placement="bottom"
-                                :disabled="!hasSelectedFields()"
-                            >
-                                <el-button @click="openFieldSelector('recent')" plain>
-                                    <el-icon><Operation /></el-icon> {{ t('papers.filterFields') }}
+                    <div class="recent-fixed-header">
+                        <div class="search-options" style="margin-bottom: 20px;">
+                            <div class="search-options-row">
+                                <el-select v-model="recentDays" :placeholder="t('papers.timeRange')" style="width: 120px;">
+                                    <el-option v-for="item in daysOptions" :key="item.value" :label="item.label" :value="item.value" />
+                                </el-select>
+                                <el-tooltip 
+                                    :content="getSelectedFieldsTooltip()" 
+                                    placement="bottom"
+                                    :disabled="!hasSelectedFields()"
+                                >
+                                    <el-button @click="openFieldSelector('recent')" plain>
+                                        <el-icon><Operation /></el-icon> {{ t('papers.filterFields') }}
+                                    </el-button>
+                                </el-tooltip>
+                                <el-checkbox v-model="recentNeedSync">{{ t('papers.syncNewPapers') }}</el-checkbox>
+                                <el-button type="primary" @click="updateRecentPapers(configStore)" :loading="updatingRecent" :disabled="updatingRecent">
+                                    <el-icon><Refresh /></el-icon> {{ t('papers.update') }}
                                 </el-button>
-                            </el-tooltip>
-                            <el-checkbox v-model="recentNeedSync">{{ t('papers.syncNewPapers') }}</el-checkbox>
-                            <el-button type="primary" @click="updateRecentPapers" :loading="updatingRecent" :disabled="updatingRecent">
-                                <el-icon><Refresh /></el-icon> {{ t('papers.update') }}
-                            </el-button>
-                            <div v-if="updatingRecent" class="stop-btn-recent" @click="stopUpdateRecent" :title="currentLang === 'zh' ? '停止更新' : 'Stop update'">
-                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
-                                    <rect x="8" y="8" width="8" height="8" rx="1.5"/>
-                                </svg>
+                                <div v-if="updatingRecent" class="stop-btn-recent" @click="stopUpdateRecent" :title="currentLang === 'zh' ? '停止更新' : 'Stop update'">
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                                        <rect x="8" y="8" width="8" height="8" rx="1.5"/>
+                                    </svg>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div v-if="recentLogs.length > 0" class="logs-container recent-logs" ref="recentLogsContainerRef" @scroll="handleRecentLogsScroll" style="margin-bottom: 20px;">
-                        <div v-for="(log, index) in recentLogs" :key="index" class="log-line" :class="log.type">
-                            > {{ log.message || log }}
+                        <div v-if="recentLogs.length > 0" class="logs-container recent-logs" ref="recentLogsContainerRef" @scroll="handleRecentLogsScroll" style="margin-bottom: 16px;">
+                            <div v-for="(log, index) in recentLogs" :key="index" class="log-line" :class="log.type">
+                                > {{ log.message || log }}
+                            </div>
                         </div>
                     </div>
 
@@ -267,13 +269,13 @@
                             {{ t('common.stop') }}
                         </el-button>
                     </div>
-                    <div v-else-if="recentPapers.length > 0">
+                    <template v-else-if="recentPapers.length > 0">
                         <div class="recent-search-bar">
                             <el-input 
                                 v-model="recentSearchQuery" 
                                 :placeholder="recentUseAiSearch ? t('papers.aiSearchPlaceholder') : t('papers.searchPapers')" 
                                 clearable 
-                                style="width: 320px;" 
+                                style="width: 280px;" 
                                 @keyup.enter="searchRecentPapers(configStore)"
                                 @clear="resetRecentSearch"
                                 :disabled="recentSearching"
@@ -284,22 +286,36 @@
                             <el-button size="small" type="primary" @click="searchRecentPapers(configStore)" :loading="recentSearching">
                                 {{ t('papers.searchInPage') }}
                             </el-button>
-                            <span class="search-hint-text">{{ t('papers.searchHint') }}</span>
+                            <span class="search-divider">|</span>
+                            <span class="search-stats-text">{{ recentPapers.length }}/{{ recentTotalCount }} {{ currentLang === 'zh' ? '篇' : 'papers' }}</span>
+                            <el-button 
+                                v-if="recentTotalCount > recentPapers.length"
+                                size="small"
+                                type="primary"
+                                plain
+                                @click="loadMoreRecentPapers"
+                                :loading="recentLoadingMore"
+                            >
+                                {{ t('papers.loadMore') }} (+{{ settingsConfig.recent_papers_limit || 20 }})
+                            </el-button>
+                            </el-button>
                         </div>
-                        <paper-card 
-                            v-for="(paper, idx) in recentPapers" 
-                            :key="paper.id" 
-                            :paper="paper"
-                            :collections="collections"
-                            :in-cart="isInCart(paper.arxiv_id)"
-                            :t="t"
-                            :current-lang="currentLang"
-                            :index="paper._originalIndex !== undefined ? paper._originalIndex : idx"
-                            @add-to-collection="addToCollection"
-                            @add-to-cart="addToCart"
-                            @remove-from-cart="removeFromCartByArxivId"
-                        />
-                    </div>
+                        <div class="recent-papers-container" ref="recentPapersContainer">
+                            <paper-card 
+                                v-for="(paper, idx) in recentPapers" 
+                                :key="paper.id" 
+                                :paper="paper"
+                                :collections="collections"
+                                :in-cart="isInCart(paper.arxiv_id)"
+                                :t="t"
+                                :current-lang="currentLang"
+                                :index="paper._originalIndex !== undefined ? paper._originalIndex : idx"
+                                @add-to-collection="addToCollection"
+                                @add-to-cart="addToCart"
+                                @remove-from-cart="removeFromCartByArxivId"
+                            />
+                        </div>
+                    </template>
                     <div v-else class="empty-state">
                         <div class="icon"><el-icon><Document /></el-icon></div>
                         <h3>{{ t('papers.noPapers') }}</h3>
@@ -844,6 +860,7 @@
                     stats, fieldStats, recentPapers, loadingRecent, loadingProgress, loadingTotal, loadingController,
                     updatingRecent, recentLogs, recentDays, recentNeedSync,
                     recentSearchQuery, recentSearching, recentUseAiSearch, recentOriginalPapers,
+                    recentTotalCount, recentLoadingMore,
                     homeQuery, homeSearching, homeLogs, homeResults, homeSelectedIds, homeController, homeUserScrolledUp,
                     paperCart, showCart, cartExportLoading, cartPosition, cartPanelRef, cartZIndex
                 } = storeToRefs(paperStore);
@@ -1531,6 +1548,7 @@
                     loadingProgress.value = 0;
                     loadingTotal.value = 0;
                     recentPapers.value = [];
+                    recentTotalCount.value = 0;
                     
                     const controller = new AbortController();
                     loadingController.value = controller;
@@ -1556,6 +1574,7 @@
                                         const data = JSON.parse(line.slice(6));
                                         if (data.type === 'start') {
                                             loadingTotal.value = data.total;
+                                            recentTotalCount.value = data.db_total || data.total;
                                             recentPapers.value._cacheInfo = {
                                                 cached: data.cached,
                                                 updated_at: data.updated_at,
@@ -1568,6 +1587,7 @@
                                             loadingProgress.value = data.index;
                                         } else if (data.type === 'done') {
                                             loadingTotal.value = data.total;
+                                            recentTotalCount.value = data.db_total || data.total;
                                         }
                                     } catch (e) {}
                                 }
@@ -1595,6 +1615,7 @@
                     updatingRecent.value = true;
                     recentLogs.value = [];
                     recentPapers.value = [];
+                    recentTotalCount.value = 0;
                     recentUserScrolledUp.value = false;
                     recentUpdateController.value = new AbortController();
                     try {
@@ -1631,6 +1652,7 @@
                                         } else if (data.type === 'result') {
                                             recentPapers.value.push(data.paper);
                                         } else if (data.type === 'done') {
+                                            recentTotalCount.value = data.total || recentPapers.value.length;
                                             recentLogs.value.push({ type: 'success', message: currentLang.value === 'zh' ? '更新完成' : 'Update completed' });
                                             recentPapers.value._cacheInfo = { cached: true, updated_at: new Date().toISOString() };
                                         }
@@ -1646,6 +1668,41 @@
                     } finally {
                         updatingRecent.value = false;
                         recentUpdateController.value = null;
+                    }
+                }
+                
+                async function loadMoreRecentPapers() {
+                    if (recentLoadingMore.value) return;
+                    if (recentPapers.value.length >= recentTotalCount.value) return;
+                    
+                    recentLoadingMore.value = true;
+                    
+                    try {
+                        const params = new URLSearchParams({
+                            days: recentDays.value,
+                            limit: settingsConfig.value.recent_papers_limit || 50,
+                            offset: recentPapers.value.length
+                        });
+                        
+                        const cats = recentCategories.value.length > 0 
+                            ? recentCategories.value 
+                            : (settingsConfig.value.selected_fields || []);
+                        if (cats.length > 0) {
+                            params.set('categories', cats.join(','));
+                        }
+                        
+                        const res = await API.papers.recent(params.toString());
+                        const data = await res.json();
+                        
+                        if (data.papers && data.papers.length > 0) {
+                            recentPapers.value.push(...data.papers);
+                        }
+                        recentTotalCount.value = data.total || recentTotalCount.value;
+                    } catch (e) {
+                        console.error('Failed to load more papers:', e);
+                        ElementPlus.ElMessage.error(currentLang.value === 'zh' ? '加载更多失败' : 'Failed to load more papers');
+                    } finally {
+                        recentLoadingMore.value = false;
                     }
                 }
 
@@ -2566,7 +2623,8 @@
                     stopUpdateRecent, recentLogsContainerRef, handleRecentLogsScroll,
                     syncLogsContainerRef, handleSyncLogsScroll,
                     recentSearchQuery, recentSearching, recentUseAiSearch, recentOriginalPapers,
-                    searchRecentPapers, resetRecentSearch,
+                    recentTotalCount, recentLoadingMore,
+                    searchRecentPapers, resetRecentSearch, loadMoreRecentPapers,
                     showBackToTop, scrollToTop,
                     showPaperDetail, selectedPaperForDetail, detailZIndex, viewPaperFromCart,
                     collectionDetailZIndex,
