@@ -37,7 +37,7 @@ const CollectionDialogsTemplate = `
             </template>
         </el-dialog>
 
-        <el-dialog v-model="showCollectionDetail" width="800px" :z-index="collectionDetailZIndex">
+        <el-dialog v-model="showCollectionDetail" width="800px">
             <template #header>
                 <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                     <div>

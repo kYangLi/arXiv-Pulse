@@ -221,10 +221,22 @@ const PaperCardSetup = (props) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
+        const stripMarkdown = (text) => {
+            if (!text) return '';
+            return text
+                .replace(/\*\*([^*]+)\*\*/g, '$1')
+                .replace(/\*([^*]+)\*/g, '$1')
+                .replace(/__([^_]+)__/g, '$1')
+                .replace(/_([^_]+)_/g, '$1')
+                .replace(/`([^`]+)`/g, '$1')
+                .replace(/~~([^~]+)~~/g, '$1');
+        };
+        
         const wrapText = (text, maxWidth, fontSize, fontFamily = 'sans-serif', fontWeight = 'normal') => {
             if (!text) return [];
+            const cleanText = stripMarkdown(text);
             ctx.font = `${fontWeight} ${fontSize * scale}px ${fontFamily}`;
-            const chars = text.split('');
+            const chars = cleanText.split('');
             const result = [];
             let current = '';
             for (const char of chars) {
@@ -348,6 +360,8 @@ const PaperCardSetup = (props) => {
         elements.push({ type: 'text', text: `arXiv: ${props.paper.arxiv_id}`, font: `${12 * scale}px sans-serif`, color: '#909399', y: y });
         y += 24 * scale;
         elements.push({ type: 'text', text: 'arXiv Pulse', font: `bold ${13 * scale}px Georgia, serif`, color: '#c9a227', y: y });
+        y += 14 * scale;
+        elements.push({ type: 'text', text: 'github.com/kYangLi/arXiv-Pulse', font: `${10 * scale}px sans-serif`, color: '#b0b0b0', y: y });
         
         const height = y + padding;
         canvas.width = width;
